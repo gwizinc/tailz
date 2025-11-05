@@ -4,6 +4,7 @@ import { useTRPCClient } from '@/client/trpc'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { AppLayout } from '@/components/layout'
 
 export function SetupApp() {
   const trpc = useTRPCClient()
@@ -63,58 +64,62 @@ export function SetupApp() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Select repositories to enable</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Organization</label>
-              <select
-                className="border rounded px-3 py-2 w-full"
-                value={selectedOrg ?? ''}
-                onChange={(e) => {
-                  setSelectedOrg(e.target.value || null)
-                  setSelectedRepos({})
-                }}
-              >
-                <option value="">Select organization…</option>
-                {orgs.map((o: { slug: string; name: string }) => (
-                  <option key={o.slug} value={o.slug}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <Separator />
-
-            {selectedOrg && !loadingRepos && (
-              <div className="space-y-2">
-                {repos.length === 0 && <div className="text-sm text-muted-foreground">No repositories found.</div>}
-                {repos.map((r: { id: string; name: string; defaultBranch: string | null; enabled: boolean }) => (
-                  <label key={r.id} className="flex items-center gap-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedRepos[r.name] ?? r.enabled}
-                      onChange={() => onToggle(r.name)}
-                    />
-                    <span className="text-sm">{r.name}</span>
-                  </label>
-                ))}
-                <div className="pt-2">
-                  <Button onClick={onSave} disabled={saving}>
-                    Save selection
-                  </Button>
+    <AppLayout>
+      <div className="p-6 flex flex-col h-full overflow-auto">
+        <div className="max-w-3xl mx-auto w-full">
+          <Card>
+            <CardHeader>
+              <CardTitle>Select repositories to enable</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Organization</label>
+                  <select
+                    className="border rounded px-3 py-2 w-full"
+                    value={selectedOrg ?? ''}
+                    onChange={(e) => {
+                      setSelectedOrg(e.target.value || null)
+                      setSelectedRepos({})
+                    }}
+                  >
+                    <option value="">Select organization…</option>
+                    {orgs.map((o: { slug: string; name: string }) => (
+                      <option key={o.slug} value={o.slug}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                <Separator />
+
+                {selectedOrg && !loadingRepos && (
+                  <div className="space-y-2">
+                    {repos.length === 0 && <div className="text-sm text-muted-foreground">No repositories found.</div>}
+                    {repos.map((r: { id: string; name: string; defaultBranch: string | null; enabled: boolean }) => (
+                      <label key={r.id} className="flex items-center gap-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedRepos[r.name] ?? r.enabled}
+                          onChange={() => onToggle(r.name)}
+                        />
+                        <span className="text-sm">{r.name}</span>
+                      </label>
+                    ))}
+                    <div className="pt-2">
+                      <Button onClick={onSave} disabled={saving}>
+                        Save selection
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
   )
 }
 
