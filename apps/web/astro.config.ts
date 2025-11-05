@@ -149,6 +149,21 @@ const config = defineConfig({
         access: 'secret',
         optional: false,
       }),
+      GITHUB_APP_ID: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: false,
+      }),
+      GITHUB_APP_PRIVATE_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: false,
+      }),
+      GITHUB_APP_SLUG: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: false,
+      }),
     },
   },
 })

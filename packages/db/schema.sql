@@ -2,10 +2,24 @@
 -- PostgreSQL database dump
 --
 
-\restrict r9XXzjgcbwYddVxtoxkxbbsWhsCb23VXRxjkYoDaPhO6ycsbDCbrID1Nsz3CPJ0
+\restrict CNtU6swIBsleCxoLgC4q6fde6Mxdlpx51CChdZhSMMfSArfzDEgaaetxS5d3U6g
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
+
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS '';
 
 
 --
@@ -890,5 +904,5 @@ ALTER TABLE ONLY public.sessions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict r9XXzjgcbwYddVxtoxkxbbsWhsCb23VXRxjkYoDaPhO6ycsbDCbrID1Nsz3CPJ0
+\unrestrict CNtU6swIBsleCxoLgC4q6fde6Mxdlpx51CChdZhSMMfSArfzDEgaaetxS5d3U6g
 

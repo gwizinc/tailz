@@ -9,6 +9,11 @@ import { actionRouter } from './routers/action'
 export type { Context, Env, Session, SessionUser } from './context'
 
 export { getUser } from './actions/users/getters'
+export {
+  githubAppCallbackQuerySchema,
+  syncGithubInstallation,
+  setEnabledRepos,
+} from './actions/github/installations'
 
 export const appRouter = router({
   user: userRouter,

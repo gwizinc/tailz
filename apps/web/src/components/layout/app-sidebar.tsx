@@ -1,5 +1,5 @@
 import { navigate } from 'astro:transitions/client'
-import { Home } from 'lucide-react'
+import { Home, LogOut } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { signOut } from '@/client/auth-client'
 
 import { SidebarFooter } from '../ui/sidebar'
 
@@ -71,9 +72,11 @@ export function AppSidebar() {
         active={currentPath === '/'}
       />
 
-      <div className="flex-grow" />
+      <div className="grow" />
 
-      <SidebarFooter>{/* <SidebarUserDropdown /> */}</SidebarFooter>
+      <SidebarFooter>
+        <NavItem icon={<LogOut size={15} />} label="Logout" onClick={() => void signOut()} />
+      </SidebarFooter>
     </div>
   )
 }

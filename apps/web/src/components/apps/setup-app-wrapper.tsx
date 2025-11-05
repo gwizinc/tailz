@@ -1,11 +1,11 @@
 import { AppProvider } from '@/components/providers/app-provider'
+import { SetupApp } from './setup-app'
 
-import { OrgListApp } from './org-list-app'
-
-export function HomeApp() {
+export function SetupAppWrapper() {
   return (
     <AppProvider>
-      <OrgListApp />
+      <SetupApp />
     </AppProvider>
   )
 }
+

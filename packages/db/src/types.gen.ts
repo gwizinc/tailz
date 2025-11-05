@@ -146,6 +146,7 @@ export interface Owner {
    * Unique identifier for each owner
    */
   id: Generated<string>;
+  installationId: Int8 | null;
   /**
    * Owner login/handle (e.g., GitHub login)
    */
@@ -177,6 +178,7 @@ export interface Repo {
    * Repository description
    */
   description: string | null;
+  enabled: Generated<boolean>;
   /**
    * External provider id (e.g., GitHub repo id)
    */

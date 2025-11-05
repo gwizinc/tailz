@@ -2,6 +2,7 @@
 
 import { navigate } from 'astro:transitions/client'
 import React, { useEffect } from 'react'
+import { useTRPCClient } from '@/client/trpc'
 
 import { useSession } from '@/client/auth-client'
 
@@ -13,6 +14,24 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const session = useSession()
+  const trpc = useTRPCClient()
+  const [setupStatus, setSetupStatus] = React.useState<{
+    hasInstallation: boolean
+    hasEnabledRepos: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    if (!session.data) return
+    let mounted = true
+    ;(async () => {
+      const data = await trpc.org.getSetupStatus.query()
+      if (!mounted) return
+      setSetupStatus(data)
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [trpc, session.data])
 
   useEffect(() => {
     // Redirect if session exists but has no data (user not logged in)
@@ -21,6 +40,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       void navigate(`/auth?redirect=${window.location.pathname}`)
     }
   }, [session.isPending, session.data, session.error])
+
+  useEffect(() => {
+    if (!session.data || !setupStatus) return
+    const path = window.location.pathname
+    if (!setupStatus.hasInstallation && path !== '/setup') {
+      void navigate('/setup')
+    } else if (
+      setupStatus.hasInstallation &&
+      !setupStatus.hasEnabledRepos &&
+      path !== '/setup/repos'
+    ) {
+      void navigate('/setup/repos')
+    }
+  }, [session.data, setupStatus])
 
   if (session.isPending) {
     // You might want a more sophisticated loading skeleton here

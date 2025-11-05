@@ -40,7 +40,11 @@ export function OrgRepoDashboardLoader() {
           return
         }
         setOrg(currentOrg ?? null)
-        setRepos(reposResp.repos)
+        setRepos(
+          (reposResp.repos as Array<{ id: string; name: string; defaultBranch: string | null }>).map(
+            (r) => ({ id: r.id, name: r.name, defaultBranch: r.defaultBranch ?? undefined }),
+          ),
+        )
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load data')
       } finally {
