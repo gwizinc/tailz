@@ -1,0 +1,10 @@
+camelCase: true
+excludePattern: '(spatial_ref_sys|pgmigrations)'
+singularize: true
+outFile: './src/types.gen.ts'
+# overrides:
+# columns:
+# Put overrides here using the format:
+# 'table_name.column_name_in_snake_case': 'typescript_type'.
+# 'messages.asset_ids': 'string[] | null'
+# 'messages.content': "import('./column-types').MessageContent""

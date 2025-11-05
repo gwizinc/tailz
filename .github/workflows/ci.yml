@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Lint
+        run: pnpm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Run tests
+        run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+
+    # As soon as tests need to be run against a database, uncomment the following services
+    #
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_DB: test
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #     ports:
+    #       - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      # As soon as tests need to be run against a database, uncomment the following steps
+
+      # - name: Migrate test database
+      #   run: pnpm --filter @app/db db:migrate
+      #   env:
+      #     DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/test'
+
+      # - name: Seed test database
+      #   run: pnpm --filter @app/db db:seed
+      #   env:
+      #     DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/test'
+
+      - name: Build
+        run: pnpm run build
+        env:
+          # Public client-side variables (can use placeholders for CI)
+          SITE_BASE_URL: 'http://localhost:3001'
+
+          # Server-side variables (using placeholders - you may want to use GitHub secrets for real values)
+          DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/test'
+          AUTH_SECRET: 'ci-auth-secret-placeholder'
+          GITHUB_CLIENT_ID: 'ci-github-client-id'
+          GITHUB_CLIENT_SECRET: 'ci-github-client-secret'

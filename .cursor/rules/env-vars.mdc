@@ -1,0 +1,153 @@
+---
+description: How to add env vas or environmental variables to the app.
+globs: 
+alwaysApply: false
+---
+**Environment Variables (Astro Way)**: Astro provides type-safe environment variables. Follow these steps:
+
+    **1. Define in astro.config.ts:**
+    ```typescript
+    // astro.config.ts
+    env: {
+      schema: {
+        MY_ENV_VAR: envField.string({
+          context: 'server',  // 'server' or 'client'
+          access: 'secret',   // 'secret' or 'public'
+          optional: false,    // true if the variable is optional
+        }),
+        PUBLIC_API_URL: envField.string({
+          context: 'client',
+          access: 'public',
+          optional: false,
+        }),
+      },
+    },
+    ```
+
+    **2. Import and use in your code:**
+    ```typescript
+    // Server-side variables (access: 'secret', context: 'server')
+    import { DATABASE_URL, MAILGUN_WEBHOOK_SIGNING_KEY } from 'astro:env/server'
+    
+    // Client-side variables (access: 'public', context: 'client')
+    import { LIVEKIT_API_KEY } from 'astro:env/client'
+    ```
+
+    **Key guidelines:**
+    - **Server variables** (`context: 'server'`): Only accessible in server-side code, import from `astro:env/server`
+    - **Client variables** (`context: 'client'`): Accessible in both client and server code, import from `astro:env/client`
+    - **Secret variables** (`access: 'secret'`): Should never be exposed to the client
+    - **Public variables** (`access: 'public'`): Can be safely exposed to the client
+    - All environment variables are type-safe and validated at build time
+    - Ignore linter errors on recently created env vars. Astro needs to rerun its dev server to update its internal types references first.
+
+    **Example usage:**
+    ```typescript
+    // apps/web/src/server/db.ts
+    import { setupDb } from '@app/db'
+    import { DATABASE_URL } from 'astro:env/server'
+    
+    export const db = setupDb({
+      connectionString: DATABASE_URL,
+    })
+    ```
+    
+
+**Passing Environment Variables to tRPC**: To make environment variables available in tRPC procedures, follow this pattern:
+
+    **1. Define the Env interface in context.ts:**
+    ```typescript
+    // packages/api/src/context.ts
+    export interface Env {
+      appEndpoint: string
+      gcsProjectId: string
+      ...
+    }
+
+    export interface Context {
+      db: Kysely<DB>
+      env: Env
+      session: Session | null
+      user: SelectableUser | null
+    }
+    ```
+
+    **2. Pass environment variables in the tRPC handler:**
+    ```typescript
+    // apps/web/src/pages/api/trpc/[trpc].ts
+    import { LIVEKIT_API_KEY } from 'astro:env/client'
+    import {
+      GCS_BUCKET,
+      GCS_CLIENT_EMAIL,
+      GCS_PRIVATE_KEY,
+      GCS_PROJECT_ID,
+      GEMINI_API_KEY,
+      LIVEKIT_API_SECRET,
+      LIVEKIT_URL,
+      PERPLEXITY_API_KEY,
+    } from 'astro:env/server'
+
+    async function createContext({ req }: CreateContextOptions): Promise<Context> {
+      const env: Env = {
+        appEndpoint: getAppEndpoint(req),
+        gcsProjectId: GCS_PROJECT_ID,
+       ...
+      }
+
+      return { db, session: session ?? null, env, user }
+    }
+    ```
+
+    **3. Access environment variables in tRPC procedures:**
+    ```typescript
+    // In any tRPC procedure
+    export const myProcedure = protectedProcedure
+      .input(z.object({ /* ... */ }))
+      .mutation(async ({ ctx, input }) => {
+        // Access env vars through ctx.env
+        const gcsProjectId = ctx.env.gcsProjectId
+        // ... use the environment variables
+      })
+    ```
+
+    **Key guidelines for tRPC env vars:**
+    - Always define new env vars in the `Env` interface in `context.ts`
+    - Import env vars from Astro's env system in the tRPC handler
+    - Map them to the `env` object in `createContext`
+    - Access them via `ctx.env` in any tRPC procedure
+    - This ensures type safety and centralized env var management
+
+**Build and CI Configuration**: When adding new environment variables, you must also update build and CI configuration files:
+
+    **1. Update turbo.json:**
+    Add new environment variables to the `env` array under the `build` task so Turborepo can properly cache builds:
+    ```json
+    // turbo.json
+    {
+      "tasks": {
+        "build": {
+          "outputs": ["dist/**"],
+          "dependsOn": ["^build"],
+          "env": [
+            "DATABASE_URL",
+            "AUTH_SECRET",
+            "MY_NEW_ENV_VAR",   // Add your new env var here
+            // ... other env vars
+          ]
+        }
+      }
+    }
+    ```
+
+    **2. Update GitHub Actions (if needed):**
+    If your environment variable needs to be available during CI/CD builds or tests, ensure it's properly configured in your GitHub Actions workflows. This may involve:
+    - Adding the env var to repository secrets (for sensitive values)
+    - Setting the env var in workflow files (for public values)
+    - Updating setup actions if they need access to the env var
+
+    **Key guidelines for build/CI config:**
+    - **Always** add new env vars to `turbo.json` if they affect build output
+    - Only add sensitive env vars to GitHub repository secrets, never commit them to workflow files
+    - Test your builds locally with the new env vars before pushing
+    - Consider whether the env var is needed at build time vs runtime
+    - Document any new env vars in your project's README or deployment docs

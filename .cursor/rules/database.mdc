@@ -1,0 +1,136 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Database
+
+Find the schema here: [schema.sql](mdc:packages/db/schema.sql)
+
+### Commands
+
+Run from the root directory:
+
+- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate:create <name>` - Create a new database migration template
+- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate` - Run database migrations
+- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate:down` - Rollback database migrations
+- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:reset` - Reset database
+- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:seed` - Seed database with initial data (default tenant and permissions)
+
+### Create a new migration
+
+1. Run `db:migrate:create <myname>`
+2. Edit the file it creates, always add an Up and Down migration.
+3. Run `db:migrate`
+
+Note:
+
+- Do not generate types.gen.ts files yourself - they'll be auto generated.
+- Never alter an `OWNER` in a migration.
+
+### Using Kysely Type Helpers
+
+When working with database types in TypeScript, always use Kysely's type helper utilities for proper type safety:
+
+1. **Selectable<T>** - Use when selecting/reading data from the database:
+   ```typescript
+   import type { Selectable } from 'kysely'
+   import type { User } from '@app/db/types'
+   
+   // Function that returns user data from DB
+   async function getUser(id: string): Promise<Selectable<User> | null> {
+     return await db.selectFrom('users').where('id', '=', id).selectAll().executeTakeFirst()
+   }
+   
+   // Component props
+   interface UserProfileProps {
+     user: Selectable<User>
+   }
+   ```
+
+2. **Insertable<T>** - Use when inserting data into the database:
+   ```typescript
+   import type { Insertable } from 'kysely'
+   import type { Project } from '@app/db/types'
+   
+   // Function parameters for creating records
+   async function createProject(data: Insertable<Project>): Promise<Selectable<Project>> {
+     return await db.insertInto('projects').values(data).returningAll().executeTakeFirstOrThrow()
+   }
+   
+   // Partial inserts with required fields
+   async function createUser(data: Partial<Insertable<User>> & { email: string; tenantId: string }) {
+     return await db.insertInto('users').values({
+       emailVerified: false,
+       status: 'active',
+       ...data,
+     }).returningAll().executeTakeFirstOrThrow()
+   }
+   ```
+
+3. **Updateable<T>** - Use when updating records in the database:
+   ```typescript
+   import type { Updateable } from 'kysely'
+   import type { Task } from '@app/db/types'
+   
+   async function updateTask(id: string, data: Updateable<Task>): Promise<Selectable<Task>> {
+     return await db.updateTable('tasks')
+       .set(data)
+       .where('id', '=', id)
+       .returningAll()
+       .executeTakeFirstOrThrow()
+   }
+   ```
+
+4. **General Guidelines**:
+   - Never use raw table types directly (e.g., `User`, `Project`) for function parameters or return types
+   - Always wrap with appropriate helper based on the operation
+   - For partial updates/inserts, combine `Partial<Insertable<T>>` or `Partial<Updateable<T>>` with required fields
+   - When passing database records between functions/components, use `Selectable<T>`
+   - We use underscore naming for table columns in the database, but Kysely always maps these to camelCase names. So from within TypeScript, you will need to use camelCase when interacting with a column, say, using it in a `where` condition.
+   - **Timestamp columns are typed as `Date`**: Columns like `TIMESTAMP` or `TIMESTAMPTZ` are automatically returned as JavaScript `Date` objects (not strings). You can safely call `getTime()` etc. without parsing.
+
+### Handling JSONB Types
+
+When working with JSONB columns in the database, you need to specify proper TypeScript types to ensure type safety. Follow these steps:
+
+1. **Create column type definitions** in `packages/db/src/column-types.ts`:
+
+```typescript
+export type ProjectStage = {
+  name: string
+  description: string
+}
+
+// Includes RawBuilder to allow for JSONB
+export type ProjectStageColumnType = ColumnType<
+  ProjectStage[] | null,
+  ProjectStage[] | null | RawBuilder<ProjectStage[]>,
+  ProjectStage[] | null | RawBuilder<ProjectStage[]>
+>
+```
+
+2. **Reference the type in Kysely codegen configuration** in `packages/db/.kysely-codegenrc.yaml`:
+
+```yaml
+serializer-properties:
+  'public.projects.stages': 'import("./src/column-types").ProjectStageColumnType | null'
+```
+
+3. **Use the type in your migrations**:
+
+```sql
+ALTER TABLE projects ADD COLUMN tools_config JSONB;
+```
+
+The types will be automatically generated and available through `@app/db/types` after running the migration and type generation.
+
+**Important**: Always define explicit TypeScript interfaces for JSONB columns rather than using generic types like `any` or `unknown`. This ensures type safety throughout the application.
+
+# Using psql
+
+You can always query the local database.
+
+```bash
+psql postgres://localhost:5432/monorepo-scaffold -c "SELECT * FROM users LIMIT 5"
+```

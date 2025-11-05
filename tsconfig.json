@@ -1,0 +1,17 @@
+{
+  "extends": "@ocavue/tsconfig/es/root.json",
+  "references": [
+    {
+      "path": "./apps/web/tsconfig.json"
+    },
+    {
+      "path": "./packages/api/tsconfig.json"
+    },
+    {
+      "path": "./packages/db/tsconfig.json"
+    },
+    {
+      "path": "./packages/utils/tsconfig.json"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+---
+import { SignIn } from '@/components/sign-in'
+import Layout from '@/layouts/layout.astro'
+export const prerender = true
+---
+
+<Layout title="Sign In">
+  <div
+    class="flex min-h-screen items-center justify-center bg-muted p-6 md:p-10"
+  >
+    <SignIn client:load />
+  </div>
+</Layout>
