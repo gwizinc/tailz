@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { tasks } from '@trigger.dev/sdk'
+import { configure, tasks } from '@trigger.dev/sdk'
 import { protectedProcedure, router } from '../trpc'
 
 export const repoRouter = router({
@@ -122,7 +122,7 @@ export const repoRouter = router({
         .filter((r) => !previouslyEnabledNames.has(r.name))
         .map((r) => r.id)
 
-      // Trigger analysis for newly enabled repos (fire-and-forget)
+      // Trigger story discovery for newly enabled repos (fire-and-forget)
       if (
         newlyEnabledRepoIds.length > 0 &&
         ctx.env.githubAppId &&
@@ -132,30 +132,227 @@ export const repoRouter = router({
       ) {
         const appId = Number(ctx.env.githubAppId)
         if (!Number.isNaN(appId)) {
-          // Trigger analysis tasks asynchronously without blocking the response
+          // Trigger story discovery tasks asynchronously without blocking the response
           Promise.all(
             newlyEnabledRepoIds.map((repoId) =>
               tasks
-                .trigger('analyze-repo', {
+                .trigger('find-stories-in-repo', {
                   repoId,
                   appId,
-                  privateKey: ctx.env.githubAppPrivateKey!,
-                  openRouterApiKey: ctx.env.openRouterApiKey!,
-                  databaseUrl: ctx.env.databaseUrl!,
+                  privateKey: ctx.env.githubAppPrivateKey,
+                  openRouterApiKey: ctx.env.openRouterApiKey,
+                  databaseUrl: ctx.env.databaseUrl,
                 })
                 .catch((error) => {
                   console.error(
-                    `Failed to trigger analysis for repository ${repoId}:`,
+                    `Failed to trigger story discovery for repository ${repoId}:`,
                     error,
                   )
                 }),
             ),
           ).catch((error) => {
-            console.error('Error triggering repository analysis:', error)
+            console.error('Error triggering story discovery:', error)
           })
         }
       }
 
       return { updated: input.repoNames.length }
+    }),
+
+  findStoriesInRepo: protectedProcedure
+    .input(z.object({ orgSlug: z.string(), repoName: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.env.githubAppId || !ctx.env.githubAppPrivateKey) {
+        throw new Error('GitHub App configuration is missing')
+      }
+
+      if (!ctx.env.openRouterApiKey) {
+        throw new Error('OpenRouter API key is missing')
+      }
+
+      if (!ctx.env.triggerSecretKey) {
+        throw new Error('TRIGGER_SECRET_KEY environment variable is not set')
+      }
+
+      const appId = Number(ctx.env.githubAppId)
+      if (Number.isNaN(appId)) {
+        throw new TypeError('Invalid GitHub App ID')
+      }
+
+      // Configure trigger
+      configure({
+        secretKey: ctx.env.triggerSecretKey,
+      })
+
+      // Look up owner and repo to get repoId
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        throw new Error(`Owner with slug ${input.orgSlug} not found`)
+      }
+
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .selectAll()
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        throw new Error(
+          `Repository ${input.repoName} not found for owner ${input.orgSlug}`,
+        )
+      }
+
+      // Trigger the task
+      await tasks.trigger('find-stories-in-repo', {
+        repoId: repo.id,
+        appId,
+        privateKey: ctx.env.githubAppPrivateKey,
+        openRouterApiKey: ctx.env.openRouterApiKey,
+        databaseUrl: ctx.env.databaseUrl,
+      })
+
+      return { success: true }
+    }),
+
+  findStoriesInCommit: protectedProcedure
+    .input(
+      z.object({
+        orgSlug: z.string(),
+        repoName: z.string(),
+        commitSha: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.env.githubAppId || !ctx.env.githubAppPrivateKey) {
+        throw new Error('GitHub App configuration is missing')
+      }
+
+      if (!ctx.env.openRouterApiKey) {
+        throw new Error('OpenRouter API key is missing')
+      }
+
+      if (!ctx.env.triggerSecretKey) {
+        throw new Error('TRIGGER_SECRET_KEY environment variable is not set')
+      }
+
+      const appId = Number(ctx.env.githubAppId)
+      if (Number.isNaN(appId)) {
+        throw new TypeError('Invalid GitHub App ID')
+      }
+
+      // Configure trigger
+      configure({
+        secretKey: ctx.env.triggerSecretKey,
+      })
+
+      // Look up owner and repo to get repoId
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        throw new Error(`Owner with slug ${input.orgSlug} not found`)
+      }
+
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .selectAll()
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        throw new Error(
+          `Repository ${input.repoName} not found for owner ${input.orgSlug}`,
+        )
+      }
+
+      // Trigger the task
+      await tasks.trigger('find-stories-in-commit', {
+        repoId: repo.id,
+        appId,
+        privateKey: ctx.env.githubAppPrivateKey,
+        openRouterApiKey: ctx.env.openRouterApiKey,
+        databaseUrl: ctx.env.databaseUrl,
+        commitSha: input.commitSha,
+      })
+
+      return { success: true }
+    }),
+
+  findStoriesInPullRequest: protectedProcedure
+    .input(
+      z.object({
+        orgSlug: z.string(),
+        repoName: z.string(),
+        pullNumber: z.number().int().positive(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.env.githubAppId || !ctx.env.githubAppPrivateKey) {
+        throw new Error('GitHub App configuration is missing')
+      }
+
+      if (!ctx.env.openRouterApiKey) {
+        throw new Error('OpenRouter API key is missing')
+      }
+
+      if (!ctx.env.triggerSecretKey) {
+        throw new Error('TRIGGER_SECRET_KEY environment variable is not set')
+      }
+
+      const appId = Number(ctx.env.githubAppId)
+      if (Number.isNaN(appId)) {
+        throw new TypeError('Invalid GitHub App ID')
+      }
+
+      // Configure trigger
+      configure({
+        secretKey: ctx.env.triggerSecretKey,
+      })
+
+      // Look up owner and repo to get repoId
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        throw new Error(`Owner with slug ${input.orgSlug} not found`)
+      }
+
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .selectAll()
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        throw new Error(
+          `Repository ${input.repoName} not found for owner ${input.orgSlug}`,
+        )
+      }
+
+      // Trigger the task
+      await tasks.trigger('find-stories-in-pull-request', {
+        repoId: repo.id,
+        appId,
+        privateKey: ctx.env.githubAppPrivateKey,
+        openRouterApiKey: ctx.env.openRouterApiKey,
+        databaseUrl: ctx.env.databaseUrl,
+        pullNumber: input.pullNumber,
+      })
+
+      return { success: true }
     }),
 })

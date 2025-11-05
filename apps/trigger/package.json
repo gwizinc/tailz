@@ -8,8 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./src/helpers/generate-stories": "./src/helpers/generate-stories.ts",
-    "./src/helpers/github-status": "./src/helpers/github-status.ts",
-    "./src/helpers/analyze-repository": "./src/helpers/analyze-repository.ts",
+    "./src/helpers/discover-stories": "./src/helpers/discover-stories.ts",
     "./src/helpers/fetch-codebase": "./src/helpers/fetch-codebase.ts"
   },
   "scripts": {
