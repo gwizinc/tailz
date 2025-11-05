@@ -18,7 +18,7 @@ export function createAuth(options: {
   }
 }) {
   const betterAuthOptions: BetterAuthOptions = {
-    appName: 'Monorepo',
+    appName: 'Tailz',
     baseURL: options.baseURL,
     secret: options.secret,
     database: {
