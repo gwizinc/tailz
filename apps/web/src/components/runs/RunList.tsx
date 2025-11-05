@@ -31,4 +31,3 @@ export function RunList({ runs, orgSlug, repoName }: RunListProps) {
     </ul>
   )
 }
-

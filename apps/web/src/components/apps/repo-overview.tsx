@@ -1,4 +1,14 @@
+import { useState } from 'react'
+
 import { AppLayout } from '@/components/layout'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
 
 interface BranchItem {
   name: string
@@ -6,13 +16,40 @@ interface BranchItem {
   updatedAt?: string
 }
 
+interface RunItem {
+  id: string
+  runId: string
+  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped'
+  createdAt: string
+  updatedAt: string
+  durationMs: number
+  commitSha: string
+  commitMessage: string | null
+  branchName: string
+}
+
 interface Props {
   orgSlug: string
   repoName: string
+  defaultBranch: string | null
   branches: BranchItem[]
+  runs: RunItem[]
 }
 
-export function RepoOverview({ orgSlug, repoName, branches }: Props) {
+export function RepoOverview({
+  orgSlug,
+  repoName,
+  defaultBranch,
+  branches,
+  runs,
+}: Props) {
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    defaultBranch || branches[0]?.name || '',
+  )
+
+  // Filter runs by selected branch
+  const filteredRuns = runs.filter((run) => run.branchName === selectedBranch)
+
   return (
     <AppLayout
       breadcrumbs={[
@@ -21,42 +58,36 @@ export function RepoOverview({ orgSlug, repoName, branches }: Props) {
       ]}
     >
       <div className="p-6 flex flex-col h-full overflow-auto">
-        <h1 className="text-xl font-semibold text-foreground">
-          {orgSlug}/{repoName}
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-semibold text-foreground">
+            {orgSlug}/{repoName}
+          </h1>
+          {branches.length > 0 && (
+            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.name} value={branch.name}>
+                    {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         <div className="mt-6">
-          <h2 className="text-sm font-medium text-foreground">Branches</h2>
-          <div className="mt-3 border rounded-md">
-            <ul className="divide-y">
-              {branches.map((b) => (
-                <li key={b.name} className="p-3">
-                  <a
-                    href={`/org/${orgSlug}/repo/${repoName}/branches/${b.name}/stories`}
-                    className="text-foreground hover:underline"
-                  >
-                    {b.name}
-                  </a>
-                  {b.headSha ? (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {b.headSha.slice(0, 7)}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-              {branches.length === 0 ? (
-                <li className="p-6 text-sm text-muted-foreground">
-                  No branches found.
-                </li>
-              ) : null}
-            </ul>
-          </div>
-          <div className="mt-6">
-            <a
-              href={`/org/${orgSlug}/repo/${repoName}/runs`}
-              className="text-sm text-primary hover:underline"
-            >
-              View Runs
-            </a>
+          <h2 className="text-sm font-medium text-foreground mb-3">
+            Latest runs
+          </h2>
+          <div className="border rounded-md overflow-hidden">
+            <GitHubStyleRunList
+              runs={filteredRuns}
+              orgSlug={orgSlug}
+              repoName={repoName}
+            />
           </div>
         </div>
       </div>

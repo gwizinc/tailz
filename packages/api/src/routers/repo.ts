@@ -34,6 +34,40 @@ export const repoRouter = router({
       return { repos }
     }),
 
+  getBySlug: protectedProcedure
+    .input(z.object({ orgSlug: z.string(), repoName: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        return { repo: null }
+      }
+
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .select(['id', 'name', 'defaultBranch', 'enabled'])
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        return { repo: null }
+      }
+
+      return {
+        repo: {
+          id: repo.id,
+          name: repo.name,
+          defaultBranch: repo.defaultBranch,
+          enabled: repo.enabled,
+        },
+      }
+    }),
+
   setEnabled: protectedProcedure
     .input(z.object({ orgSlug: z.string(), repoNames: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {

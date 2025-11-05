@@ -6,23 +6,87 @@ import { protectedProcedure, router } from '../trpc'
 export const runRouter = router({
   listByRepo: protectedProcedure
     .input(z.object({ orgSlug: z.string(), repoName: z.string() }))
-    .query(() => {
-      const runs = [
-        {
-          id: 'a1',
-          runId: '101',
-          status: 'success' as const,
-          createdAt: new Date().toISOString(),
-          commitSha: 'abc1234',
-        },
-        {
-          id: 'a2',
-          runId: '102',
-          status: 'running' as const,
-          createdAt: new Date().toISOString(),
-          commitSha: 'def5678',
-        },
-      ]
+    .query(async ({ ctx, input }) => {
+      // Look up owner
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        return { runs: [] }
+      }
+
+      // Look up repo
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .selectAll()
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        return { runs: [] }
+      }
+
+      // Query runs for this repo
+      // Note: runs table types will be generated after migration runs
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const dbRuns = await (ctx.db as any)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .selectFrom('runs')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .selectAll()
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .where('repoId', '=', repo.id)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .orderBy('createdAt', 'desc')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .execute()
+
+      // Map database runs to frontend format
+      // Map status: 'pass' -> 'success', 'fail' -> 'failed', 'skipped' -> 'skipped'
+      const statusMap: Record<
+        string,
+        'queued' | 'running' | 'success' | 'failed' | 'skipped'
+      > = {
+        pass: 'success',
+        fail: 'failed',
+        skipped: 'skipped',
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const runs = dbRuns.map((run: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const createdAt = run.createdAt as Date
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const updatedAt = run.updatedAt as Date
+        // Calculate duration in milliseconds
+        const durationMs = updatedAt.getTime() - createdAt.getTime()
+
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          id: run.id,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          runId: String(run.number),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          status: statusMap[run.status] ?? 'queued',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          createdAt: createdAt.toISOString(),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          updatedAt: updatedAt.toISOString(),
+          durationMs,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          commitSha: run.commitSha,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          commitMessage: run.commitMessage ?? null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          branchName: run.branchName,
+        }
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       return { runs }
     }),
 
@@ -66,12 +130,17 @@ export const runRouter = router({
 
       // Look up run by repo_id and number (not UUID)
       // Note: runs table types will be generated after migration runs
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const run = await (ctx.db as any)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .selectFrom('runs')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .selectAll()
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .where('repoId', '=', repo.id)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .where('number', '=', runNumber)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .executeTakeFirst()
 
       if (!run) {
@@ -79,6 +148,7 @@ export const runRouter = router({
       }
 
       // Extract story IDs from the stories JSONB
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const storyIds = (run.stories as RunStory[]).map((s) => s.storyId)
 
       // Fetch stories if there are any
@@ -105,6 +175,7 @@ export const runRouter = router({
       const storyMap = new Map(stories.map((s) => [s.id, s]))
 
       // Combine run stories with actual story data
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const storiesWithStatus = (run.stories as RunStory[]).map((runStory) => {
         const story = storyMap.get(runStory.storyId)
         return {
@@ -156,4 +227,3 @@ export const runRouter = router({
       }
     }),
 })
-

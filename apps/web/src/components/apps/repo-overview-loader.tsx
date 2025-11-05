@@ -12,6 +12,25 @@ interface BranchItem {
   updatedAt?: string
 }
 
+interface RunItem {
+  id: string
+  runId: string
+  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped'
+  createdAt: string
+  updatedAt: string
+  durationMs: number
+  commitSha: string
+  commitMessage: string | null
+  branchName: string
+}
+
+interface RepoInfo {
+  id: string
+  name: string
+  defaultBranch: string | null
+  enabled: boolean
+}
+
 export function RepoOverviewLoader({
   orgSlug,
   repoName,
@@ -21,23 +40,30 @@ export function RepoOverviewLoader({
 }) {
   const trpc = useTRPCClient()
   const [isLoading, setIsLoading] = useState(true)
+  const [repo, setRepo] = useState<RepoInfo | null>(null)
   const [branches, setBranches] = useState<BranchItem[]>([])
+  const [runs, setRuns] = useState<RunItem[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
     async function load() {
       try {
-        const resp = await trpc.branch.listByRepo.query({
-          orgSlug,
-          repoName,
-        })
+        const [repoResp, branchesResp, runsResp] = await Promise.all([
+          trpc.repo.getBySlug.query({ orgSlug, repoName }),
+          trpc.branch.listByRepo.query({ orgSlug, repoName }),
+          trpc.run.listByRepo.query({ orgSlug, repoName }),
+        ])
         if (!isMounted) {
           return
         }
-        setBranches(resp.branches)
+        if (repoResp.repo) {
+          setRepo(repoResp.repo)
+        }
+        setBranches(branchesResp.branches)
+        setRuns(runsResp.runs)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load branches')
+        setError(e instanceof Error ? e.message : 'Failed to load data')
       } finally {
         setIsLoading(false)
       }
@@ -58,7 +84,9 @@ export function RepoOverviewLoader({
         <RepoOverview
           orgSlug={orgSlug}
           repoName={repoName}
+          defaultBranch={repo?.defaultBranch ?? null}
           branches={branches}
+          runs={runs}
         />
       )}
     </AppProvider>
