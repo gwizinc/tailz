@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
 
   pull_request:
 
@@ -29,6 +29,17 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+  knip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Run knip
+        run: pnpm run knip
 
   test:
     runs-on: ubuntu-latest
