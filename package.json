@@ -1,10 +1,10 @@
 {
-  "name": "@app/monorepo",
+  "name": "@app/Tailz",
   "type": "module",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@10.11.0",
-  "description": "Monorepo scaffold",
+  "description": "Tailz",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
