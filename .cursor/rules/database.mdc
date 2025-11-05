@@ -11,11 +11,11 @@ Find the schema here: [schema.sql](mdc:packages/db/schema.sql)
 
 Run from the root directory:
 
-- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate:create <name>` - Create a new database migration template
-- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate` - Run database migrations
-- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:migrate:down` - Rollback database migrations
-- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:reset` - Reset database
-- `DATABASE_URL=postgres://localhost:5432/monorepo-scaffold pnpm --filter @app/db db:seed` - Seed database with initial data (default tenant and permissions)
+- `DATABASE_URL=postgres://localhost:5432/tailz pnpm --filter @app/db db:migrate:create <name>` - Create a new database migration template
+- `DATABASE_URL=postgres://localhost:5432/tailz pnpm --filter @app/db db:migrate` - Run database migrations
+- `DATABASE_URL=postgres://localhost:5432/tailz pnpm --filter @app/db db:migrate:down` - Rollback database migrations
+- `DATABASE_URL=postgres://localhost:5432/tailz pnpm --filter @app/db db:reset` - Reset database
+- `DATABASE_URL=postgres://localhost:5432/tailz pnpm --filter @app/db db:seed` - Seed database with initial data (default tenant and permissions)
 
 ### Create a new migration
 

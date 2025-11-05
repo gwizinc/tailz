@@ -40,8 +40,8 @@ Whether you're pair programming with Claude, GitHub Copilot, or Cursor's AI, thi
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-repo/monorepo-scaffold.git
-    cd monorepo-scaffold
+    git clone https://github.com/gwizinc/tailz.git
+    cd tailz
     ```
 
 2.  **Install dependencies:**
@@ -63,7 +63,7 @@ Whether you're pair programming with Claude, GitHub Copilot, or Cursor's AI, thi
     GITHUB_CLIENT_SECRET="your_github_client_secret"
 
     # Your local PostgreSQL connection string
-    DATABASE_URL="postgres://user:password@localhost:5432/monorepo-scaffold"
+    DATABASE_URL="postgres://user:password@localhost:5432/tailz"
     ```
 
 4.  **Set up the database:**
@@ -71,7 +71,7 @@ Whether you're pair programming with Claude, GitHub Copilot, or Cursor's AI, thi
     Make sure you have a PostgreSQL server running. Then, run the migrations:
 
     ```bash
-    DATABASE_URL="postgres://user:password@localhost:5432/monorepo-scaffold" pnpm --filter @app/db db:migrate
+    DATABASE_URL="postgres://user:password@localhost:5432/tailz" pnpm --filter @app/db db:migrate
     ```
 
 5.  **Run the development server:**
