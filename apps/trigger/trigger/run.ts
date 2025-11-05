@@ -304,13 +304,27 @@ export const executeRunWorkflow = task({
     })
 
     try {
-      // Step 1: Analyze repository
-      await analyzeRepoTask.trigger({
+      // Step 1: Analyze repository (execute inline instead of triggering separate task)
+      const db = setupDb(payload.databaseUrl)
+      const analyzeResult = await analyzeRepository({
+        db,
         repoId: payload.repoId,
         appId: payload.appId,
         privateKey: payload.privateKey,
         openRouterApiKey: payload.openRouterApiKey,
-        databaseUrl: payload.databaseUrl,
+      })
+
+      if (!analyzeResult.success) {
+        logger.error('Failed to analyze repository', {
+          repoId: payload.repoId,
+          error: analyzeResult.error,
+        })
+        throw new Error(analyzeResult.error || 'Failed to analyze repository')
+      }
+
+      logger.info('Repository analyzed successfully', {
+        repoId: payload.repoId,
+        storyCount: analyzeResult.storyCount,
       })
 
       // Step 2: Create initial GitHub check
@@ -335,7 +349,6 @@ export const executeRunWorkflow = task({
       }
 
       // Step 3: Test all stories (execute inline for now)
-      const db = setupDb(payload.databaseUrl)
       const stories = await db
         .selectFrom('stories')
         .selectAll()
