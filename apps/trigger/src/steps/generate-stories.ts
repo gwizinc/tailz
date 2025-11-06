@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import type { CodebaseFile } from './fetch-codebase'
 
-interface GeneratedStory {
+type GeneratedStory = {
   name: string
   story: string
   files: string[]

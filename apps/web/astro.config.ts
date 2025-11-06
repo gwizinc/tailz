@@ -93,6 +93,7 @@ const config = defineConfig({
         },
       },
     },
+    // @ts-expect-error - tailwindcss plugin type compatibility issue with Vite
     plugins: [tailwindcss()],
     resolve: {
       alias: {
