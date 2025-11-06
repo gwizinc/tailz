@@ -4,6 +4,7 @@ import '@trigger.dev/sdk'
 export { findStoriesInCommitTask } from './tasks/find-stories-in-commit'
 export { updateGithubStatusTask } from './tasks/update-github-status'
 export { testHelloWorldTask } from './tasks/test-hello-world'
+export { handleGithubWebhookTask } from './tasks/handle-github-webhook'
 
 // Export helper types and functions
 export type { CodebaseFile } from './steps/fetch-codebase'

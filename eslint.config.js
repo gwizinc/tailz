@@ -19,6 +19,7 @@ export default defineESLintConfig(
       '**/coverage/**',
       '**/.turbo/**',
       '**/.astro/**',
+      '**/.trigger/**',
     ],
   },
   {

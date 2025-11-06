@@ -175,6 +175,11 @@ const config = defineConfig({
         access: 'secret',
         optional: false,
       }),
+      GITHUB_WEBHOOK_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: false,
+      }),
     },
   },
 })
