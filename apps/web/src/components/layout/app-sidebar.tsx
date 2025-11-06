@@ -1,5 +1,5 @@
 import { navigate } from 'astro:transitions/client'
-import { Home, LogOut } from 'lucide-react'
+import { Home, LogOut, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { GiWhaleTail } from 'react-icons/gi'
 
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/client/auth-client'
+import { useTRPCClient } from '@/client/trpc'
 
 import { SidebarFooter } from '../ui/sidebar'
 
@@ -63,6 +64,19 @@ function NavItem({ icon, label, href, active = false, onClick }: NavItemProps) {
 
 export function AppSidebar() {
   const [currentPath] = useState(() => window.location.pathname)
+  const trpc = useTRPCClient()
+  const [isTriggering, setIsTriggering] = useState(false)
+
+  const handleTestHelloWorld = async () => {
+    setIsTriggering(true)
+    try {
+      await trpc.test.helloWorld.mutate({})
+    } catch (error) {
+      console.error('Failed to trigger test task:', error)
+    } finally {
+      setIsTriggering(false)
+    }
+  }
 
   return (
     <div className="w-[56px] h-full bg-background border-r flex flex-col items-center py-4 gap-6 px-2">
@@ -78,6 +92,11 @@ export function AppSidebar() {
       <div className="grow" />
 
       <SidebarFooter>
+        <NavItem
+          icon={<Zap size={15} />}
+          label="Test Hello World"
+          onClick={() => void handleTestHelloWorld()}
+        />
         <NavItem
           icon={<LogOut size={15} />}
           label="Logout"

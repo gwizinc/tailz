@@ -2,68 +2,6 @@ import { task, logger } from '@trigger.dev/sdk'
 import type { StoryTestResult } from '../types'
 import { createOctokit } from '../helpers/github'
 
-interface CreateGitHubCheckParams {
-  orgSlug: string
-  repoName: string
-  commitSha: string
-  installationId: number
-  name: string
-  status: 'queued' | 'in_progress' | 'completed'
-  conclusion?:
-    | 'success'
-    | 'failure'
-    | 'neutral'
-    | 'cancelled'
-    | 'timed_out'
-    | 'action_required'
-  output?: {
-    title: string
-    summary: string
-    text?: string
-  }
-}
-
-interface UpdateGitHubCheckParams extends CreateGitHubCheckParams {
-  checkRunId: number
-}
-
-export async function createGitHubCheck(
-  params: CreateGitHubCheckParams,
-): Promise<number> {
-  const { orgSlug, repoName, commitSha, installationId, name, status, conclusion, output } = params
-
-  const octokit = createOctokit(installationId)
-
-  const checkRun = await octokit.rest.checks.create({
-    owner: orgSlug,
-    repo: repoName,
-    name,
-    head_sha: commitSha,
-    status,
-    conclusion,
-    output,
-  })
-
-  return checkRun.data.id
-}
-
-async function updateGitHubCheck(
-  params: UpdateGitHubCheckParams,
-): Promise<void> {
-  const { orgSlug, repoName, installationId, checkRunId, status, conclusion, output } = params
-
-  const octokit = createOctokit(installationId)
-
-  await octokit.rest.checks.update({
-    owner: orgSlug,
-    repo: repoName,
-    check_run_id: checkRunId,
-    status,
-    conclusion,
-    output,
-  })
-}
-
 export function mapRunStatusToConclusion(
   status: 'pass' | 'fail' | 'skipped' | 'running',
 ): 'success' | 'failure' | 'neutral' | 'cancelled' | undefined {
@@ -142,26 +80,24 @@ export const updateGithubStatusTask = task({
       text: `Total stories: ${payload.testResults.length}\nPassed: ${passedCount}\nFailed: ${failedCount}\nSkipped: ${skippedCount}`,
     }
 
+    const octokit = createOctokit(payload.installationId)
+
     try {
       if (payload.checkRunId) {
-        await updateGitHubCheck({
-          orgSlug: payload.orgSlug,
-          repoName: payload.repoName,
-          commitSha: payload.commitSha,
-          installationId: payload.installationId,
-          checkRunId: payload.checkRunId,
-          name: 'Tailz/CI',
+        await octokit.rest.checks.update({
+          owner: payload.orgSlug,
+          repo: payload.repoName,
+          check_run_id: payload.checkRunId,
           status: checkStatus,
           conclusion,
           output,
         })
       } else {
-        await createGitHubCheck({
-          orgSlug: payload.orgSlug,
-          repoName: payload.repoName,
-          commitSha: payload.commitSha,
-          installationId: payload.installationId,
+        await octokit.rest.checks.create({
+          owner: payload.orgSlug,
+          repo: payload.repoName,
           name: 'Tailz/CI',
+          head_sha: payload.commitSha,
           status: checkStatus,
           conclusion,
           output,
@@ -170,12 +106,11 @@ export const updateGithubStatusTask = task({
     } catch (error) {
       logger.warn('Failed to update GitHub check, creating new one', { error })
       try {
-        await createGitHubCheck({
-          orgSlug: payload.orgSlug,
-          repoName: payload.repoName,
-          commitSha: payload.commitSha,
-          installationId: payload.installationId,
+        await octokit.rest.checks.create({
+          owner: payload.orgSlug,
+          repo: payload.repoName,
           name: 'Tailz/CI',
+          head_sha: payload.commitSha,
           status: checkStatus,
           conclusion,
           output,

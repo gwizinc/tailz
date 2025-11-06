@@ -5,6 +5,7 @@ import { repoRouter } from './routers/repo'
 import { branchRouter } from './routers/branch'
 import { storyRouter } from './routers/story'
 import { runRouter } from './routers/run'
+import { testRouter } from './routers/test'
 
 export type { Context, Env, Session, SessionUser } from './context'
 
@@ -17,6 +18,7 @@ export const appRouter = router({
   branch: branchRouter,
   story: storyRouter,
   run: runRouter,
+  test: testRouter,
 })
 
 // Export type router type signature,
