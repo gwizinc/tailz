@@ -21,13 +21,24 @@ interface NavItemProps {
   label: string
   href?: string
   active?: boolean
+  disabled?: boolean
   onClick?: () => void
 }
 
-function NavItem({ icon, label, href, active = false, onClick }: NavItemProps) {
+function NavItem({
+  icon,
+  label,
+  href,
+  active = false,
+  disabled = false,
+  onClick,
+}: NavItemProps) {
   const [clickActive, setClickActive] = useState(false)
 
   const handleClick = () => {
+    if (disabled) {
+      return
+    }
     if (onClick) {
       onClick()
     } else if (href) {
@@ -43,6 +54,7 @@ function NavItem({ icon, label, href, active = false, onClick }: NavItemProps) {
           <Button
             variant="ghost"
             size="icon"
+            disabled={disabled}
             className={cn(
               'w-10 h-10 rounded-md',
               active || clickActive
@@ -70,7 +82,7 @@ export function AppSidebar() {
   const handleTestHelloWorld = async () => {
     setIsTriggering(true)
     try {
-      await trpc.test.helloWorld.mutate({})
+      await trpc.test.helloWorld.mutate()
     } catch (error) {
       console.error('Failed to trigger test task:', error)
     } finally {
@@ -95,6 +107,7 @@ export function AppSidebar() {
         <NavItem
           icon={<Zap size={15} />}
           label="Test Hello World"
+          disabled={isTriggering}
           onClick={() => void handleTestHelloWorld()}
         />
         <NavItem

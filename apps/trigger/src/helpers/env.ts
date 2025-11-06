@@ -8,7 +8,9 @@ const envSchema = z.object({
     }
     return parsed
   }),
-  GITHUB_APP_PRIVATE_KEY: z.string().min(1, 'GITHUB_APP_PRIVATE_KEY is required'),
+  GITHUB_APP_PRIVATE_KEY: z
+    .string()
+    .min(1, 'GITHUB_APP_PRIVATE_KEY is required'),
   OPENROUTER_API_KEY: z.string().min(1, 'OPENROUTER_API_KEY is required'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   TRIGGER_PROJECT_ID: z.string().optional(),
@@ -25,4 +27,3 @@ export function parseEnv(): ParsedEnv {
     TRIGGER_PROJECT_ID: process.env.TRIGGER_PROJECT_ID,
   })
 }
-

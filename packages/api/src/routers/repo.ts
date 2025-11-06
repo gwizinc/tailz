@@ -126,7 +126,7 @@ export const repoRouter = router({
       // Trigger story discovery for newly enabled repos (fire-and-forget)
       if (newlyEnabledRepoIds.length > 0) {
         try {
-          parseEnv()
+          parseEnv(ctx.env)
           // Trigger story discovery tasks asynchronously without blocking the response
           Promise.all(
             newlyEnabledRepoIds.map((repoId) =>
@@ -156,7 +156,7 @@ export const repoRouter = router({
   findStoriesInRepo: protectedProcedure
     .input(z.object({ orgSlug: z.string(), repoName: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const env = parseEnv()
+      const env = parseEnv(ctx.env)
 
       // Configure trigger
       configure({
@@ -204,7 +204,7 @@ export const repoRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const env = parseEnv()
+      const env = parseEnv(ctx.env)
 
       // Configure trigger
       configure({
@@ -253,7 +253,7 @@ export const repoRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const env = parseEnv()
+      const env = parseEnv(ctx.env)
 
       // Configure trigger
       configure({

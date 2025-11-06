@@ -2,8 +2,8 @@ import { z } from 'zod'
 import { configure, tasks } from '@trigger.dev/sdk'
 
 import type { RunStory } from '@app/db'
-import { parseEnv } from '../helpers/env'
 import { protectedProcedure, router } from '../trpc'
+import { parseEnv } from '../helpers/env'
 
 export const runRouter = router({
   listByRepo: protectedProcedure
@@ -238,8 +238,8 @@ export const runRouter = router({
         branchName: z.string().optional(),
       }),
     )
-    .mutation(async ({ ctx: _ctx, input }) => {
-      const env = parseEnv()
+    .mutation(async ({ ctx, input }) => {
+      const env = parseEnv(ctx.env)
 
       configure({
         secretKey: env.TRIGGER_SECRET_KEY,
