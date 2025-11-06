@@ -1,9 +1,6 @@
 import { task, logger } from '@trigger.dev/sdk'
-import { setupDb } from '@app/db'
-import { createOctokit } from '../helpers/github'
-import { parseEnv } from '../helpers/env'
+import { getRepoWithOctokit } from '../helpers/github'
 import type { CodebaseFile } from '../steps/fetch-codebase'
-import { discoverStories } from '../steps/discover-stories'
 
 /**
  * Trigger.dev task that discovers stories (Gherkin scenarios) in a specific Git commit.
@@ -38,30 +35,11 @@ import { discoverStories } from '../steps/discover-stories'
 export const findStoriesInCommitTask = task({
   id: 'find-stories-in-commit',
   run: async (payload: { repoId: string; commitSha: string }) => {
-    logger.info('Finding stories in commit', {
-      repoId: payload.repoId,
-      commitSha: payload.commitSha,
-    })
+    const { repo, octokit } = await getRepoWithOctokit(payload.repoId)
 
-    const env = parseEnv()
-    const db = setupDb(env.DATABASE_URL)
-
-    const repo = await db
-      .selectFrom('repos')
-      .innerJoin('owners', 'repos.ownerId', 'owners.id')
-      .select([
-        'repos.name as repoName',
-        'owners.login as ownerLogin',
-        'owners.installationId',
-      ])
-      .where('repos.id', '=', payload.repoId)
-      .executeTakeFirst()
-
-    if (!repo || !repo.installationId) {
-      throw new Error('Repository or installation not found or misconfigured')
-    }
-
-    const octokit = createOctokit(Number(repo.installationId))
+    logger.info(
+      `Finding stories in commit ${repo.repoName}@${payload.commitSha.substring(0, 7)}`,
+    )
 
     const commit = await octokit.repos.getCommit({
       owner: repo.ownerLogin,
@@ -73,6 +51,8 @@ export const findStoriesInCommitTask = task({
     // Filter out removed files and files without filenames
     const changedPaths = files
       .filter((f) => f.status !== 'removed' && !!f.filename)
+      // TODO for now ONLY ts tsx files
+      .filter((f) => f.filename.endsWith('.ts') || f.filename.endsWith('.tsx'))
       .map((f) => f.filename)
 
     // Fetch content for each changed file
@@ -103,25 +83,37 @@ export const findStoriesInCommitTask = task({
       }
     }
 
-    const result = await discoverStories({
-      codebase,
-      apiKey: env.OPENROUTER_API_KEY,
-    })
-
-    if (!result.success) {
-      logger.error('Failed to find stories in commit', {
-        repoId: payload.repoId,
-        commitSha: payload.commitSha,
-        error: result.error,
-      })
-      throw new Error(result.error || 'Failed to find stories in commit')
-    }
-
-    logger.info('Stories found in commit', {
+    logger.info('Found codebase files', {
       repoId: payload.repoId,
       commitSha: payload.commitSha,
-      storyCount: result.storyCount,
+      codebase: codebase.map((f) => f.path),
     })
+
+    const result = {
+      success: true,
+      storyCount: 0,
+      stories: [],
+    }
+
+    // const result = await discoverStories({
+    //   codebase,
+    //   apiKey: env.OPENROUTER_API_KEY,
+    // })
+
+    // if (!result.success) {
+    //   logger.error('Failed to find stories in commit', {
+    //     repoId: payload.repoId,
+    //     commitSha: payload.commitSha,
+    //     error: result.error,
+    //   })
+    //   throw new Error(result.error || 'Failed to find stories in commit')
+    // }
+
+    // logger.info('Stories found in commit', {
+    //   repoId: payload.repoId,
+    //   commitSha: payload.commitSha,
+    //   storyCount: result.storyCount,
+    // })
 
     return {
       success: true,

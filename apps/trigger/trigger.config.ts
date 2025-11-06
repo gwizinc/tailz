@@ -19,5 +19,5 @@ export default defineConfig({
     },
   },
   // Max duration for all tasks (in seconds)
-  maxDuration: 60, // 1 minute
+  maxDuration: 60 * 5, // 5 minute
 })
