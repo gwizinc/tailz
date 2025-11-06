@@ -9,6 +9,10 @@
         "AUTH_SECRET",
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
+        "GITHUB_APP_ID",
+        "GITHUB_APP_SLUG",
+        "GITHUB_APP_PRIVATE_KEY",
+        "OPENROUTER_API_KEY",
         "VERCEL_URL",
         "VERCEL_BRANCH_URL",
         "VERCEL_PROJECT_PRODUCTION_URL"
