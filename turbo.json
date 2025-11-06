@@ -14,6 +14,10 @@
         "GITHUB_APP_PRIVATE_KEY",
         "GITHUB_WEBHOOK_SECRET",
         "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "QDRANT_URL",
+        "QDRANT_API_KEY",
+        "TRIGGER_SECRET_KEY",
         "VERCEL_URL",
         "VERCEL_BRANCH_URL",
         "VERCEL_PROJECT_PRODUCTION_URL"
