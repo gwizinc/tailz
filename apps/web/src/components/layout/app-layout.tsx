@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { SidebarInset, SidebarProvider } from '../ui/sidebar'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 import { AppSidebar } from './app-sidebar'
 
@@ -26,14 +27,31 @@ export function AppLayout({ children, breadcrumbs, right }: Props) {
 
           <SidebarInset className="flex flex-1 flex-col overflow-hidden">
             <div className="border-b">
-              <div className="flex items-center gap-3 px-4 py-2">
+              <div className="flex items-center justify-between gap-3 px-4 py-2">
                 {breadcrumbs ? (
                   <Breadcrumbs
                     items={breadcrumbs}
-                    right={right}
-                    className="px-0 py-0"
+                    right={
+                      right ? (
+                        <div className="flex items-center gap-2">
+                          {right}
+                          <ThemeToggle />
+                        </div>
+                      ) : (
+                        <ThemeToggle />
+                      )
+                    }
+                    className="px-0 py-0 flex-1"
                   />
-                ) : null}
+                ) : (
+                  <>
+                    <div className="flex-1" />
+                    <div className="flex items-center gap-2">
+                      {right ? <div>{right}</div> : null}
+                      <ThemeToggle />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             {children}
