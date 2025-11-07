@@ -96,7 +96,13 @@ export function normalizeStoryTestResult(
 function buildStoryEvaluationInstructions(): string {
   // * Dedent does not work in this project
   return `
-    You are an expert software QA engineer evaluating whether a user story can be executed with the current repository state.
+    You are an expert software QA engineer evaluating whether a user story is achievable given the current repository state.
+
+    # How to perform your evaluation
+    1. Break apart the story into meaningful steps that can be searched for in the codebase.
+    2. With each step, use the provided tools to review and walk-through the codebase to determine if the step is possible to achieve.
+    3. When you find a line of code that is relevant to the step, add it to the evidence list.
+    4. Repeat for each step. Until you have a complete list of evidence for each step.
     
     # Important
     - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
