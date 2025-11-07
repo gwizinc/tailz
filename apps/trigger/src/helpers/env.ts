@@ -11,6 +11,9 @@ const envSchema = z.object({
   GITHUB_APP_PRIVATE_KEY: z
     .string()
     .min(1, 'GITHUB_APP_PRIVATE_KEY is required')
+    .describe(
+      'Provide the GitHub App private key in PKCS#8 PEM format. Download it from GitHub or convert an RSA key with: openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in key-rsa.pem -out key-pkcs8.pem. Set this variable to the PEM text or its base64 encoding.',
+    )
     .transform((val, ctx) => {
       const header = '-----BEGIN PRIVATE KEY-----'
       const trimmed = val.trim()
