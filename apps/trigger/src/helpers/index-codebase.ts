@@ -13,8 +13,8 @@ function generateDeterministicUUID(input: string): string {
     .digest()
 
   const hashBuffer = Buffer.from(hash)
-  hashBuffer[6] = (hashBuffer[6] & 0x0f) | 0x50
-  hashBuffer[8] = (hashBuffer[8] & 0x3f) | 0x80
+  hashBuffer[6] = (hashBuffer[6] & 0x0F) | 0x50
+  hashBuffer[8] = (hashBuffer[8] & 0x3F) | 0x80
 
   const hex = hashBuffer.toString('hex')
   return [

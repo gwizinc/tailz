@@ -16,4 +16,4 @@ alwaysApply: true
 
 Current status: `in development`
 
-The application is in early development with no users or deployment. Breaking changes and data migrations are not a concern.
+The application is in early development with no users or deployment. Breaking changes and data migrations are not a concern. Do not leave any backwards compatibility except in database migrations.
