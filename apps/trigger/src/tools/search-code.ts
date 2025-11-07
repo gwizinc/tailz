@@ -60,7 +60,7 @@ function toRecord(value: unknown): Record<string, unknown> {
 async function searchCode(options: {
   repoId: string
   query: string
-  commitSha?: string | null
+  branch: string
   limit?: number
   extType?: string | null
 }): Promise<CodeFileResult[]> {
@@ -85,26 +85,24 @@ async function searchCode(options: {
 
   type SearchParams = Parameters<QdrantClient['search']>[1]
 
+  // const filters = [
+  //   {
+  //     key: 'branch',
+  //     match: { value: options.branch },
+  //   },
+  //   options.extType
+  //     ? {
+  //         key: 'extType',
+  //         match: { value: options.extType },
+  //       }
+  //     : undefined,
+  // ].filter(Boolean)
+
   const baseSearchParams: SearchParams = {
     vector: queryVector,
     limit: options.limit ?? STORY_CONTEXT_TOOL_DEFAULT_LIMIT,
     with_payload: true,
-    filter: options.commitSha
-      ? {
-          must: [
-            {
-              key: 'commitSha',
-              match: { value: options.commitSha },
-            },
-            options.extType
-              ? {
-                  key: 'extType',
-                  match: { value: options.extType },
-                }
-              : undefined,
-          ].filter(Boolean),
-        }
-      : undefined,
+    // filter: filters.length > 0 ? { must: filters } : undefined,
   }
 
   try {
@@ -130,7 +128,8 @@ async function searchCode(options: {
   } catch (error) {
     const errorDetails = buildQdrantErrorDetails(error, {
       repoId: options.repoId,
-      commitSha: options.commitSha ?? 'unknown',
+      commitSha: 'unknown',
+      branch: options.branch,
       collection: collectionName,
       fileCount: 0,
     })
@@ -142,7 +141,7 @@ async function searchCode(options: {
 
 export function createSearchCodeTool(options: {
   repoId: string
-  commitSha?: string | null
+  branch: string
 }) {
   return tool({
     description:
@@ -173,7 +172,7 @@ export function createSearchCodeTool(options: {
         const files = await searchCode({
           repoId: options.repoId,
           query: trimmedQuery,
-          commitSha: options.commitSha ?? undefined,
+          branch: options.branch,
           limit: boundedLimit,
           extType: extType ?? undefined,
         })
@@ -195,7 +194,7 @@ export function createSearchCodeTool(options: {
       } catch (error) {
         logger.warn('codeSearchTool tool failed', {
           repoId: options.repoId,
-          commitSha: options.commitSha ?? null,
+          branch: options.branch,
           limit: boundedLimit,
           error,
         })
@@ -204,5 +203,3 @@ export function createSearchCodeTool(options: {
     },
   })
 }
-
-export type SearchCodeTool = ReturnType<typeof createSearchCodeTool>

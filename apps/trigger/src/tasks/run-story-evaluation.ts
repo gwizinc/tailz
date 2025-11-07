@@ -10,14 +10,14 @@ interface RunStoryEvaluationPayload {
   storyText: string
   repoId: string
   repoName: string
-  branchName?: string | null
+  branchName: string
   commitSha?: string | null
   runId?: string | null
   maxSteps?: number
 }
 
 // * Just a wrapper to keep things simple
-export async function runStoryEvaluation(
+async function runStoryEvaluation(
   payload: RunStoryEvaluationPayload,
 ): Promise<StoryEvaluationAgentResult> {
   return await runStoryEvaluationAgent({

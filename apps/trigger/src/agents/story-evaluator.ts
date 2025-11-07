@@ -7,7 +7,7 @@ import type {
   StoryTestResultPayload,
 } from '@app/db'
 
-import { createSearchCodeTool, type SearchCodeTool } from '@/tools/search-code'
+import { createSearchCodeTool } from '@/tools/search-code'
 import { parseEnv } from '@/helpers/env'
 
 const DEFAULT_STORY_MODEL = 'gpt-4o-mini'
@@ -40,7 +40,7 @@ interface StoryEvaluationAgentOptions {
   storyText: string
   repoId: string
   repoName: string
-  branchName?: string | null
+  branchName: string
   commitSha?: string | null
   runId?: string | null
   maxSteps?: number
@@ -145,7 +145,7 @@ export async function runStoryEvaluationAgent(
 
   const codeSearchTool = createSearchCodeTool({
     repoId: options.repoId,
-    commitSha: options.commitSha ?? null,
+    branch: options.branchName,
   })
   // TODO add new tool for specific file lookup
   // TODO add new tool for specific symbol lookup
@@ -157,6 +157,11 @@ export async function runStoryEvaluationAgent(
     tools: {
       codeSearch: codeSearchTool,
     },
+    onStepFinish: (step) => {
+      console.log('🛠️ Step finished', {
+        step,
+      })
+    },
     // TODO: surface stopWhen tuning once we gather additional telemetry from longer stories.
     stopWhen: stepCountIs(
       Math.max(1, (options.maxSteps ?? DEFAULT_MAX_STEPS) + 1),
@@ -167,6 +172,10 @@ export async function runStoryEvaluationAgent(
   const prompt = buildStoryEvaluationPrompt(options)
 
   const result = await agent.generate({ prompt })
+
+  console.log('💸 Story evaluation agent result', {
+    result,
+  })
 
   const parsedOutput = storyTestResultSchema.parse(result.output)
   const toolCallCount = result.steps.reduce(
