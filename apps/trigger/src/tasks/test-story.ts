@@ -3,10 +3,8 @@ import { task, logger } from '@trigger.dev/sdk'
 import { setupDb } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
-import {
-  normalizeStoryTestResult,
-  runStoryEvaluationAgent,
-} from '../agents/story-evaluator'
+import { normalizeStoryTestResult } from '../agents/story-evaluator'
+import { runStoryEvaluation } from './run-story-evaluation'
 
 interface TestStoryPayload {
   storyId: string
@@ -71,7 +69,7 @@ export const testStoryTask = task({
       /**
        * 💎 Run Story Evaluation Agent
        */
-      const evaluation = await runStoryEvaluationAgent({
+      const evaluation = await runStoryEvaluation({
         storyName: storyRecord.storyName,
         storyText: storyRecord.storyText,
         repoId: storyRecord.repoId,
@@ -80,8 +78,6 @@ export const testStoryTask = task({
         commitSha: storyRecord.commitSha,
         runId: payload.runId ?? null,
         maxSteps: 6,
-        // TODO: Promote model configuration to env when we tune for cost vs quality.
-        openAiApiKey: env.OPENAI_API_KEY,
       })
 
       logger.info('Story evaluation agent completed', {

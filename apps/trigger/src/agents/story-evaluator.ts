@@ -8,6 +8,7 @@ import type {
 } from '@app/db'
 
 import { createSearchCodeTool, type SearchCodeTool } from '@/tools/search-code'
+import { parseEnv } from '@/helpers/env'
 
 const DEFAULT_STORY_MODEL = 'gpt-4o-mini'
 const DEFAULT_MAX_STEPS = 6
@@ -44,7 +45,6 @@ interface StoryEvaluationAgentOptions {
   runId?: string | null
   maxSteps?: number
   modelId?: string
-  openAiApiKey: string
 }
 
 interface StoryEvaluationAgentMetrics {
@@ -52,7 +52,7 @@ interface StoryEvaluationAgentMetrics {
   toolCallCount: number
 }
 
-interface StoryEvaluationAgentResult {
+export interface StoryEvaluationAgentResult {
   output: StoryTestModelOutput
   metrics: StoryEvaluationAgentMetrics
   finishReason: FinishReason
@@ -132,8 +132,9 @@ function buildStoryEvaluationPrompt(
 export async function runStoryEvaluationAgent(
   options: StoryEvaluationAgentOptions,
 ): Promise<StoryEvaluationAgentResult> {
-  const openAiProvider = createOpenAI({ apiKey: options.openAiApiKey })
-  const effectiveModelId = options.modelId ?? DEFAULT_STORY_MODEL
+  const env = parseEnv()
+  const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
+  const effectiveModelId = DEFAULT_STORY_MODEL
 
   const storyContextTool = createSearchCodeTool({
     repoId: options.repoId,
@@ -159,6 +160,9 @@ export async function runStoryEvaluationAgent(
   })
 
   const prompt = buildStoryEvaluationPrompt(options)
+
+  console.log('prompt', prompt)
+
   const result = await agent.generate({ prompt })
 
   const parsedOutput = storyTestResultSchema.parse(result.output)
