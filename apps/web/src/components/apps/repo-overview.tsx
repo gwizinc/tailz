@@ -157,9 +157,7 @@ export function RepoOverview({
       })
     } catch (error) {
       setIndexRepoError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to index repository',
+        error instanceof Error ? error.message : 'Failed to index repository',
       )
     } finally {
       setIsIndexingRepo(false)
@@ -241,11 +239,7 @@ export function RepoOverview({
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  disabled
-                  className="gap-2"
-                >
+                <Button variant="outline" disabled className="gap-2">
                   Find stories in...
                   <ChevronDown className="h-4 w-4" />
                 </Button>
@@ -267,11 +261,7 @@ export function RepoOverview({
                 >
                   Pull Request
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled
-                >
-                  Repository
-                </DropdownMenuItem>
+                <DropdownMenuItem disabled>Repository</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button onClick={handleIndexRepo} disabled={isIndexingRepo}>
@@ -339,10 +329,7 @@ export function RepoOverview({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleFindStoriesInCommit}
-                disabled
-              >
+              <Button onClick={handleFindStoriesInCommit} disabled>
                 {isIndexingRepo ? 'Finding...' : 'Find Stories'}
               </Button>
             </DialogFooter>
@@ -399,44 +386,58 @@ export function RepoOverview({
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left Panel: Stories */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-foreground">Stories</h2>
-              <Button asChild variant="outline" size="sm">
-                <a
-                  href={`/org/${orgSlug}/repo/${repoName}/stories/new?branch=${encodeURIComponent(selectedBranch)}`}
-                >
-                  Add new story
-                </a>
-              </Button>
-            </div>
-            <div className="border rounded-md p-4 overflow-auto max-h-[600px]">
-              <StoryList
-                stories={filteredStories}
-                orgSlug={orgSlug}
-                repoName={repoName}
-                branchName={selectedBranch}
-              />
+            <div className="border rounded-md overflow-hidden">
+              <div className="flex items-center justify-between bg-muted px-4 py-2 border-b">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-sm font-medium text-foreground">
+                    Stories
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {filteredStories.length} total
+                  </span>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={`/org/${orgSlug}/repo/${repoName}/stories/new?branch=${encodeURIComponent(selectedBranch)}`}
+                  >
+                    Add new story
+                  </a>
+                </Button>
+              </div>
+              <div className="max-h-[600px] overflow-auto">
+                <StoryList
+                  stories={filteredStories}
+                  orgSlug={orgSlug}
+                  repoName={repoName}
+                  branchName={selectedBranch}
+                />
+              </div>
             </div>
           </div>
 
           {/* Right Panel: Runs */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-foreground">
-                Latest runs
-              </h2>
-              {defaultBranch && (
-                <Button
-                  onClick={handleStartRun}
-                  disabled={isCreatingRun}
-                  variant="default"
-                  size="sm"
-                >
-                  {isCreatingRun ? 'Starting...' : 'Start new run'}
-                </Button>
-              )}
-            </div>
             <div className="border rounded-md overflow-hidden">
+              <div className="flex items-center justify-between bg-muted px-4 py-2 border-b">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-sm font-medium text-foreground">
+                    Latest runs
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {filteredRuns.length} total
+                  </span>
+                </div>
+                {defaultBranch && (
+                  <Button
+                    onClick={handleStartRun}
+                    disabled={isCreatingRun}
+                    variant="default"
+                    size="sm"
+                  >
+                    {isCreatingRun ? 'Starting...' : 'Start new run'}
+                  </Button>
+                )}
+              </div>
               <GitHubStyleRunList
                 runs={filteredRuns}
                 orgSlug={orgSlug}

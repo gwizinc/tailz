@@ -71,6 +71,18 @@ function generateDeterministicUUID(input: string): string {
   ].join('-')
 }
 
+function extractExtType(path: string): string | null {
+  const segments = path.split('/')
+  const fileName = segments[segments.length - 1] ?? ''
+
+  if (!fileName.includes('.')) {
+    return null
+  }
+
+  const extension = fileName.split('.').pop()
+  return extension ? extension.toLowerCase() : null
+}
+
 export async function indexFilesToQdrant(
   files: CodebaseFile[],
   repoId: string,
@@ -105,6 +117,7 @@ export async function indexFilesToQdrant(
     }
 
     await ensurePayloadIndex(qdrantClient, collectionName, 'commitSha')
+    await ensurePayloadIndex(qdrantClient, collectionName, 'extType')
 
     logger.info(
       `Indexing ${files.length} files to Qdrant collection: ${collectionName}`,
@@ -128,6 +141,7 @@ export async function indexFilesToQdrant(
 
         const fileIdString = `${repoId}:${file.path}:${commitSha}`
         const fileId = generateDeterministicUUID(fileIdString)
+        const extType = extractExtType(file.path)
 
         const MAX_PAYLOAD_SIZE = 50_000
         const contentPreview =
@@ -145,6 +159,7 @@ export async function indexFilesToQdrant(
                 repoId,
                 commitSha,
                 branch: branch ?? null,
+                extType: extType ?? null,
                 content: contentPreview,
                 contentLength: file.content.length,
               },

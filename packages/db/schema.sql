@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6zTC5ZSnK8azcjwb3005PZogfPNkOgDldo2dZ9sRberEv6VHN3uK506bpYzC1Rf
+\restrict 2MsmDMRdXFnBFlwUeUEMELiQADWwwx10bFKJPdnoKx4fTheY8SpRGA470PQ35SF
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
@@ -905,18 +905,11 @@ CREATE TABLE public.story_test_results (
     story_id uuid NOT NULL,
     run_id uuid,
     status text NOT NULL,
-    summary text,
-    findings jsonb DEFAULT '[]'::jsonb NOT NULL,
-    issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    missing_requirements jsonb DEFAULT '[]'::jsonb NOT NULL,
-    code_references jsonb DEFAULT '[]'::jsonb NOT NULL,
-    reasoning jsonb DEFAULT '[]'::jsonb NOT NULL,
-    loop_iterations jsonb DEFAULT '[]'::jsonb NOT NULL,
-    raw_output jsonb,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     started_at timestamp with time zone DEFAULT now(),
     completed_at timestamp with time zone,
     duration_ms integer,
+    analysis jsonb,
+    analysis_version integer NOT NULL,
     CONSTRAINT story_test_results_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text, 'running'::text])))
 );
 
@@ -971,69 +964,6 @@ COMMENT ON COLUMN public.story_test_results.status IS 'Outcome status of the eva
 
 
 --
--- Name: COLUMN story_test_results.summary; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.summary IS 'High-level summary produced by the AI reviewer';
-
-
---
--- Name: COLUMN story_test_results.findings; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.findings IS 'Array of key findings discovered during evaluation';
-
-
---
--- Name: COLUMN story_test_results.issues; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.issues IS 'Array of issues or blockers preventing the story from passing';
-
-
---
--- Name: COLUMN story_test_results.missing_requirements; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.missing_requirements IS 'Array describing missing requirements for the story to be executable';
-
-
---
--- Name: COLUMN story_test_results.code_references; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.code_references IS 'Array of code references associated with fulfilling the story';
-
-
---
--- Name: COLUMN story_test_results.reasoning; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.reasoning IS 'Structured reasoning steps captured from the AI';
-
-
---
--- Name: COLUMN story_test_results.loop_iterations; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.loop_iterations IS 'Trace of iterative AI evaluation steps';
-
-
---
--- Name: COLUMN story_test_results.raw_output; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.raw_output IS 'Raw model output payload for auditing';
-
-
---
--- Name: COLUMN story_test_results.metadata; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.story_test_results.metadata IS 'Additional metadata captured during evaluation';
-
-
---
 -- Name: COLUMN story_test_results.started_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1052,6 +982,20 @@ COMMENT ON COLUMN public.story_test_results.completed_at IS 'Timestamp when the 
 --
 
 COMMENT ON COLUMN public.story_test_results.duration_ms IS 'Total evaluation duration in milliseconds';
+
+
+--
+-- Name: COLUMN story_test_results.analysis; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.analysis IS 'Versioned story analysis payload containing conclusion, evidence, and explanation.';
+
+
+--
+-- Name: COLUMN story_test_results.analysis_version; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.analysis_version IS 'Version number of the stored analysis payload.';
 
 
 --
@@ -1652,5 +1596,5 @@ ALTER TABLE ONLY public.story_test_results
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6zTC5ZSnK8azcjwb3005PZogfPNkOgDldo2dZ9sRberEv6VHN3uK506bpYzC1Rf
+\unrestrict 2MsmDMRdXFnBFlwUeUEMELiQADWwwx10bFKJPdnoKx4fTheY8SpRGA470PQ35SF
 

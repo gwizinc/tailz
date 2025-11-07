@@ -1,12 +1,12 @@
 import { task, logger } from '@trigger.dev/sdk'
 
-import { setupDb, sql } from '@app/db'
+import { setupDb } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
 import {
   normalizeStoryTestResult,
   runStoryEvaluationAgent,
-} from '../helpers/story-evaluator'
+} from '../agents/story-evaluator'
 
 interface TestStoryPayload {
   storyId: string
@@ -48,16 +48,20 @@ export const testStoryTask = task({
     const startedAt = new Date()
 
     // Create an initial result row so downstream steps can stream updates
-    const inserted = await sql<{
-      id: string
-    }>`
-      INSERT INTO public.story_test_results (story_id, run_id, status, started_at)
-      VALUES (${payload.storyId}, ${payload.runId ?? null}, 'running', ${startedAt})
-      RETURNING id
-    `.execute(db)
+    const inserted = await db
+      .insertInto('storyTestResults')
+      .values({
+        storyId: payload.storyId,
+        runId: payload.runId ?? null,
+        status: 'running',
+        startedAt,
+        analysisVersion: 1,
+        analysis: null,
+      })
+      .returning(['id'])
+      .executeTakeFirst()
 
-    const resultRow = inserted.rows[0]
-    const resultId = resultRow?.id
+    const resultId = inserted?.id
 
     if (!resultId) {
       throw new Error('Failed to create story test result record')
@@ -85,8 +89,8 @@ export const testStoryTask = task({
         runId: payload.runId,
         resultId,
         finishReason: evaluation.finishReason,
-        agentSteps: evaluation.stepSummaries.length,
-        contextToolCalls: evaluation.toolTrace.length,
+        agentSteps: evaluation.metrics.stepCount,
+        contextToolCalls: evaluation.metrics.toolCallCount,
       })
 
       const modelOutput = evaluation.output
@@ -98,26 +102,26 @@ export const testStoryTask = task({
         modelOutput,
         startedAt,
         new Date(),
-        evaluation.stepSummaries,
       )
 
-      await sql`
-        UPDATE public.story_test_results
-        SET
-          status = ${normalized.status},
-          summary = ${normalized.summary},
-          findings = ${JSON.stringify(normalized.findings)}::jsonb,
-          issues = ${JSON.stringify(normalized.issues)}::jsonb,
-          missing_requirements = ${JSON.stringify(normalized.missingRequirements)}::jsonb,
-          code_references = ${JSON.stringify(normalized.codeReferences)}::jsonb,
-          reasoning = ${JSON.stringify(normalized.reasoning)}::jsonb,
-          loop_iterations = ${JSON.stringify(normalized.loopIterations)}::jsonb,
-          raw_output = ${JSON.stringify(modelOutput)}::jsonb,
-          metadata = ${JSON.stringify(normalized.metadata ?? {})}::jsonb,
-          completed_at = ${normalized.completedAt ? new Date(normalized.completedAt) : null},
-          duration_ms = ${normalized.durationMs}
-        WHERE id = ${resultId}
-      `.execute(db)
+      const completedAt = normalized.completedAt
+        ? new Date(normalized.completedAt)
+        : null
+
+      await db
+        .updateTable('storyTestResults')
+        .set((eb) => ({
+          status: normalized.status,
+          analysisVersion: normalized.analysisVersion,
+          analysis:
+            normalized.analysis !== null
+              ? eb.cast(eb.val(JSON.stringify(normalized.analysis)), 'jsonb')
+              : eb.val(null),
+          completedAt,
+          durationMs: normalized.durationMs,
+        }))
+        .where('id', '=', resultId)
+        .execute()
 
       logger.info('Story evaluation completed', {
         storyId: payload.storyId,
@@ -133,13 +137,8 @@ export const testStoryTask = task({
         runId: payload.runId ?? null,
         resultId,
         status: normalized.status,
-        summary: normalized.summary,
-        findings: normalized.findings,
-        issues: normalized.issues,
-        missingRequirements: normalized.missingRequirements,
-        codeReferences: normalized.codeReferences,
-        metadata: normalized.metadata ?? {},
-        loopIterations: normalized.loopIterations,
+        analysisVersion: normalized.analysisVersion,
+        analysis: normalized.analysis,
       }
     } catch (error) {
       // Ensure the DB row reflects failure details before bubbling the error upward
@@ -153,22 +152,23 @@ export const testStoryTask = task({
       const failureDescription =
         error instanceof Error ? error.message : 'Unknown error occurred'
 
-      await sql`
-        UPDATE public.story_test_results
-        SET
-          status = 'fail',
-          summary = COALESCE(summary, ${failureDescription}),
-          issues = COALESCE(issues, '[]'::jsonb) || jsonb_build_array(
-            jsonb_build_object(
-              'title', 'Evaluation failure',
-              'description', ${failureDescription},
-              'references', '[]'::jsonb,
-              'missing', '[]'::jsonb
-            )
-          ),
-          completed_at = NOW()
-        WHERE id = ${resultId}
-      `.execute(db)
+      const failureAnalysis = {
+        version: 1,
+        conclusion: 'fail',
+        explanation: failureDescription,
+        evidence: [],
+      }
+
+      await db
+        .updateTable('storyTestResults')
+        .set({
+          status: 'fail',
+          analysisVersion: 1,
+          analysis: failureAnalysis,
+          completedAt: new Date(),
+        })
+        .where('id', '=', resultId)
+        .execute()
 
       throw error
     }

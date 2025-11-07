@@ -1,34 +1,19 @@
-import { useMemo } from 'react'
-
 interface StoryCardProps {
   id: string
   name: string
-  story: string
   href: string
 }
 
-export function StoryCard({ id: _id, name, story, href }: StoryCardProps) {
-  // Truncate preview text to first few lines
-  const truncatedText = useMemo(() => {
-    const lines = story.split('\n').slice(0, 3)
-    return lines.join('\n')
-  }, [story])
-
+export function StoryCard({ id: _id, name, href }: StoryCardProps) {
   return (
     <a
       href={href}
-      className="block h-48 p-4 border rounded-md bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
     >
-      <div className="flex flex-col h-full">
-        <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
-          {name}
-        </h3>
-        <div className="flex-1 overflow-hidden">
-          <p className="text-sm text-muted-foreground line-clamp-4 whitespace-pre-wrap">
-            {truncatedText || 'No content'}
-          </p>
-        </div>
-      </div>
+      <span className="font-medium text-foreground line-clamp-1">{name}</span>
+      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+        Group Name
+      </span>
     </a>
   )
 }

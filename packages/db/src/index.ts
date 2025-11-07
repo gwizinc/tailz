@@ -4,10 +4,8 @@ export { sql } from 'kysely'
 export type {
   RunStory,
   RunStoryColumnType,
-  StoryTestCodeReference,
-  StoryTestFinding,
-  StoryTestIssue,
-  StoryTestLoopIteration,
+  StoryAnalysisEvidenceReference,
+  StoryAnalysisV1,
   StoryTestResultPayload,
   JSONValue,
 } from './column-types'

@@ -1,7 +1,7 @@
 import { logger, tasks, task } from '@trigger.dev/sdk'
 
 import { json, setupDb, sql } from '@app/db'
-import type { RunStory } from '@app/db'
+import type { RunStory, StoryAnalysisV1 } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
 
@@ -160,8 +160,8 @@ export const runCiTask = task({
         const output = result.output as {
           resultId: string
           status: 'pass' | 'fail' | 'blocked' | 'running'
-          summary: string | null
-          loopIterations: unknown
+          analysisVersion: number
+          analysis: StoryAnalysisV1 | null
         }
 
         if (output.status === 'pass') {
@@ -176,7 +176,8 @@ export const runCiTask = task({
           storyId: story.id,
           status: output.status,
           resultId: output.resultId,
-          summary: output.summary ?? null,
+          // TODO use AI to summarize complete findings later.
+          summary: null,
           startedAt: initialRunStories[index]?.startedAt ?? null,
           completedAt: new Date().toISOString(),
         })

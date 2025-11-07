@@ -10,33 +10,17 @@ export type JSONValue =
     }
   | Array<JSONValue>
 
-export interface StoryTestCodeReference {
+export interface StoryAnalysisEvidenceReference {
   filePath: string
-  repoPath?: string | null
-  summary?: string | null
-  startLine?: number | null
-  endLine?: number | null
+  startLine: number | null
+  endLine: number | null
+  note: string | null
 }
 
-export interface StoryTestFinding {
-  title: string
-  detail?: string | null
-  references?: StoryTestCodeReference[]
-}
-
-export interface StoryTestIssue {
-  title: string
-  description?: string | null
-  references?: StoryTestCodeReference[]
-  missing?: string[]
-}
-
-export interface StoryTestLoopIteration {
-  iteration: number
-  action: string
-  notes?: string | null
-  references?: StoryTestCodeReference[]
-  outputSummary?: string | null
+export interface StoryAnalysisV1 {
+  conclusion: 'pass' | 'fail' | 'blocked'
+  explanation: string
+  evidence: StoryAnalysisEvidenceReference[]
 }
 
 export interface RunStory {
@@ -57,13 +41,8 @@ export type RunStoryColumnType = ColumnType<
 
 export interface StoryTestResultPayload {
   status: 'pass' | 'fail' | 'blocked' | 'running'
-  summary?: string | null
-  findings: StoryTestFinding[]
-  issues: StoryTestIssue[]
-  missingRequirements: string[]
-  codeReferences: StoryTestCodeReference[]
-  reasoning: JSONValue
-  loopIterations: StoryTestLoopIteration[]
+  analysisVersion: number
+  analysis: StoryAnalysisV1 | null
   rawOutput?: JSONValue
   metadata?: JSONValue
   startedAt: string
