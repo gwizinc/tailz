@@ -20,7 +20,6 @@ interface RunStoryEvaluationPayload {
 export async function runStoryEvaluation(
   payload: RunStoryEvaluationPayload,
 ): Promise<StoryEvaluationAgentResult> {
-  console.log('payload', payload)
   return await runStoryEvaluationAgent({
     storyName: payload.storyName,
     storyText: payload.storyText,

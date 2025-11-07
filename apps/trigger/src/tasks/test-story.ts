@@ -4,7 +4,7 @@ import { setupDb } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
 import { normalizeStoryTestResult } from '../agents/story-evaluator'
-import { runStoryEvaluation } from './run-story-evaluation'
+import { runStoryEvaluationTask } from './run-story-evaluation'
 
 interface TestStoryPayload {
   storyId: string
@@ -69,7 +69,7 @@ export const testStoryTask = task({
       /**
        * 💎 Run Story Evaluation Agent
        */
-      const evaluation = await runStoryEvaluation({
+      const evaluationRun = await runStoryEvaluationTask.triggerAndWait({
         storyName: storyRecord.storyName,
         storyText: storyRecord.storyText,
         repoId: storyRecord.repoId,
@@ -79,6 +79,17 @@ export const testStoryTask = task({
         runId: payload.runId ?? null,
         maxSteps: 6,
       })
+
+      if (!evaluationRun.ok) {
+        const errorMessage =
+          evaluationRun.error instanceof Error
+            ? evaluationRun.error.message
+            : 'run-story-evaluation task failed'
+
+        throw new Error(errorMessage)
+      }
+
+      const evaluation = evaluationRun.output
 
       logger.info('Story evaluation agent completed', {
         storyId: payload.storyId,

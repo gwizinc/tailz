@@ -1,7 +1,33 @@
+import { createHash } from 'node:crypto'
+
+import { QdrantClient } from '@qdrant/js-client-rest'
 import { task, logger } from '@trigger.dev/sdk'
-import { getRepoWithOctokit } from '../helpers/github'
-import type { CodebaseFile } from '../steps/fetch-codebase'
+
 import { indexFilesToQdrant } from '../helpers/index-codebase'
+import { parseEnv } from '../helpers/env'
+import { getRepoWithOctokit } from '../helpers/github'
+import { buildQdrantErrorDetails } from '../helpers/qdrant'
+import type { CodebaseFile } from '../steps/fetch-codebase'
+
+function generateDeterministicUUID(input: string): string {
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+  const hash = createHash('sha1')
+    .update(namespace + input)
+    .digest()
+
+  const hashBuffer = Buffer.from(hash)
+  hashBuffer[6] = (hashBuffer[6] & 0x0f) | 0x50
+  hashBuffer[8] = (hashBuffer[8] & 0x3f) | 0x80
+
+  const hex = hashBuffer.toString('hex')
+  return [
+    hex.substring(0, 8),
+    hex.substring(8, 12),
+    hex.substring(12, 16),
+    hex.substring(16, 20),
+    hex.substring(20, 32),
+  ].join('-')
+}
 
 /**
  * Trigger.dev task that indexes an entire repository into Qdrant for semantic search.
@@ -63,6 +89,9 @@ export const indexRepoTask = task({
   }) => {
     const { repo, octokit } = await getRepoWithOctokit(payload.repoId)
 
+    // TODO don't assume main branch, use repo.defaultBranch in the future
+    const branch = payload.branch || 'main'
+
     // Determine the commit SHA to use for scanning the entire repository
     let commitSha: string
     let ref: string
@@ -73,8 +102,6 @@ export const indexRepoTask = task({
       ref = commitSha
     } else {
       // Use branch - get latest commit SHA from branch
-      // TODO don't assume main branch, use repo.defaultBranch in the future
-      const branch = payload.branch || 'main'
       ref = branch
       logger.info(
         `Getting latest commit from branch ${repo.repoName}@${branch}`,
@@ -166,9 +193,65 @@ export const indexRepoTask = task({
       )
     }
 
+    const env = parseEnv()
+    const collectionName = `repo_embeddings_${payload.repoId}`
+    const qdrantClient = new QdrantClient({
+      url: env.QDRANT_URL,
+      apiKey: env.QDRANT_API_KEY,
+    })
+
+    let qdrantCollectionExists = false
+    try {
+      await qdrantClient.getCollection(collectionName)
+      qdrantCollectionExists = true
+    } catch (error) {
+      const details = buildQdrantErrorDetails(error, {
+        repoId: payload.repoId,
+        commitSha,
+        branch,
+        collection: collectionName,
+      })
+      logger.info('Qdrant collection unavailable for pre-index check', details)
+    }
+
     // Fetch contents for all relevant files in the repository
     const codebase: CodebaseFile[] = []
     for (const file of filesToProcess) {
+      if (qdrantCollectionExists) {
+        const fileIdString = `${payload.repoId}:${file.path}:${commitSha}`
+        const pointId = generateDeterministicUUID(fileIdString)
+        try {
+          const existingPoints = await qdrantClient.retrieve(collectionName, {
+            ids: [pointId],
+            with_payload: false,
+          })
+          const hasExistingPoint = existingPoints.some((point) => {
+            const pointIdentifier =
+              typeof point.id === 'string' || typeof point.id === 'number'
+                ? String(point.id)
+                : null
+            return pointIdentifier === pointId
+          })
+
+          if (hasExistingPoint) {
+            logger.info(
+              `Skipping ${file.path} - already indexed for commit ${commitSha.substring(0, 7)}`,
+            )
+            continue
+          }
+        } catch (error) {
+          const details = buildQdrantErrorDetails(error, {
+            repoId: payload.repoId,
+            commitSha,
+            branch,
+            collection: collectionName,
+            file: file.path,
+            fileId: pointId,
+          })
+          logger.warn('Failed to verify existing Qdrant point', details)
+        }
+      }
+
       try {
         const { data } = await octokit.rest.git.getBlob({
           owner: repo.ownerLogin,
@@ -193,7 +276,6 @@ export const indexRepoTask = task({
       codebase: codebase.map((f) => f.path),
     })
 
-    const branch = payload.branch || 'main'
     logger.info('Indexing codebase files to Qdrant', {
       repoId: payload.repoId,
       commitSha,

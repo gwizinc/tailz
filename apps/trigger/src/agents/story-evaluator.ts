@@ -93,20 +93,27 @@ export function normalizeStoryTestResult(
   }
 }
 
-type StoryEvaluationToolSet = {
-  retrieveStoryContext: SearchCodeTool
-}
-
 function buildStoryEvaluationInstructions(): string {
-  return [
-    'You are an expert software QA engineer evaluating whether a user story can be executed with the current repository state.',
-    'Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.',
-    'Schema: { status: "pass" | "fail" | "blocked" | "running", analysis: { version: 1, conclusion: "pass" | "fail" | "blocked", explanation: string, evidence: [{ filePath, startLine?, endLine?, note? }] } | null }',
-    'Call the `retrieveStoryContext` tool whenever you need additional code or repository information.',
-    'When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.',
-    'Explanation should clearly state why the story passes, fails, or is blocked. Use concise language that a human reviewer can follow quickly.',
-    'If available evidence is insufficient to decide, mark the status as "blocked" and describe what is missing in the explanation.',
-  ].join('\n')
+  // * Dedent does not work in this project
+  return `
+    You are an expert software QA engineer evaluating whether a user story can be executed with the current repository state.
+    
+    # Important
+    - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
+    
+    # Schema
+    \`\`\`
+    ${JSON.stringify(storyTestResultSchema.shape, null, 2)}
+    \`\`\`
+
+    # Tools
+    - Call the "codeSearch" tool whenever you need additional code or repository information.
+
+    # Rules
+    - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
+    - Explanation should clearly state why the story passes, fails, or is blocked. Use concise language that a human reviewer can follow quickly.
+    - If available evidence is insufficient to decide, mark the status as "blocked" and describe what is missing in the explanation.
+    `
 }
 
 function buildStoryEvaluationPrompt(
@@ -136,22 +143,20 @@ export async function runStoryEvaluationAgent(
   const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
   const effectiveModelId = DEFAULT_STORY_MODEL
 
-  const storyContextTool = createSearchCodeTool({
+  const codeSearchTool = createSearchCodeTool({
     repoId: options.repoId,
     commitSha: options.commitSha ?? null,
   })
   // TODO add new tool for specific file lookup
   // TODO add new tool for specific symbol lookup
 
-  const tools: StoryEvaluationToolSet = {
-    retrieveStoryContext: storyContextTool,
-  }
-
   const agent = new ToolLoopAgent({
     id: STORY_EVALUATION_AGENT_ID,
     model: openAiProvider(effectiveModelId),
     instructions: buildStoryEvaluationInstructions(),
-    tools,
+    tools: {
+      codeSearch: codeSearchTool,
+    },
     // TODO: surface stopWhen tuning once we gather additional telemetry from longer stories.
     stopWhen: stepCountIs(
       Math.max(1, (options.maxSteps ?? DEFAULT_MAX_STEPS) + 1),
@@ -160,8 +165,6 @@ export async function runStoryEvaluationAgent(
   })
 
   const prompt = buildStoryEvaluationPrompt(options)
-
-  console.log('prompt', prompt)
 
   const result = await agent.generate({ prompt })
 

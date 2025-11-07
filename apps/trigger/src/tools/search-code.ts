@@ -149,6 +149,13 @@ export function createSearchCodeTool(options: {
       'Retrieve relevant repository files and code snippets using semantic search in Qdrant.',
     inputSchema: searchCodeToolInputSchema,
     execute: async ({ query, limit, extType }: SearchCodeToolInput) => {
+      console.log('🔍 Calling searchCodeTool', {
+        options,
+        query,
+        limit,
+        extType,
+      })
+
       const trimmedQuery = query.trim()
 
       if (trimmedQuery.length === 0) {
@@ -163,7 +170,7 @@ export function createSearchCodeTool(options: {
       )
 
       try {
-        const snippets = await searchCode({
+        const files = await searchCode({
           repoId: options.repoId,
           query: trimmedQuery,
           commitSha: options.commitSha ?? undefined,
@@ -171,8 +178,14 @@ export function createSearchCodeTool(options: {
           extType: extType ?? undefined,
         })
 
+        console.log('🔍 searchCodeTool returned', {
+          options,
+          query,
+          files,
+        })
+
         return {
-          snippets,
+          files,
           meta: {
             limit: boundedLimit,
             queryLength: trimmedQuery.length,
@@ -180,7 +193,7 @@ export function createSearchCodeTool(options: {
           },
         }
       } catch (error) {
-        logger.warn('retrieveStoryContext tool failed', {
+        logger.warn('codeSearchTool tool failed', {
           repoId: options.repoId,
           commitSha: options.commitSha ?? null,
           limit: boundedLimit,
