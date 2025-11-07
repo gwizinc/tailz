@@ -21,8 +21,16 @@ const defaultFeatures = [
       'Your stories can come to life with rich text editing and images.',
   },
   {
-    title: 'Launch agents to write code',
+    title: 'Story to Code',
     description: 'Write a story and let us make a PR to implement it.',
+  },
+  {
+    title: 'Auto Fix PRs',
+    description: 'We will create a PR to automatically fix the issue detected',
+  },
+  {
+    title: 'Local CLI',
+    description: 'A CLI tool to run tests locally on your machine.',
   },
 ] as const
 

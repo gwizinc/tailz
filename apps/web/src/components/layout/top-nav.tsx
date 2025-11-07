@@ -83,9 +83,10 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
 
       <Button
         className={cn(
-          'h-8 px-3 text-sm font-semibold text-primary-foreground',
-          'bg-gradient-to-r from-primary via-primary/80 to-primary/60 shadow-sm',
-          'hover:shadow-md focus-visible:ring-ring focus-visible:ring-offset-1',
+          'h-8 px-3 text-sm text-white',
+          'bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 shadow-sm',
+          'hover:from-violet-600 hover:via-indigo-600 hover:to-sky-600 hover:shadow-md',
+          'focus-visible:ring-indigo-500/70 focus-visible:ring-offset-1',
         )}
         onClick={() => void navigate('/upcoming-features')}
       >

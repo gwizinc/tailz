@@ -3,6 +3,7 @@ import { Loader2, Sparkles } from 'lucide-react'
 
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
+import { AppProvider } from '@/components/providers/app-provider'
 import {
   Card,
   CardContent,
@@ -16,6 +17,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
+export function UpcomingFeaturesApp() {
+  return (
+    <AppProvider>
+      <UpcomingFeaturesView />
+    </AppProvider>
+  )
+}
+
 interface Feature {
   id: string
   title: string
@@ -26,7 +35,7 @@ interface Feature {
   updatedAt: string
 }
 
-export function UpcomingFeaturesApp() {
+function UpcomingFeaturesView() {
   const trpc = useTRPCClient()
   const [features, setFeatures] = useState<Feature[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -136,7 +145,7 @@ export function UpcomingFeaturesApp() {
         ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <section className="flex flex-col gap-4">
+          <section className="grid gap-4 sm:grid-cols-2">
             {isLoading ? (
               <Card className="items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -153,12 +162,14 @@ export function UpcomingFeaturesApp() {
               </Card>
             ) : (
               sortedFeatures.map((feature) => (
-                <Card key={feature.id}>
+                <Card key={feature.id} className="h-full">
                   <CardHeader>
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
-                    <CardDescription>{feature.description}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col gap-4">
+                    <CardDescription className="text-sm text-muted-foreground">
+                      {feature.description}
+                    </CardDescription>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span className="font-medium text-foreground text-base">
                         {feature.voteCount.toLocaleString('en-US')}
@@ -173,7 +184,7 @@ export function UpcomingFeaturesApp() {
                       disabled={activeVoteId === feature.id}
                       onClick={() => void handleVote(feature.id)}
                       className={cn(
-                        'w-full max-w-xs justify-center gap-2',
+                        'w-full max-w-xs justify-center gap-2 font-normal transition-all',
                         feature.hasVoted ? 'shadow-md' : 'shadow-sm',
                       )}
                     >
