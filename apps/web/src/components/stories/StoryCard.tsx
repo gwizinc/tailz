@@ -17,7 +17,7 @@ export function StoryCard({ id: _id, name, story, href }: StoryCardProps) {
   return (
     <a
       href={href}
-      className="block h-48 p-4 border rounded-md bg-card text-card-foreground shadow-sm rotate-1 hover:rotate-0 transition-transform duration-200 hover:shadow-md"
+      className="block h-48 p-4 border rounded-md bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md"
     >
       <div className="flex flex-col h-full">
         <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
