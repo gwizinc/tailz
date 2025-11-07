@@ -77,7 +77,6 @@ export const testStoryTask = task({
         branchName: storyRecord.branchName,
         commitSha: storyRecord.commitSha,
         runId: payload.runId ?? null,
-        maxSteps: 6,
       })
 
       if (!evaluationRun.ok) {

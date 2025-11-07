@@ -11,7 +11,7 @@ import { createSearchCodeTool } from '@/tools/search-code'
 import { parseEnv } from '@/helpers/env'
 
 const DEFAULT_STORY_MODEL = 'gpt-4o-mini'
-const DEFAULT_MAX_STEPS = 6
+const DEFAULT_MAX_STEPS = 30
 const STORY_EVALUATION_AGENT_ID = 'story-evaluation'
 
 const evidenceItemSchema = z.object({
@@ -173,8 +173,12 @@ export async function runStoryEvaluationAgent(
 
   const result = await agent.generate({ prompt })
 
+  // ! we get `AI_NoOutputGeneratedError: No output generated.` if we hit
+  // ! our max steps limit.
+
   console.log('💸 Story evaluation agent result', {
-    result,
+    output: result.output,
+    steps: result.steps,
   })
 
   const parsedOutput = storyTestResultSchema.parse(result.output)
