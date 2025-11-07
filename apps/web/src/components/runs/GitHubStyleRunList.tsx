@@ -7,7 +7,7 @@ interface RunItem {
   createdAt: string
   updatedAt: string
   durationMs: number
-  commitSha: string
+  commitSha: string | null
   commitMessage: string | null
   branchName: string
 }
@@ -92,7 +92,7 @@ export function GitHubStyleRunList({
         const statusIcon = getStatusIcon(run.status)
         const commitTitle =
           run.commitMessage?.split('\n')[0]?.trim() || 'No commit message'
-        const shortSha = run.commitSha.slice(0, 7)
+        const shortSha = run.commitSha ? run.commitSha.slice(0, 7) : '—'
 
         return (
           <li key={run.id}>

@@ -1,8 +1,10 @@
+import { configure, tasks } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import type { Updateable } from 'kysely'
 
 import type { Json, Story } from '@app/db/types'
 import { protectedProcedure, router } from '../trpc'
+import { parseEnv } from '../helpers/env'
 
 export const storyRouter = router({
   listByBranch: protectedProcedure
@@ -314,5 +316,29 @@ export const storyRouter = router({
         .execute()
 
       return { success: true }
+    }),
+
+  test: protectedProcedure
+    .input(
+      z.object({
+        storyId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const env = parseEnv(ctx.env)
+
+      configure({
+        secretKey: env.TRIGGER_SECRET_KEY,
+      })
+
+      const runHandle = await tasks.trigger('test-story', {
+        storyId: input.storyId,
+        runId: null,
+      })
+
+      return {
+        queued: true,
+        runId: runHandle.id,
+      }
     }),
 })

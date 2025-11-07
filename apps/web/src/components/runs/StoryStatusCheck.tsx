@@ -1,7 +1,7 @@
-import { CheckCircle2, Loader2, MinusCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, MinusCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type StoryStatus = 'pass' | 'fail' | 'running' | 'skipped'
+type StoryStatus = 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
 
 interface StoryStatusCheckProps {
   status: StoryStatus
@@ -46,6 +46,16 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
         <MinusCircle
           {...iconProps}
           className={cn('text-muted-foreground', iconProps.className)}
+        />
+      )
+    case 'blocked':
+      return (
+        <AlertTriangle
+          {...iconProps}
+          className={cn(
+            'text-amber-600 dark:text-amber-500',
+            iconProps.className,
+          )}
         />
       )
     default:

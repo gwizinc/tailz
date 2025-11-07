@@ -3,7 +3,11 @@ import { StoryStatusCheck } from './StoryStatusCheck'
 
 interface RunStory {
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'skipped'
+  resultId: string | null
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  summary: string | null
+  startedAt: string | null
+  completedAt: string | null
   story: {
     id: string
     name: string
@@ -17,11 +21,11 @@ interface RunStory {
 
 interface Run {
   id: string
-  commitSha: string
+  commitSha: string | null
   branchName: string
   commitMessage: string | null
   prNumber: string | null
-  status: 'pass' | 'fail' | 'skipped'
+  status: 'pass' | 'fail' | 'skipped' | 'running'
   summary: string | null
   createdAt: string
   updatedAt: string
@@ -34,7 +38,7 @@ interface RunDetailViewProps {
   repoName: string
 }
 
-function getStatusBadgeClass(status: 'pass' | 'fail' | 'skipped') {
+function getStatusBadgeClass(status: 'pass' | 'fail' | 'skipped' | 'running') {
   switch (status) {
     case 'pass':
       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
@@ -42,6 +46,8 @@ function getStatusBadgeClass(status: 'pass' | 'fail' | 'skipped') {
       return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
     case 'skipped':
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+    case 'running':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
   }
 }
 
@@ -83,7 +89,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
           <div>
             <div className="text-muted-foreground">Commit</div>
             <div className="text-foreground mt-1 font-mono text-xs">
-              {run.commitSha.slice(0, 7)}
+              {run.commitSha ? run.commitSha.slice(0, 7) : '—'}
             </div>
           </div>
 
@@ -134,6 +140,11 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                           {runStory.story.commitSha.slice(0, 7)}
                         </div>
                       ) : null}
+                      {runStory.summary ? (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {runStory.summary}
+                        </div>
+                      ) : null}
                     </div>
                   </a>
                 ) : (
@@ -143,6 +154,11 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                       <div className="font-medium text-muted-foreground">
                         Story not found ({runStory.storyId.slice(0, 8)}...)
                       </div>
+                      {runStory.summary ? (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {runStory.summary}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 )}

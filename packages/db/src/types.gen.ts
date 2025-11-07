@@ -225,7 +225,7 @@ export interface Run {
   /**
    * The SHA of the commit that was tested
    */
-  commitSha: string;
+  commitSha: string | null;
   /**
    * The time when the run was created
    */
@@ -335,6 +335,81 @@ export interface Story {
   updatedAt: Generated<Timestamp | null>;
 }
 
+export interface StoryTestResult {
+  /**
+   * Array of code references associated with fulfilling the story
+   */
+  codeReferences: Generated<Json>;
+  /**
+   * Timestamp when the evaluation finished
+   */
+  completedAt: Timestamp | null;
+  /**
+   * The time when the test result was created
+   */
+  createdAt: Generated<Timestamp | null>;
+  /**
+   * Total evaluation duration in milliseconds
+   */
+  durationMs: number | null;
+  /**
+   * Array of key findings discovered during evaluation
+   */
+  findings: Generated<Json>;
+  /**
+   * Unique identifier for each story test result
+   */
+  id: Generated<string>;
+  /**
+   * Array of issues or blockers preventing the story from passing
+   */
+  issues: Generated<Json>;
+  /**
+   * Trace of iterative AI evaluation steps
+   */
+  loopIterations: Generated<Json>;
+  /**
+   * Additional metadata captured during evaluation
+   */
+  metadata: Generated<Json>;
+  /**
+   * Array describing missing requirements for the story to be executable
+   */
+  missingRequirements: Generated<Json>;
+  /**
+   * Raw model output payload for auditing
+   */
+  rawOutput: Json | null;
+  /**
+   * Structured reasoning steps captured from the AI
+   */
+  reasoning: Generated<Json>;
+  /**
+   * Optional FK to runs.id when the test was executed as part of a CI run
+   */
+  runId: string | null;
+  /**
+   * Timestamp when the evaluation began
+   */
+  startedAt: Generated<Timestamp | null>;
+  /**
+   * Outcome status of the evaluation (pass, fail, blocked, running)
+   */
+  status: string;
+  /**
+   * FK to stories.id of the evaluated story
+   */
+  storyId: string;
+  /**
+   * High-level summary produced by the AI reviewer
+   */
+  summary: string | null;
+  /**
+   * The time when the test result was last updated
+   */
+  updatedAt: Generated<Timestamp | null>;
+}
+
 export interface User {
   /**
    * The time when the user was created
@@ -413,6 +488,7 @@ export interface DB {
   runs: Run;
   sessions: Session;
   stories: Story;
+  storyTestResults: StoryTestResult;
   users: User;
   verifications: Verification;
 }

@@ -10,10 +10,42 @@ export type JSONValue =
     }
   | Array<JSONValue>
 
-// Run story execution status type
-export type RunStory = {
+export interface StoryTestCodeReference {
+  filePath: string
+  repoPath?: string | null
+  summary?: string | null
+  startLine?: number | null
+  endLine?: number | null
+}
+
+export interface StoryTestFinding {
+  title: string
+  detail?: string | null
+  references?: StoryTestCodeReference[]
+}
+
+export interface StoryTestIssue {
+  title: string
+  description?: string | null
+  references?: StoryTestCodeReference[]
+  missing?: string[]
+}
+
+export interface StoryTestLoopIteration {
+  iteration: number
+  action: string
+  notes?: string | null
+  references?: StoryTestCodeReference[]
+  outputSummary?: string | null
+}
+
+export interface RunStory {
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'skipped'
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  resultId?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  summary?: string | null
 }
 
 // Column type for runs.stories JSONB array
@@ -22,6 +54,22 @@ export type RunStoryColumnType = ColumnType<
   RunStory[] | RawBuilder<RunStory[]>,
   RunStory[] | RawBuilder<RunStory[]>
 >
+
+export interface StoryTestResultPayload {
+  status: 'pass' | 'fail' | 'blocked' | 'running'
+  summary?: string | null
+  findings: StoryTestFinding[]
+  issues: StoryTestIssue[]
+  missingRequirements: string[]
+  codeReferences: StoryTestCodeReference[]
+  reasoning: JSONValue
+  loopIterations: StoryTestLoopIteration[]
+  rawOutput?: JSONValue
+  metadata?: JSONValue
+  startedAt: string
+  completedAt?: string | null
+  durationMs?: number | null
+}
 
 // Example of how to define a custom column type
 //

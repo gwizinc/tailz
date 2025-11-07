@@ -7,7 +7,11 @@ import { RunDetailView } from '@/components/runs/RunDetailView'
 
 interface RunStory {
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'skipped'
+  resultId: string | null
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  summary: string | null
+  startedAt: string | null
+  completedAt: string | null
   story: {
     id: string
     name: string
@@ -21,11 +25,11 @@ interface RunStory {
 
 interface Run {
   id: string
-  commitSha: string
+  commitSha: string | null
   branchName: string
   commitMessage: string | null
   prNumber: string | null
-  status: 'pass' | 'fail' | 'skipped'
+  status: 'pass' | 'fail' | 'skipped' | 'running'
   summary: string | null
   createdAt: string
   updatedAt: string

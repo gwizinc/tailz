@@ -56,6 +56,8 @@ export function StoryDetailLoader({
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testMessage, setTestMessage] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -119,7 +121,40 @@ export function StoryDetailLoader({
                 </div>
               ) : null}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="default"
+                onClick={async () => {
+                  setIsTesting(true)
+                  setTestMessage(null)
+                  setError(null)
+                  try {
+                    const response = await trpc.story.test.mutate({
+                      storyId,
+                    })
+                    const handleId =
+                      typeof response.runId === 'string'
+                        ? response.runId
+                        : null
+                    setTestMessage(
+                      handleId
+                        ? `Story test queued (run ${handleId}). Check Trigger.dev for progress.`
+                        : 'Story test queued. Check Trigger.dev for progress.',
+                    )
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : 'Failed to queue story test',
+                    )
+                  } finally {
+                    setIsTesting(false)
+                  }
+                }}
+                disabled={isTesting}
+              >
+                {isTesting ? 'Queuing test...' : 'Test story'}
+              </Button>
               {isEditing ? (
                 <>
                   <Button
@@ -178,6 +213,11 @@ export function StoryDetailLoader({
               )}
             </div>
           </div>
+          {testMessage ? (
+            <div className="mx-6 mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
+              {testMessage}
+            </div>
+          ) : null}
           {error && (
             <div className="mx-6 mt-4 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
               {error}

@@ -6,6 +6,8 @@ export { indexRepoTask } from './tasks/index-repo'
 export { updateGithubStatusTask } from './tasks/update-github-status'
 export { testHelloWorldTask } from './tasks/test-hello-world'
 export { handleGithubWebhookTask } from './tasks/handle-github-webhook'
+export { testStoryTask } from './tasks/test-story'
+export { runCiTask } from './tasks/run-ci'
 
 // Export helper types and functions
 export type { CodebaseFile } from './steps/fetch-codebase'

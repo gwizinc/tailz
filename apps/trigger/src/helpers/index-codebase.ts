@@ -6,6 +6,51 @@ import type { CodebaseFile } from '../steps/fetch-codebase'
 import { parseEnv } from './env'
 import { buildQdrantErrorDetails } from './qdrant'
 
+async function ensurePayloadIndex(
+  client: QdrantClient,
+  collectionName: string,
+  fieldName: string,
+) {
+  try {
+    await client.createPayloadIndex(collectionName, {
+      field_name: fieldName,
+      field_schema: 'keyword',
+      wait: true,
+    })
+    logger.info('Created Qdrant payload index', {
+      collectionName,
+      fieldName,
+    })
+  } catch (error) {
+    const details = buildQdrantErrorDetails(error, {
+      repoId: collectionName,
+      commitSha: 'N/A',
+      collection: collectionName,
+    })
+    const message =
+      typeof details.qdrantErrorMessage === 'string'
+        ? details.qdrantErrorMessage
+        : error instanceof Error
+          ? error.message
+          : null
+
+    if (message && message.toLowerCase().includes('already exists')) {
+      logger.info('Payload index already exists, skipping creation', {
+        collectionName,
+        fieldName,
+      })
+      return
+    }
+
+    logger.error('Failed to ensure payload index', {
+      collectionName,
+      fieldName,
+      error: details,
+    })
+    throw error
+  }
+}
+
 function generateDeterministicUUID(input: string): string {
   const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
   const hash = createHash('sha1')
@@ -58,6 +103,8 @@ export async function indexFilesToQdrant(
         vectors: { size: 1536, distance: 'Cosine' },
       })
     }
+
+    await ensurePayloadIndex(qdrantClient, collectionName, 'commitSha')
 
     logger.info(
       `Indexing ${files.length} files to Qdrant collection: ${collectionName}`,

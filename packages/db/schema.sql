@@ -2,24 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9zc3BiXaoZhFzbmIebYHPMbpBIst4BpSBAgc36dS8LksSGgrL3lP2Mc6Eduprsi
+\restrict gukaw9SmAxdBXxXmn2pFXMKbEIrJ4jgBd9yyciN6W1BoVmea3lTnxY7p0edvAfc
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
-
-
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON SCHEMA public IS '';
 
 
 --
@@ -59,6 +45,52 @@ CREATE TYPE public.user_status AS ENUM (
     'disabled',
     'invited'
 );
+
+
+--
+-- Name: get_next_run_number(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_next_run_number(p_repo_id uuid) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  v_next_number integer;
+  v_lock_id bigint;
+BEGIN
+  -- Use repo_id hash as advisory lock ID to serialize per-repo
+  -- hashtext returns int4, so we convert to bigint for advisory lock
+  v_lock_id := abs(hashtext(p_repo_id::text))::bigint;
+  
+  -- Acquire advisory lock for this repo (blocks until available)
+  PERFORM pg_advisory_xact_lock(v_lock_id);
+  
+  -- Get next number (now safely serialized for this repo)
+  SELECT COALESCE(MAX(number), 0) + 1
+  INTO v_next_number
+  FROM public.runs
+  WHERE repo_id = p_repo_id;
+  
+  RETURN v_next_number;
+END;
+$$;
+
+
+--
+-- Name: set_run_number(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_run_number() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- Only set number if it's not already provided
+  IF NEW.number IS NULL THEN
+    NEW.number := public.get_next_run_number(NEW.repo_id);
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
 
 --
@@ -290,7 +322,8 @@ CREATE TABLE public.owners (
     name text,
     type text,
     avatar_url text,
-    html_url text
+    html_url text,
+    installation_id bigint
 );
 
 
@@ -403,7 +436,8 @@ CREATE TABLE public.repos (
     private boolean DEFAULT false NOT NULL,
     description text,
     default_branch text,
-    html_url text
+    html_url text,
+    enabled boolean DEFAULT false NOT NULL
 );
 
 
@@ -485,6 +519,104 @@ COMMENT ON COLUMN public.repos.html_url IS 'HTML repository URL';
 
 
 --
+-- Name: runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    repo_id uuid NOT NULL,
+    commit_sha text,
+    branch_name text NOT NULL,
+    commit_message text,
+    pr_number text,
+    status text NOT NULL,
+    summary text,
+    stories jsonb DEFAULT '[]'::jsonb NOT NULL,
+    number integer NOT NULL,
+    CONSTRAINT runs_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'skipped'::text, 'running'::text])))
+);
+
+
+--
+-- Name: COLUMN runs.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.id IS 'Unique identifier for each run';
+
+
+--
+-- Name: COLUMN runs.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.created_at IS 'The time when the run was created';
+
+
+--
+-- Name: COLUMN runs.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.updated_at IS 'The time when the run was last updated';
+
+
+--
+-- Name: COLUMN runs.repo_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.repo_id IS 'FK to repos.id of the repository this run belongs to';
+
+
+--
+-- Name: COLUMN runs.commit_sha; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.commit_sha IS 'The SHA of the commit that was tested';
+
+
+--
+-- Name: COLUMN runs.branch_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.branch_name IS 'The branch name this run was executed on';
+
+
+--
+-- Name: COLUMN runs.commit_message; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.commit_message IS 'The commit message';
+
+
+--
+-- Name: COLUMN runs.pr_number; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.pr_number IS 'The pull request number associated with this run';
+
+
+--
+-- Name: COLUMN runs.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.status IS 'The overall status of the run (pass, fail, skipped, running)';
+
+
+--
+-- Name: COLUMN runs.summary; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.summary IS 'Summary of the run execution';
+
+
+--
+-- Name: COLUMN runs.stories; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.runs.stories IS 'Array of story execution details with storyId and status';
+
+
+--
 -- Name: sessions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -554,6 +686,246 @@ COMMENT ON COLUMN public.sessions.created_at IS 'The time when the session was c
 --
 
 COMMENT ON COLUMN public.sessions.updated_at IS 'The time when the session was last updated';
+
+
+--
+-- Name: stories; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    repo_id uuid NOT NULL,
+    branch_name text NOT NULL,
+    commit_sha text,
+    name text NOT NULL,
+    story text NOT NULL,
+    files jsonb DEFAULT '[]'::jsonb NOT NULL
+);
+
+
+--
+-- Name: COLUMN stories.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.id IS 'Unique identifier for each story';
+
+
+--
+-- Name: COLUMN stories.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.created_at IS 'The time when the story was created';
+
+
+--
+-- Name: COLUMN stories.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.updated_at IS 'The time when the story was last updated';
+
+
+--
+-- Name: COLUMN stories.repo_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.repo_id IS 'FK to repos.id of the repository this story belongs to';
+
+
+--
+-- Name: COLUMN stories.branch_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.branch_name IS 'The branch name this story was generated from (e.g., "main", "master")';
+
+
+--
+-- Name: COLUMN stories.commit_sha; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.commit_sha IS 'The SHA of the commit that was analyzed';
+
+
+--
+-- Name: COLUMN stories.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.name IS 'The title/name of the story';
+
+
+--
+-- Name: COLUMN stories.story; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.story IS 'The Gherkin story text';
+
+
+--
+-- Name: COLUMN stories.files; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stories.files IS 'Array of file references in format ["path@startLine:endLine", ...]';
+
+
+--
+-- Name: story_test_results; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.story_test_results (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    story_id uuid NOT NULL,
+    run_id uuid,
+    status text NOT NULL,
+    summary text,
+    findings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    missing_requirements jsonb DEFAULT '[]'::jsonb NOT NULL,
+    code_references jsonb DEFAULT '[]'::jsonb NOT NULL,
+    reasoning jsonb DEFAULT '[]'::jsonb NOT NULL,
+    loop_iterations jsonb DEFAULT '[]'::jsonb NOT NULL,
+    raw_output jsonb,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    started_at timestamp with time zone DEFAULT now(),
+    completed_at timestamp with time zone,
+    duration_ms integer,
+    CONSTRAINT story_test_results_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text, 'running'::text])))
+);
+
+
+--
+-- Name: TABLE story_test_results; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.story_test_results IS 'Detailed AI evaluation results for individual repository stories';
+
+
+--
+-- Name: COLUMN story_test_results.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.id IS 'Unique identifier for each story test result';
+
+
+--
+-- Name: COLUMN story_test_results.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.created_at IS 'The time when the test result was created';
+
+
+--
+-- Name: COLUMN story_test_results.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.updated_at IS 'The time when the test result was last updated';
+
+
+--
+-- Name: COLUMN story_test_results.story_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.story_id IS 'FK to stories.id of the evaluated story';
+
+
+--
+-- Name: COLUMN story_test_results.run_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.run_id IS 'Optional FK to runs.id when the test was executed as part of a CI run';
+
+
+--
+-- Name: COLUMN story_test_results.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.status IS 'Outcome status of the evaluation (pass, fail, blocked, running)';
+
+
+--
+-- Name: COLUMN story_test_results.summary; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.summary IS 'High-level summary produced by the AI reviewer';
+
+
+--
+-- Name: COLUMN story_test_results.findings; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.findings IS 'Array of key findings discovered during evaluation';
+
+
+--
+-- Name: COLUMN story_test_results.issues; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.issues IS 'Array of issues or blockers preventing the story from passing';
+
+
+--
+-- Name: COLUMN story_test_results.missing_requirements; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.missing_requirements IS 'Array describing missing requirements for the story to be executable';
+
+
+--
+-- Name: COLUMN story_test_results.code_references; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.code_references IS 'Array of code references associated with fulfilling the story';
+
+
+--
+-- Name: COLUMN story_test_results.reasoning; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.reasoning IS 'Structured reasoning steps captured from the AI';
+
+
+--
+-- Name: COLUMN story_test_results.loop_iterations; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.loop_iterations IS 'Trace of iterative AI evaluation steps';
+
+
+--
+-- Name: COLUMN story_test_results.raw_output; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.raw_output IS 'Raw model output payload for auditing';
+
+
+--
+-- Name: COLUMN story_test_results.metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.metadata IS 'Additional metadata captured during evaluation';
+
+
+--
+-- Name: COLUMN story_test_results.started_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.started_at IS 'Timestamp when the evaluation began';
+
+
+--
+-- Name: COLUMN story_test_results.completed_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.completed_at IS 'Timestamp when the evaluation finished';
+
+
+--
+-- Name: COLUMN story_test_results.duration_ms; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_test_results.duration_ms IS 'Total evaluation duration in milliseconds';
 
 
 --
@@ -780,6 +1152,14 @@ ALTER TABLE ONLY public.repos
 
 
 --
+-- Name: runs runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.runs
+    ADD CONSTRAINT runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -793,6 +1173,22 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_token_key UNIQUE (token);
+
+
+--
+-- Name: stories stories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT stories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: story_test_results story_test_results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_test_results
+    ADD CONSTRAINT story_test_results_pkey PRIMARY KEY (id);
 
 
 --
@@ -820,6 +1216,111 @@ ALTER TABLE ONLY public.verifications
 
 
 --
+-- Name: owners_installation_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX owners_installation_id_unique ON public.owners USING btree (installation_id) WHERE (installation_id IS NOT NULL);
+
+
+--
+-- Name: runs_branch_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_branch_name_idx ON public.runs USING btree (branch_name);
+
+
+--
+-- Name: runs_commit_sha_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_commit_sha_idx ON public.runs USING btree (commit_sha);
+
+
+--
+-- Name: runs_repo_commit_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_repo_commit_idx ON public.runs USING btree (repo_id, commit_sha);
+
+
+--
+-- Name: runs_repo_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_repo_id_idx ON public.runs USING btree (repo_id);
+
+
+--
+-- Name: runs_repo_id_number_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_repo_id_number_idx ON public.runs USING btree (repo_id, number);
+
+
+--
+-- Name: runs_repo_id_number_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX runs_repo_id_number_unique_idx ON public.runs USING btree (repo_id, number);
+
+
+--
+-- Name: runs_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX runs_status_idx ON public.runs USING btree (status);
+
+
+--
+-- Name: stories_branch_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stories_branch_name_idx ON public.stories USING btree (branch_name);
+
+
+--
+-- Name: stories_repo_branch_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stories_repo_branch_idx ON public.stories USING btree (repo_id, branch_name);
+
+
+--
+-- Name: stories_repo_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stories_repo_id_idx ON public.stories USING btree (repo_id);
+
+
+--
+-- Name: story_test_results_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_test_results_run_id_idx ON public.story_test_results USING btree (run_id);
+
+
+--
+-- Name: story_test_results_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_test_results_status_idx ON public.story_test_results USING btree (status);
+
+
+--
+-- Name: story_test_results_story_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_test_results_story_id_idx ON public.story_test_results USING btree (story_id);
+
+
+--
+-- Name: runs set_run_number_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_run_number_trigger BEFORE INSERT ON public.runs FOR EACH ROW EXECUTE FUNCTION public.set_run_number();
+
+
+--
 -- Name: accounts set_timestamp_accounts; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -841,10 +1342,31 @@ CREATE TRIGGER set_timestamp_repos BEFORE UPDATE ON public.repos FOR EACH ROW EX
 
 
 --
+-- Name: runs set_timestamp_runs; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_timestamp_runs BEFORE UPDATE ON public.runs FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
 -- Name: sessions set_timestamp_sessions; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER set_timestamp_sessions BEFORE UPDATE ON public.sessions FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
+-- Name: stories set_timestamp_stories; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_timestamp_stories BEFORE UPDATE ON public.stories FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
+-- Name: story_test_results set_timestamp_story_test_results; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_timestamp_story_test_results BEFORE UPDATE ON public.story_test_results FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
 
 
 --
@@ -893,6 +1415,14 @@ ALTER TABLE ONLY public.repos
 
 
 --
+-- Name: runs runs_repo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.runs
+    ADD CONSTRAINT runs_repo_id_fkey FOREIGN KEY (repo_id) REFERENCES public.repos(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -901,8 +1431,32 @@ ALTER TABLE ONLY public.sessions
 
 
 --
+-- Name: stories stories_repo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stories
+    ADD CONSTRAINT stories_repo_id_fkey FOREIGN KEY (repo_id) REFERENCES public.repos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_test_results story_test_results_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_test_results
+    ADD CONSTRAINT story_test_results_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs(id) ON DELETE SET NULL;
+
+
+--
+-- Name: story_test_results story_test_results_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_test_results
+    ADD CONSTRAINT story_test_results_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9zc3BiXaoZhFzbmIebYHPMbpBIst4BpSBAgc36dS8LksSGgrL3lP2Mc6Eduprsi
+\unrestrict gukaw9SmAxdBXxXmn2pFXMKbEIrJ4jgBd9yyciN6W1BoVmea3lTnxY7p0edvAfc
 

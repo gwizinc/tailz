@@ -1,3 +1,13 @@
 export { setupDb } from './db'
 export { json } from './utils'
-export type { RunStory, RunStoryColumnType } from './column-types'
+export { sql } from 'kysely'
+export type {
+  RunStory,
+  RunStoryColumnType,
+  StoryTestCodeReference,
+  StoryTestFinding,
+  StoryTestIssue,
+  StoryTestLoopIteration,
+  StoryTestResultPayload,
+  JSONValue,
+} from './column-types'

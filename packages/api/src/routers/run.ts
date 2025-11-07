@@ -57,6 +57,7 @@ export const runRouter = router({
         fail: 'failed',
         skipped: 'skipped',
         running: 'running',
+        blocked: 'failed',
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -81,7 +82,7 @@ export const runRouter = router({
           updatedAt: updatedAt.toISOString(),
           durationMs,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          commitSha: run.commitSha,
+          commitSha: run.commitSha ?? null,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           commitMessage: run.commitMessage ?? null,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -184,6 +185,10 @@ export const runRouter = router({
         return {
           storyId: runStory.storyId,
           status: runStory.status,
+          resultId: runStory.resultId ?? null,
+          summary: runStory.summary ?? null,
+          startedAt: runStory.startedAt ?? null,
+          completedAt: runStory.completedAt ?? null,
           story: story
             ? {
                 id: story.id,
@@ -205,7 +210,7 @@ export const runRouter = router({
         branchName: string
         commitMessage: string | null
         prNumber: string | null
-        status: 'pass' | 'fail' | 'skipped'
+        status: 'pass' | 'fail' | 'skipped' | 'running'
         summary: string | null
         createdAt: Date
         updatedAt: Date
