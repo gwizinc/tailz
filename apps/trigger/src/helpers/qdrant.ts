@@ -149,4 +149,3 @@ export function buildQdrantErrorDetails(
 
   return errorDetails
 }
-

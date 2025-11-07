@@ -399,12 +399,10 @@ export function RepoOverview({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-medium text-foreground">Stories</h2>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-              >
-                <a href={`/org/${orgSlug}/repo/${repoName}/stories/new?branch=${encodeURIComponent(selectedBranch)}`}>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`/org/${orgSlug}/repo/${repoName}/stories/new?branch=${encodeURIComponent(selectedBranch)}`}
+                >
                   Add new story
                 </a>
               </Button>

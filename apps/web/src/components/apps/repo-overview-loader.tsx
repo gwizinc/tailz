@@ -66,7 +66,8 @@ export function RepoOverviewLoader({
       ])
       if (repoResp.repo) {
         setRepo(repoResp.repo)
-        const defaultBranch = repoResp.repo.defaultBranch || branchesResp.branches[0]?.name || ''
+        const defaultBranch =
+          repoResp.repo.defaultBranch || branchesResp.branches[0]?.name || ''
         const branchToUse = branchName || defaultBranch
 
         // Load stories for the selected branch
@@ -88,7 +89,6 @@ export function RepoOverviewLoader({
       setIsLoading(false)
     }
   }
-
 
   useEffect(() => {
     let isMounted = true

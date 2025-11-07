@@ -10,7 +10,36 @@ const envSchema = z.object({
   }),
   GITHUB_APP_PRIVATE_KEY: z
     .string()
-    .min(1, 'GITHUB_APP_PRIVATE_KEY is required'),
+    .min(1, 'GITHUB_APP_PRIVATE_KEY is required')
+    .transform((val, ctx) => {
+      const header = '-----BEGIN PRIVATE KEY-----'
+      const trimmed = val.trim()
+
+      if (trimmed.includes(header)) {
+        return trimmed
+      }
+
+      const normalized = trimmed.replace(/\s+/g, '')
+
+      try {
+        const decoded = Buffer.from(normalized, 'base64')
+          .toString('utf-8')
+          .trim()
+
+        if (decoded.startsWith(header)) {
+          return decoded
+        }
+      } catch {
+        // fall through to issue below
+      }
+
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'GITHUB_APP_PRIVATE_KEY must be a PEM string or a base64-encoded PEM string',
+      })
+      return z.NEVER
+    }),
   OPENROUTER_API_KEY: z.string().min(1, 'OPENROUTER_API_KEY is required'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   TRIGGER_PROJECT_ID: z.string().optional(),

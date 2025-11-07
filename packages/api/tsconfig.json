@@ -5,7 +5,7 @@
   },
   "references": [
     {
-        "path": "../db/tsconfig.json"
+      "path": "../db/tsconfig.json"
     }
-]
+  ]
 }

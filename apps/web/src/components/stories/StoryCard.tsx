@@ -7,12 +7,7 @@ interface StoryCardProps {
   href: string
 }
 
-export function StoryCard({
-  id: _id,
-  name,
-  story,
-  href,
-}: StoryCardProps) {
+export function StoryCard({ id: _id, name, story, href }: StoryCardProps) {
   // Truncate preview text to first few lines
   const truncatedText = useMemo(() => {
     const lines = story.split('\n').slice(0, 3)
@@ -37,4 +32,3 @@ export function StoryCard({
     </a>
   )
 }
-
