@@ -148,7 +148,7 @@ export const repoRouter = router({
       return { enabled: false, repoId: repo.id }
     }),
 
-  findStoriesInRepo: protectedProcedure
+  indexRepo: protectedProcedure
     .input(z.object({ orgSlug: z.string(), repoName: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const env = parseEnv(ctx.env)
@@ -183,7 +183,7 @@ export const repoRouter = router({
       }
 
       // Trigger the task
-      await tasks.trigger('find-stories-in-repo', {
+      await tasks.trigger('index-repo', {
         repoId: repo.id,
       })
 

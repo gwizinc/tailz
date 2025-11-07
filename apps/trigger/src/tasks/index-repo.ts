@@ -4,33 +4,32 @@ import type { CodebaseFile } from '../steps/fetch-codebase'
 import { indexFilesToQdrant } from '../helpers/index-codebase'
 
 /**
- * Trigger.dev task that discovers stories (Gherkin scenarios) in an entire repository.
+ * Trigger.dev task that indexes an entire repository into Qdrant for semantic search.
  *
- * This task scans the ENTIRE repository (not just commit changes) at a specific commit or branch to find story definitions. It:
+ * This task scans the ENTIRE repository (not just commit changes) at a specific commit or branch to gather source files. It:
  * 1. Fetches repository and GitHub installation information from the database
  * 2. Gets the repository tree SHA (from commit SHA or branch)
  * 3. Retrieves the complete file tree recursively from GitHub API (all files in the repo)
  * 4. Filters to relevant business logic files (excludes test files, node_modules, etc.)
  * 5. Fetches content for all filtered files
  * 6. Indexes all codebase files to Qdrant vector database for semantic search
- * 7. Uses AI to discover stories within the codebase
  *
  * @example
  * ```typescript
  * // Scan latest commit on main branch
- * await findStoriesInRepoTask.trigger({
+ * await indexRepoTask.trigger({
  *   repoId: 'repo-123',
  *   branch: 'main'
  * })
  *
  * // Scan specific commit
- * await findStoriesInRepoTask.trigger({
+ * await indexRepoTask.trigger({
  *   repoId: 'repo-123',
  *   commitSha: 'abc123def456...'
  * })
  *
  * // Limit files for testing
- * await findStoriesInRepoTask.trigger({
+ * await indexRepoTask.trigger({
  *   repoId: 'repo-123',
  *   branch: 'main',
  *   options: { limit: 10 }
@@ -45,15 +44,15 @@ import { indexFilesToQdrant } from '../helpers/index-codebase'
  *
  * @returns Object containing:
  *   - success: boolean indicating if the operation succeeded
- *   - storyCount: number of stories found
- *   - stories: array of discovered stories with name, story content, and associated files
+ *   - files: number of files indexed
+ *   - indexingResult: details returned from Qdrant indexing
  *
  * @throws Error if:
  *   - Repository or installation is not found or misconfigured
- *   - Story discovery fails (with error details logged)
+ *   - Indexing fails (with error details logged)
  */
-export const findStoriesInRepoTask = task({
-  id: 'find-stories-in-repo',
+export const indexRepoTask = task({
+  id: 'index-repo',
   run: async (payload: {
     repoId: string
     commitSha?: string
@@ -217,16 +216,9 @@ export const findStoriesInRepoTask = task({
       logger.info('Successfully indexed codebase files to Qdrant')
     }
 
-    const result = {
-      success: true,
-      storyCount: 0,
-      stories: [],
-    }
-
     return {
-      success: true,
-      storyCount: result.storyCount,
-      stories: result.stories,
+      indexingResult,
+      files: filesToProcess.length,
     }
   },
 })

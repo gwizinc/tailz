@@ -115,8 +115,8 @@ export function RepoOverview({
   }, [trpc, orgSlug, repoName, selectedBranch])
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const [isFindingStories, setIsFindingStories] = useState(false)
-  const [findStoriesError, setFindStoriesError] = useState<string | null>(null)
+  const [isIndexingRepo, setIsIndexingRepo] = useState(false)
+  const [indexRepoError, setIndexRepoError] = useState<string | null>(null)
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
   const [prDialogOpen, setPrDialogOpen] = useState(false)
   const [commitSha, setCommitSha] = useState('')
@@ -147,32 +147,32 @@ export function RepoOverview({
     }
   }
 
-  const handleFindStoriesInRepo = async () => {
-    setIsFindingStories(true)
-    setFindStoriesError(null)
+  const handleIndexRepo = async () => {
+    setIsIndexingRepo(true)
+    setIndexRepoError(null)
     try {
-      await trpc.repo.findStoriesInRepo.mutate({
+      await trpc.repo.indexRepo.mutate({
         orgSlug,
         repoName,
       })
     } catch (error) {
-      setFindStoriesError(
+      setIndexRepoError(
         error instanceof Error
           ? error.message
-          : 'Failed to find stories in repo',
+          : 'Failed to index repository',
       )
     } finally {
-      setIsFindingStories(false)
+      setIsIndexingRepo(false)
     }
   }
 
   const handleFindStoriesInCommit = async () => {
     if (!commitSha.trim()) {
-      setFindStoriesError('Commit SHA is required')
+      setIndexRepoError('Commit SHA is required')
       return
     }
-    setIsFindingStories(true)
-    setFindStoriesError(null)
+    setIsIndexingRepo(true)
+    setIndexRepoError(null)
     try {
       await trpc.repo.findStoriesInCommit.mutate({
         orgSlug,
@@ -182,24 +182,24 @@ export function RepoOverview({
       setCommitDialogOpen(false)
       setCommitSha('')
     } catch (error) {
-      setFindStoriesError(
+      setIndexRepoError(
         error instanceof Error
           ? error.message
           : 'Failed to find stories in commit',
       )
     } finally {
-      setIsFindingStories(false)
+      setIsIndexingRepo(false)
     }
   }
 
   const handleFindStoriesInPR = async () => {
     const prNum = Number.parseInt(prNumber.trim(), 10)
     if (Number.isNaN(prNum) || prNum < 1) {
-      setFindStoriesError('Valid PR number is required')
+      setIndexRepoError('Valid PR number is required')
       return
     }
-    setIsFindingStories(true)
-    setFindStoriesError(null)
+    setIsIndexingRepo(true)
+    setIndexRepoError(null)
     try {
       await trpc.repo.findStoriesInPullRequest.mutate({
         orgSlug,
@@ -209,11 +209,11 @@ export function RepoOverview({
       setPrDialogOpen(false)
       setPrNumber('')
     } catch (error) {
-      setFindStoriesError(
+      setIndexRepoError(
         error instanceof Error ? error.message : 'Failed to find stories in PR',
       )
     } finally {
-      setIsFindingStories(false)
+      setIsIndexingRepo(false)
     }
   }
 
@@ -243,7 +243,7 @@ export function RepoOverview({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={isFindingStories}
+                  disabled
                   className="gap-2"
                 >
                   Find stories in...
@@ -255,7 +255,7 @@ export function RepoOverview({
                   onClick={() => {
                     setCommitDialogOpen(true)
                   }}
-                  disabled={isFindingStories}
+                  disabled
                 >
                   Commit
                 </DropdownMenuItem>
@@ -263,18 +263,20 @@ export function RepoOverview({
                   onClick={() => {
                     setPrDialogOpen(true)
                   }}
-                  disabled={isFindingStories}
+                  disabled
                 >
                   Pull Request
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={handleFindStoriesInRepo}
-                  disabled={isFindingStories}
+                  disabled
                 >
                   Repository
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button onClick={handleIndexRepo} disabled={isIndexingRepo}>
+              {isIndexingRepo ? 'Indexing...' : 'Index repository'}
+            </Button>
             {branches.length > 0 && (
               <Select value={selectedBranch} onValueChange={setSelectedBranch}>
                 <SelectTrigger className="w-[180px]">
@@ -299,9 +301,9 @@ export function RepoOverview({
             {createError}
           </div>
         )}
-        {findStoriesError && (
+        {indexRepoError && (
           <div className="mb-4 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-            {findStoriesError}
+            {indexRepoError}
           </div>
         )}
 
@@ -321,7 +323,7 @@ export function RepoOverview({
                   value={commitSha}
                   onChange={(e) => setCommitSha(e.target.value)}
                   placeholder="e.g., abc123def456..."
-                  disabled={isFindingStories}
+                  disabled
                 />
               </div>
             </div>
@@ -331,17 +333,17 @@ export function RepoOverview({
                 onClick={() => {
                   setCommitDialogOpen(false)
                   setCommitSha('')
-                  setFindStoriesError(null)
+                  setIndexRepoError(null)
                 }}
-                disabled={isFindingStories}
+                disabled
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleFindStoriesInCommit}
-                disabled={isFindingStories || !commitSha.trim()}
+                disabled
               >
-                {isFindingStories ? 'Finding...' : 'Find Stories'}
+                {isIndexingRepo ? 'Finding...' : 'Find Stories'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -364,7 +366,7 @@ export function RepoOverview({
                   value={prNumber}
                   onChange={(e) => setPrNumber(e.target.value)}
                   placeholder="e.g., 123"
-                  disabled={isFindingStories}
+                  disabled
                 />
               </div>
             </div>
@@ -374,21 +376,21 @@ export function RepoOverview({
                 onClick={() => {
                   setPrDialogOpen(false)
                   setPrNumber('')
-                  setFindStoriesError(null)
+                  setIndexRepoError(null)
                 }}
-                disabled={isFindingStories}
+                disabled
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleFindStoriesInPR}
                 disabled={
-                  isFindingStories ||
+                  isIndexingRepo ||
                   !prNumber.trim() ||
                   Number.isNaN(Number.parseInt(prNumber.trim(), 10))
                 }
               >
-                {isFindingStories ? 'Finding...' : 'Find Stories'}
+                {isIndexingRepo ? 'Finding...' : 'Find Stories'}
               </Button>
             </DialogFooter>
           </DialogContent>
