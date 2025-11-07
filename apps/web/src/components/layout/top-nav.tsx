@@ -53,16 +53,6 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
 
   const rightActions = (
     <div className="flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => void navigate('/')}
-        title="Home"
-      >
-        <Home size={16} />
-      </Button>
-
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 gap-2 px-2" title="Dev">
