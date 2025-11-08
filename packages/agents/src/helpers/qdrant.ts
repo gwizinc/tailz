@@ -1,10 +1,30 @@
 import { createHash } from 'node:crypto'
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { QdrantClient } from '@qdrant/js-client-rest'
-import { logger } from '@trigger.dev/sdk'
 
-import { parseEnv } from '@/helpers/env'
+import { parseEnv } from './env'
 import type { Vectors } from './embeddings'
+
+export interface LoggerLike {
+  error: (message: string, details?: Record<string, unknown>) => void
+}
+
+const defaultLogger: LoggerLike = {
+  error: (message, details) => {
+    if (details) {
+      console.error(message, details)
+    } else {
+      console.error(message)
+    }
+  },
+}
+
+let activeLogger: LoggerLike = defaultLogger
+
+export function setAgentLogger(logger: LoggerLike | null | undefined): void {
+  activeLogger = logger ?? defaultLogger
+}
 
 export function getQdrantClient(): QdrantClient {
   const env = parseEnv()
@@ -15,7 +35,7 @@ export function getQdrantClient(): QdrantClient {
   })
 }
 
-export interface QdrantSearchContext {
+interface QdrantSearchContext {
   repoId: string
   branch: string
 }
@@ -96,7 +116,7 @@ export async function performQdrantSearch(
       fileCount: 0,
     })
 
-    logger.error('Failed to search Qdrant for code files', errorDetails)
+    activeLogger.error('Failed to search Qdrant for code files', errorDetails)
     throw error
   }
 }

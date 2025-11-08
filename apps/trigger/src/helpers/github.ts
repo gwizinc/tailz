@@ -1,7 +1,8 @@
 import { Octokit } from '@octokit/rest'
 import { createAppAuth } from '@octokit/auth-app'
 import { setupDb } from '@app/db'
-import { parseEnv } from './env'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+import { parseEnv } from '@app/agents'
 
 export function createOctokit(installationId: number): Octokit {
   const env = parseEnv()

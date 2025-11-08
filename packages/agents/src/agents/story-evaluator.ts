@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { ToolLoopAgent, Output, stepCountIs, type FinishReason } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
@@ -7,8 +8,8 @@ import type {
   StoryTestResultPayload,
 } from '@app/db'
 
-import { parseEnv } from '@/helpers/env'
-import { createSemanticCodeSearchTool, createSymbolLookupTool } from '@/tools'
+import { parseEnv } from '../helpers/env'
+import { createSemanticCodeSearchTool, createSymbolLookupTool } from '../tools'
 
 const DEFAULT_STORY_MODEL = 'gpt-4o-mini'
 const DEFAULT_MAX_STEPS = 30

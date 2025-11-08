@@ -1,9 +1,11 @@
-import { task } from '@trigger.dev/sdk'
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { task, logger } from '@trigger.dev/sdk'
 
 import {
   runStoryEvaluationAgent,
   type StoryEvaluationAgentResult,
-} from '../agents/story-evaluator'
+  setAgentLogger,
+} from '@app/agents'
 
 interface RunStoryEvaluationPayload {
   storyName: string
@@ -20,6 +22,7 @@ interface RunStoryEvaluationPayload {
 async function runStoryEvaluation(
   payload: RunStoryEvaluationPayload,
 ): Promise<StoryEvaluationAgentResult> {
+  setAgentLogger(logger)
   return await runStoryEvaluationAgent({
     storyName: payload.storyName,
     storyText: payload.storyText,

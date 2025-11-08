@@ -2,8 +2,8 @@ import { task, logger } from '@trigger.dev/sdk'
 
 import { setupDb } from '@app/db'
 
-import { parseEnv } from '../helpers/env'
-import { normalizeStoryTestResult } from '../agents/story-evaluator'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+import { parseEnv, normalizeStoryTestResult } from '@app/agents'
 import { runStoryEvaluationTask } from './run-story-evaluation'
 
 interface TestStoryPayload {

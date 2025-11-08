@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@app/api": "workspace:^",
+    "@app/agents": "workspace:^",
     "@app/db": "workspace:^",
     "@app/utils": "workspace:^",
     "@codemirror/lang-css": "^6.3.1",

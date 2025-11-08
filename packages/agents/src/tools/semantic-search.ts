@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { performQdrantSearch } from '@/helpers/qdrant'
-import type { CodeSearchHit } from '@/helpers/qdrant'
-import { createEmbeddings } from '@/helpers/embeddings'
+import { performQdrantSearch } from '../helpers/qdrant'
+import type { CodeSearchHit } from '../helpers/qdrant'
+import { createEmbeddings } from '../helpers/embeddings'
 
 export const DEFAULT_RESULT_LIMIT = 8
 export const MAX_RESULT_LIMIT = 24

@@ -133,9 +133,7 @@ export function StoryDetailLoader({
                       storyId,
                     })
                     const handleId =
-                      typeof response.runId === 'string'
-                        ? response.runId
-                        : null
+                      typeof response.runId === 'string' ? response.runId : null
                     setTestMessage(
                       handleId
                         ? `Story test queued (run ${handleId}). Check Trigger.dev for progress.`

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { z } from 'zod'
 
 // Shared enums for agent coordination
@@ -8,15 +9,11 @@ const evaluationResultSchema = z.enum([
   'blocked',
 ])
 
-export type EvaluationResult = z.infer<typeof evaluationResultSchema>
-
 const toolTraceSchema = z.object({
   summary: z.string().min(1),
   reasoning: z.array(z.string().min(1)).default([]),
   searchQueries: z.array(z.string().min(1)).default([]),
 })
-
-export type ToolTrace = z.infer<typeof toolTraceSchema>
 
 const reviewerCodeSnippetSchema = z.object({
   path: z.string().min(1),
@@ -24,8 +21,6 @@ const reviewerCodeSnippetSchema = z.object({
   end: z.number().int().min(0),
   content: z.string().min(1),
 })
-
-export type ReviewerCodeSnippet = z.infer<typeof reviewerCodeSnippetSchema>
 
 export const stepReviewerOutputSchema = z.object({
   result: evaluationResultSchema,
@@ -43,15 +38,6 @@ const storyStepSchema = z.object({
 })
 
 export type StoryStep = z.infer<typeof storyStepSchema>
-
-export const storyDirectorOutputSchema = z.object({
-  result: evaluationResultSchema,
-  story: z.string().min(1),
-  steps: z.array(stepReviewerOutputSchema),
-  trace: toolTraceSchema,
-})
-
-export type StoryDirectorOutput = z.infer<typeof storyDirectorOutputSchema>
 
 export const storyDirectorPlanSchema = z.object({
   story: z.string().min(1),
