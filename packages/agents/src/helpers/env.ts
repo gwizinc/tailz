@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import { z } from 'zod'
 
 const envSchema = z.object({
@@ -48,6 +47,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   TRIGGER_PROJECT_ID: z.string().optional(),
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
+  DAYTONA_API_KEY: z.string().min(1, 'DAYTONA_API_KEY is required'),
 })
 
 type ParsedEnv = z.infer<typeof envSchema>
@@ -60,5 +60,6 @@ export function parseEnv(): ParsedEnv {
     DATABASE_URL: process.env.DATABASE_URL,
     TRIGGER_PROJECT_ID: process.env.TRIGGER_PROJECT_ID,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    DAYTONA_API_KEY: process.env.DAYTONA_API_KEY,
   })
 }

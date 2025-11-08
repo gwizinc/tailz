@@ -26,8 +26,6 @@ function createKyselyInstance(pool: DatabasePool): Kysely<DB> {
 }
 
 function setupNeonDb(connectionString: string): Kysely<DB> {
-  console.log('[db] setting up neon db with WebSocket support')
-
   neonConfig.webSocketConstructor = ws
 
   const pool = new NeonPool({ connectionString })
@@ -37,8 +35,6 @@ function setupNeonDb(connectionString: string): Kysely<DB> {
 }
 
 function setupPostgresDb(connectionString: string): Kysely<DB> {
-  console.log('[db] setting up postgres db')
-
   const pool = new Pool({
     connectionString,
   })

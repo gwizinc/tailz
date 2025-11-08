@@ -2,13 +2,19 @@ import { task, logger } from '@trigger.dev/sdk'
 
 import { setupDb } from '@app/db'
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
-import { parseEnv, normalizeStoryTestResult } from '@app/agents'
-import { runStoryEvaluationTask } from './run-story-evaluation'
+import {
+  parseEnv,
+  normalizeStoryTestResult,
+  runStoryEvaluationAgent,
+} from '@app/agents'
 
 interface TestStoryPayload {
   storyId: string
-  runId?: string | null
+  /** The CI Run UUID */
+  runId: string
+  /** The Daytona Sandbox ID */
+  daytonaSandboxId: string
+  // TODO support if daytonaSandboxId is null so we can create a new sandbox for this single story execution
 }
 
 export const testStoryTask = task({
@@ -16,12 +22,6 @@ export const testStoryTask = task({
   run: async (payload: TestStoryPayload) => {
     const env = parseEnv()
     const db = setupDb(env.DATABASE_URL)
-
-    // Kick off the evaluation run and capture the inputs being processed
-    logger.info('Starting story evaluation', {
-      storyId: payload.storyId,
-      runId: payload.runId,
-    })
 
     // Look up the story and associated repository metadata needed for testing
     const storyRecord = await db
@@ -69,26 +69,12 @@ export const testStoryTask = task({
       /**
        * 💎 Run Story Evaluation Agent
        */
-      const evaluationRun = await runStoryEvaluationTask.triggerAndWait({
-        storyName: storyRecord.storyName,
-        storyText: storyRecord.storyText,
-        repoId: storyRecord.repoId,
-        repoName: storyRecord.repoName,
-        branchName: storyRecord.branchName,
-        commitSha: storyRecord.commitSha,
-        runId: payload.runId ?? null,
+      const evaluation = await runStoryEvaluationAgent({
+        ...storyRecord,
+        runId: payload.runId,
+        daytonaSandboxId: payload.daytonaSandboxId,
+        maxSteps: 30,
       })
-
-      if (!evaluationRun.ok) {
-        const errorMessage =
-          evaluationRun.error instanceof Error
-            ? evaluationRun.error.message
-            : 'run-story-evaluation task failed'
-
-        throw new Error(errorMessage)
-      }
-
-      const evaluation = evaluationRun.output
 
       logger.info('Story evaluation agent completed', {
         storyId: payload.storyId,

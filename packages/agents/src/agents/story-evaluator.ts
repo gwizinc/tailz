@@ -10,7 +10,10 @@ import type {
 } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
-import { createSemanticCodeSearchTool, createSymbolLookupTool } from '../tools'
+import { createTerminalCommandTool } from '../tools/terminal-command-tool'
+import { createShareThoughtTool } from '../tools/share-thought-tool'
+import { Daytona } from '@daytonaio/sdk'
+import { createReadFileTool } from '../tools/read-file-tool'
 
 const DEFAULT_STORY_MODEL = 'gpt-5-mini'
 const DEFAULT_MAX_STEPS = 30
@@ -47,6 +50,7 @@ interface StoryEvaluationAgentOptions {
   runId?: string | null
   maxSteps?: number
   modelId?: string
+  daytonaSandboxId: string
 }
 
 interface StoryEvaluationAgentMetrics {
@@ -58,33 +62,6 @@ export interface StoryEvaluationAgentResult {
   output: StoryTestModelOutput
   metrics: StoryEvaluationAgentMetrics
   finishReason: FinishReason
-}
-
-function summarizeText(
-  text: string | undefined,
-  maxLength = 280,
-): string | undefined {
-  if (!text) {
-    return undefined
-  }
-
-  const trimmed = text.trim()
-
-  if (!trimmed) {
-    return undefined
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, maxLength - 1)}…`
-}
-
-function omitUndefined<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
-  ) as T
 }
 
 export function normalizeStoryTestResult(
@@ -122,7 +99,7 @@ export function normalizeStoryTestResult(
   }
 }
 
-function buildStoryEvaluationInstructions(): string {
+function buildStoryEvaluationInstructions(args: { outline: string }): string {
   // * Dedent does not work in this project
   return `
     You are an expert software QA engineer evaluating whether a user story is achievable given the current repository state.
@@ -142,13 +119,23 @@ function buildStoryEvaluationInstructions(): string {
     \`\`\`
 
     # Tools
-    - Call the "semanticCodeSearch" tool whenever you need additional code or repository information.
-    - Call the "symbolLookup" tool whenever you need to locate a specific symbol or identifier in the codebase.
+    - Call the "shareThought" tool frequently to summarize your intent, plan next steps, and note important discoveries for human reviewers.
+    - Call the "sandboxCommand" tool to execute read-only shell commands (like ripgrep) in the Daytona sandbox for direct repository inspection.
+    - Call the "readFile" tool to read the contents of a file from the Daytona sandbox workspace.
+
+    ## Advice
+    - Use flags to order results by most recently edited so you are more likely to find the most relevant code/file when there are many candidates.
+      - Eg: \`rg --sortr=modified\` or \`fd <pattern> -X ls -t\`
+    - Use git history/blame and commit messages to understand the historical context of the code.
+    - Use git history to identify file edit co-occurrences to ensure you are not missing any relevant code.
 
     # Rules
     - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
     - Explanation should clearly state why the story passes, fails, or is blocked. Use concise language that a human reviewer can follow quickly.
     - If available evidence is insufficient to decide, mark the status as "blocked" and describe what is missing in the explanation.
+
+    # Repo Outline
+    ${args.outline}
     `
 }
 
@@ -176,79 +163,52 @@ export async function runStoryEvaluationAgent(
   options: StoryEvaluationAgentOptions,
 ): Promise<StoryEvaluationAgentResult> {
   const env = parseEnv()
+
   const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
   const effectiveModelId = DEFAULT_STORY_MODEL
 
-  const semanticCodeSearch = createSemanticCodeSearchTool({
+  const daytona = new Daytona({ apiKey: env.DAYTONA_API_KEY })
+  const sandbox = await daytona.get(options.daytonaSandboxId)
+
+  const repoOutline = await sandbox.process.executeCommand(
+    'tree -L 3',
+    `workspace/${options.repoName}`,
+  )
+  if (repoOutline.exitCode !== 0) {
+    throw new Error(`Failed to get repo outline: ${repoOutline.result}`)
+  }
+  const outline = repoOutline.result ?? ''
+  console.log('🔍 Outline generated', { outline })
+
+  const terminalCommandTool = createTerminalCommandTool({
+    sandbox,
+    repoName: options.repoName,
+  })
+  const shareThoughtTool = createShareThoughtTool({
+    storyName: options.storyName,
     repoId: options.repoId,
-    branch: options.branchName,
+    runId: options.runId ?? null,
   })
 
-  const symbolLookup = createSymbolLookupTool({
-    repoId: options.repoId,
-    branch: options.branchName,
+  const readFileTool = createReadFileTool({
+    sandbox,
+    repoName: options.repoName,
   })
-
-  let stepIndex = 0
 
   const agent = new ToolLoopAgent({
     id: STORY_EVALUATION_AGENT_ID,
     model: openAiProvider(effectiveModelId),
-    instructions: buildStoryEvaluationInstructions(),
+    instructions: buildStoryEvaluationInstructions({ outline }),
     tools: {
-      // TODO add new tool for specific file lookup
-      semanticCodeSearch,
-      symbolLookup,
+      shareThought: shareThoughtTool,
+      terminalCommand: terminalCommandTool,
+      readFile: readFileTool,
     },
     // TODO: surface stopWhen tuning once we gather additional telemetry from longer stories.
     stopWhen: stepCountIs(
       Math.max(1, (options.maxSteps ?? DEFAULT_MAX_STEPS) + 1),
     ),
     output: Output.object({ schema: storyTestResultSchema }),
-    onStepFinish: (step) => {
-      stepIndex += 1
-
-      const toolCalls = step.toolCalls.length
-        ? step.toolCalls.map((toolCall) =>
-            omitUndefined({
-              id: toolCall.toolCallId,
-              name: toolCall.toolName,
-              input: toolCall.input,
-              dynamic: 'dynamic' in toolCall ? toolCall.dynamic : undefined,
-              invalid: 'invalid' in toolCall ? toolCall.invalid : undefined,
-            }),
-          )
-        : undefined
-
-      const toolResults = step.toolResults.length
-        ? step.toolResults.map((result) =>
-            omitUndefined({
-              id: result.toolCallId,
-              name: result.toolName,
-              output: result.output,
-              dynamic: 'dynamic' in result ? result.dynamic : undefined,
-              preliminary:
-                'preliminary' in result ? result.preliminary : undefined,
-            }),
-          )
-        : undefined
-
-      logger.info(
-        'Story evaluation agent step finished',
-        omitUndefined({
-          storyName: options.storyName,
-          repoId: options.repoId,
-          runId: options.runId ?? undefined,
-          step: stepIndex,
-          finishReason: step.finishReason,
-          reasoning: summarizeText(step.reasoningText),
-          response: summarizeText(step.text),
-          toolCalls,
-          toolResults,
-          usage: step.usage,
-        }),
-      )
-    },
   })
 
   const prompt = buildStoryEvaluationPrompt(options)

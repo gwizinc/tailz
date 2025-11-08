@@ -31,7 +31,7 @@ This scaffold is specifically designed to excel with AI coding assistants and "v
   - Environment variable management
   - Code organization and project structure
 - **Consistent Patterns**: Standardized approaches across the entire stack make it easy for AI to understand and extend the codebase following established conventions.
-- **Type Safety**: Full TypeScript coverage provides clear contracts and interfaces that AI can work with confidently.
+- **Type Safety**: Full TypeScript coverage provides clear contracts and types that AI can work with confidently. We prefer types the function instead of an interface.
 
 Whether you're pair programming with Claude, GitHub Copilot, or Cursor's AI, this scaffold gives your AI assistant the context and examples it needs to generate high-quality, consistent code that follows your project's patterns.
 

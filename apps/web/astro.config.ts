@@ -189,11 +189,6 @@ const config = defineConfig({
         access: 'secret',
         optional: false,
       }),
-      MCP_API_TOKEN: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: false,
-      }),
     },
   },
 })

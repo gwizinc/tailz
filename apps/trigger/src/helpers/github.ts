@@ -1,7 +1,7 @@
-import { Octokit } from '@octokit/rest'
-import { createAppAuth } from '@octokit/auth-app'
-import { setupDb } from '@app/db'
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+import { createAppAuth } from '@octokit/auth-app'
+import { Octokit } from '@octokit/rest'
+import { setupDb } from '@app/db'
 import { parseEnv } from '@app/agents'
 
 export function createOctokit(installationId: number): Octokit {
@@ -16,7 +16,7 @@ export function createOctokit(installationId: number): Octokit {
   })
 }
 
-interface RepoWithOctokit {
+export interface RepoWithOctokit {
   repo: {
     repoName: string
     ownerLogin: string
@@ -55,5 +55,31 @@ export async function getRepoWithOctokit(
       installationId: Number(repo.installationId),
     },
     octokit,
+  }
+}
+
+export interface OctokitClient extends RepoWithOctokit {
+  token: string
+}
+
+export async function getOctokitClient(repoId: string): Promise<OctokitClient> {
+  const { repo, octokit } = await getRepoWithOctokit(repoId)
+  const authResult = await octokit.auth({ type: 'installation' })
+
+  const token =
+    typeof authResult === 'string'
+      ? authResult
+      : authResult && typeof authResult === 'object' && 'token' in authResult
+        ? (authResult.token as string | undefined)
+        : undefined
+
+  if (!token) {
+    throw new Error('Failed to generate GitHub installation token')
+  }
+
+  return {
+    repo,
+    octokit,
+    token,
   }
 }
