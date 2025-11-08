@@ -1,5 +1,6 @@
 import { ToolLoopAgent, Output, stepCountIs, type FinishReason } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
+import { logger } from '@trigger.dev/sdk'
 import { z } from 'zod'
 
 import type {
@@ -56,6 +57,30 @@ export interface StoryEvaluationAgentResult {
   output: StoryTestModelOutput
   metrics: StoryEvaluationAgentMetrics
   finishReason: FinishReason
+}
+
+function summarizeText(text: string | undefined, maxLength = 280): string | undefined {
+  if (!text) {
+    return undefined
+  }
+
+  const trimmed = text.trim()
+
+  if (!trimmed) {
+    return undefined
+  }
+
+  if (trimmed.length <= maxLength) {
+    return trimmed
+  }
+
+  return `${trimmed.slice(0, maxLength - 1)}…`
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
+  ) as T
 }
 
 export function normalizeStoryTestResult(
@@ -160,6 +185,8 @@ export async function runStoryEvaluationAgent(
     branch: options.branchName,
   })
 
+  let stepIndex = 0
+
   const agent = new ToolLoopAgent({
     id: STORY_EVALUATION_AGENT_ID,
     model: openAiProvider(effectiveModelId),
@@ -174,6 +201,49 @@ export async function runStoryEvaluationAgent(
       Math.max(1, (options.maxSteps ?? DEFAULT_MAX_STEPS) + 1),
     ),
     output: Output.object({ schema: storyTestResultSchema }),
+    onStepFinish: (step) => {
+      stepIndex += 1
+
+      const toolCalls = step.toolCalls.length
+        ? step.toolCalls.map((toolCall) =>
+            omitUndefined({
+              id: toolCall.toolCallId,
+              name: toolCall.toolName,
+              input: toolCall.input,
+              dynamic: 'dynamic' in toolCall ? toolCall.dynamic : undefined,
+              invalid: 'invalid' in toolCall ? toolCall.invalid : undefined,
+            }),
+          )
+        : undefined
+
+      const toolResults = step.toolResults.length
+        ? step.toolResults.map((result) =>
+            omitUndefined({
+              id: result.toolCallId,
+              name: result.toolName,
+              output: result.output,
+              dynamic: 'dynamic' in result ? result.dynamic : undefined,
+              preliminary:
+                'preliminary' in result ? result.preliminary : undefined,
+            }),
+          )
+        : undefined
+
+      logger.info('Story evaluation agent step finished',
+        omitUndefined({
+          storyName: options.storyName,
+          repoId: options.repoId,
+          runId: options.runId ?? undefined,
+          step: stepIndex,
+          finishReason: step.finishReason,
+          reasoning: summarizeText(step.reasoningText),
+          response: summarizeText(step.text),
+          toolCalls,
+          toolResults,
+          usage: step.usage,
+        }),
+      )
+    },
   })
 
   const prompt = buildStoryEvaluationPrompt(options)
@@ -183,9 +253,12 @@ export async function runStoryEvaluationAgent(
   // ! we get `AI_NoOutputGeneratedError: No output generated.` if we hit
   // ! our max steps limit.
 
-  console.log('💸 Story evaluation agent result', {
-    output: result.output,
-    steps: result.steps,
+  logger.info('Story evaluation agent completed run', {
+    storyName: options.storyName,
+    repoId: options.repoId,
+    runId: options.runId ?? undefined,
+    stepCount: result.steps.length,
+    finishReason: result.finishReason,
   })
 
   const parsedOutput = storyTestResultSchema.parse(result.output)
