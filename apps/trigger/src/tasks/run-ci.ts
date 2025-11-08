@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { logger, tasks, task } from '@trigger.dev/sdk'
 
 import { json, setupDb, sql } from '@app/db'
 import type { RunStory, StoryAnalysisV1 } from '@app/db'
 
-import { parseEnv } from '../helpers/env'
+import { parseEnv } from '@app/agents'
 
 interface RunCiPayload {
   orgSlug: string

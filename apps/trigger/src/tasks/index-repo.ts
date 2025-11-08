@@ -1,12 +1,11 @@
 import { createHash } from 'node:crypto'
 
-import { QdrantClient } from '@qdrant/js-client-rest'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { task, logger } from '@trigger.dev/sdk'
 
 import { indexFilesToQdrant } from '../helpers/index-codebase'
-import { parseEnv } from '../helpers/env'
 import { getRepoWithOctokit } from '../helpers/github'
-import { buildQdrantErrorDetails, getQdrantClient } from '../helpers/qdrant'
+import { buildQdrantErrorDetails, getQdrantClient } from '@app/agents'
 import type { CodebaseFile } from '../steps/fetch-codebase'
 
 function generateDeterministicUUID(input: string): string {

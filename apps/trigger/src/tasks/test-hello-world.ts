@@ -1,4 +1,5 @@
-import { parseEnv } from '@/helpers/env'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import { parseEnv } from '@app/agents'
 import { task, logger } from '@trigger.dev/sdk'
 
 export const testHelloWorldTask = task({

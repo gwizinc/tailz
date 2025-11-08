@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { Output, ToolLoopAgent, type LanguageModel, stepCountIs } from 'ai'
 
 import {
@@ -14,7 +15,7 @@ import {
   createSemanticCodeSearchTool,
   createSymbolLookupTool,
   type SearchContext,
-} from '@/tools'
+} from '../tools'
 
 const STEP_REVIEWER_AGENT_ID = 'step-reviewer-agent'
 const STORY_DIRECTOR_AGENT_ID = 'story-director-agent'

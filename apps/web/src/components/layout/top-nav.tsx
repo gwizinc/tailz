@@ -1,7 +1,7 @@
 'use client'
 
 import { navigate } from 'astro:transitions/client'
-import { ChevronDown, Home, LogOut, Sparkles, Zap } from 'lucide-react'
+import { ChevronDown, LogOut, Sparkles, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { GiWhaleTail } from 'react-icons/gi'
 

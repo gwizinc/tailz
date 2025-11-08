@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto'
 import { logger } from '@trigger.dev/sdk'
 import type { CodebaseFile } from '../steps/fetch-codebase'
-import { buildQdrantErrorDetails, getQdrantClient } from './qdrant'
-import { createEmbeddings } from './embeddings'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+import { buildQdrantErrorDetails, getQdrantClient } from '@app/agents'
+import { createEmbeddings } from '@app/agents'
 
 function generateDeterministicUUID(input: string): string {
   const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'

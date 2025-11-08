@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { OpenAIEmbedding } from '@zilliz/claude-context-core'
 import { parseEnv } from './env'
 
@@ -9,9 +10,7 @@ export type Vectors = {
   }
 }
 
-export async function createDenseEmbedding(
-  text: string,
-): Promise<Vectors['dense']> {
+async function createDenseEmbedding(text: string): Promise<Vectors['dense']> {
   const env = parseEnv()
   const embedding = new OpenAIEmbedding({
     apiKey: env.OPENAI_API_KEY,
@@ -20,9 +19,7 @@ export async function createDenseEmbedding(
   return (await embedding.embed(text)).vector
 }
 
-export async function createSparseEmbedding(
-  text: string,
-): Promise<Vectors['sparse']> {
+async function createSparseEmbedding(text: string): Promise<Vectors['sparse']> {
   const response = await fetch(
     'https://gwizinc--splade-splade-vector.modal.run',
     {

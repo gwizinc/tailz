@@ -41,9 +41,9 @@ importers:
 
   apps/trigger:
     dependencies:
-      '@ai-sdk/openai':
-        specifier: ^2.0.64
-        version: 2.0.64(zod@3.25.76)
+      '@app/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@app/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -53,21 +53,9 @@ importers:
       '@octokit/rest':
         specifier: ^22.0.1
         version: 22.0.1
-      '@qdrant/js-client-rest':
-        specifier: ^1.15.1
-        version: 1.15.1(typescript@5.9.3)
       '@trigger.dev/sdk':
         specifier: ^4.0.6
         version: 4.0.6(ai@6.0.0-beta.94(zod@3.25.76))(bufferutil@4.0.9)(zod@3.25.76)
-      '@zilliz/claude-context-core':
-        specifier: ^0.1.3
-        version: 0.1.3(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.23.2(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(bufferutil@4.0.9)(encoding@0.1.13)(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
-      ai:
-        specifier: 6.0.0-beta.94
-        version: 6.0.0-beta.94(zod@3.25.76)
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.18.10
@@ -315,6 +303,27 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.18.10)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9))(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.7.1)
+
+  packages/agents:
+    dependencies:
+      '@app/db':
+        specifier: workspace:*
+        version: link:../db
+      '@ai-sdk/openai':
+        specifier: ^2.0.64
+        version: 2.0.64(zod@3.25.76)
+      '@qdrant/js-client-rest':
+        specifier: ^1.15.1
+        version: 1.15.1(typescript@5.9.3)
+      '@zilliz/claude-context-core':
+        specifier: ^0.1.3
+        version: 0.1.3(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.23.2(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(bufferutil@4.0.9)(encoding@0.1.13)(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
+      ai:
+        specifier: 6.0.0-beta.94
+        version: 6.0.0-beta.94(zod@3.25.76)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
 packages:
 

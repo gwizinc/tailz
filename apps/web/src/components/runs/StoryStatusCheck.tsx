@@ -1,4 +1,10 @@
-import { AlertTriangle, CheckCircle2, Loader2, MinusCircle, XCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  MinusCircle,
+  XCircle,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type StoryStatus = 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'

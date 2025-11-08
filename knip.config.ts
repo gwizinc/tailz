@@ -46,6 +46,10 @@ const config: KnipConfig = {
       project: ['src/**/*.ts'],
       ignore: ['**/node_modules/**', '**/dist/**', '**/*.d.ts'],
     },
+    'packages/agents': {
+      project: ['src/**/*.ts'],
+      ignore: ['**/node_modules/**', '**/dist/**', '**/*.d.ts'],
+    },
   },
   ignore: [
     'apps/web/src/components/**',

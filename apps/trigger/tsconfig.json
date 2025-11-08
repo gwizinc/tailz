@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../../packages/db/tsconfig.json"
+    },
+    {
+      "path": "../../packages/agents/tsconfig.json"
     }
   ]
 }
