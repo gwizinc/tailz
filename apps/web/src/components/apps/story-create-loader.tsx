@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { LoadingProgress } from '@/components/ui/loading-progress'
+import { StoryEditor } from '@/components/stories/StoryEditor'
 import {
   Select,
   SelectContent,
@@ -13,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 
 interface BranchItem {
   name: string
@@ -198,17 +198,12 @@ export function StoryCreateLoader({
             <Label htmlFor="storyEditor" className="mb-2 shrink-0">
               Story Content
             </Label>
-            <textarea
+            <StoryEditor
               id="storyEditor"
               value={storyContent}
-              onChange={(e) => setStoryContent(e.target.value)}
+              onChange={setStoryContent}
               placeholder="Write your story here..."
-              className={cn(
-                'flex-1 w-full resize-none rounded-md border border-input bg-card p-4 text-sm text-card-foreground shadow-sm',
-                'placeholder:text-muted-foreground',
-                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-              )}
+              className="flex-1 min-h-0"
             />
           </div>
 

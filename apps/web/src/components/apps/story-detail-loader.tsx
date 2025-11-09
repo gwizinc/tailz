@@ -7,6 +7,7 @@ import { CodeWalkthrough } from '@/components/code/CodeWalkthrough'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { StoryEditor } from '@/components/stories/StoryEditor'
 import {
   Dialog,
   DialogContent,
@@ -221,19 +222,13 @@ export function StoryDetailLoader({
               <Label htmlFor="storyContent" className="mb-2">
                 Story Content
               </Label>
-              <textarea
+              <StoryEditor
                 id="storyContent"
                 value={storyContent}
-                onChange={(e) => setStoryContent(e.target.value)}
-                readOnly={!isEditing}
-                placeholder={isEditing ? 'Write your story here...' : ''}
-                className={cn(
-                  'flex-1 w-full resize-none rounded-md border border-input bg-card p-4 text-sm text-card-foreground shadow-sm',
-                  'placeholder:text-muted-foreground',
-                  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  !isEditing && 'bg-muted/50',
-                )}
+                onChange={setStoryContent}
+                editable={isEditing}
+                placeholder="Write your story here..."
+                className="flex-1 min-h-0"
               />
             </div>
             <div className="w-1/2 p-6 overflow-auto">
