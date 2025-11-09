@@ -75,6 +75,13 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
   const rightActions = (
     <div className="flex items-center gap-2">
       <Button
+        variant="outline"
+        className="h-8 px-3 text-sm"
+        onClick={() => void navigate('/dashboard')}
+      >
+        Dashboard
+      </Button>
+      <Button
         className={cn(
           'h-8 px-3 text-sm text-white',
           'bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 shadow-sm',

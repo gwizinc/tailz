@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/layout.astro'
+import { DashboardApp } from '@/components/apps/dashboard-app'
+
+export const prerender = false
+---
+
+<Layout title="Dashboard">
+  <DashboardApp client:load />
+</Layout>
+

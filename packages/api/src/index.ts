@@ -7,6 +7,7 @@ import { storyRouter } from './routers/story'
 import { runRouter } from './routers/run'
 import { testRouter } from './routers/test'
 import { featureRouter } from './routers/feature'
+import { dashboardRouter } from './routers/dashboard'
 
 export type { Context, Env, Session, SessionUser } from './context'
 
@@ -21,6 +22,7 @@ export const appRouter = router({
   run: runRouter,
   test: testRouter,
   feature: featureRouter,
+  dashboard: dashboardRouter,
 })
 
 // Export type router type signature,
