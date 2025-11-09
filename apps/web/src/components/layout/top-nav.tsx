@@ -2,8 +2,9 @@
 
 import { navigate } from 'astro:transitions/client'
 import { ChevronDown, LogOut, RefreshCw, Sparkles, Zap } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { GiWhaleTail } from 'react-icons/gi'
+import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +38,7 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   const session = useSession()
+  const { setTheme, resolvedTheme } = useTheme()
 
   const handleTestHelloWorld = async () => {
     setIsTriggering(true)
@@ -63,6 +65,10 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
   const user = session.data?.user
   const userImage = user?.image
   const userName = user?.name || user?.email || 'User'
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+  }, [resolvedTheme, setTheme])
 
   useEffect(() => {
     if (!session.data) {
@@ -168,8 +174,15 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={(event) => event.preventDefault()}
-            className="gap-2"
+            onSelect={(event) => {
+              event.preventDefault()
+              const target = event.target as HTMLElement | null
+              if (target?.closest('[data-theme-toggle-button="true"]')) {
+                return
+              }
+              handleToggleTheme()
+            }}
+            className="gap-2 cursor-pointer"
           >
             <span className="text-sm">Theme</span>
             <div className="ml-auto">
