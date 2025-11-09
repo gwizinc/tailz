@@ -5,16 +5,6 @@ export interface DailyMetricPoint {
   count: number
 }
 
-export interface RunningCiRun {
-  id: string
-  number: number | null
-  repoName: string
-  ownerSlug: string
-  branchName: string
-  startedAt: string | null
-  updatedAt: string | null
-}
-
 const DAILY_WINDOW_DAYS = 30
 
 function toUtcStartOfDay(date: Date): Date {
@@ -87,7 +77,6 @@ export const dashboardRouter = router({
       recentUsers,
       runsTotalRow,
       recentRuns,
-      runningRuns,
     ] = await Promise.all([
       ctx.db
         .selectFrom('repos')
@@ -118,23 +107,6 @@ export const dashboardRouter = router({
         .select(['createdAt'])
         .where('createdAt', '>=', startDate)
         .execute(),
-      ctx.db
-        .selectFrom('runs')
-        .innerJoin('repos', 'repos.id', 'runs.repoId')
-        .innerJoin('owners', 'owners.id', 'repos.ownerId')
-        .select([
-          'runs.id as id',
-          'runs.number as number',
-          'runs.branchName as branchName',
-          'runs.createdAt as createdAt',
-          'runs.updatedAt as updatedAt',
-          'repos.name as repoName',
-          'owners.login as ownerSlug',
-        ])
-        .where('runs.status', '=', 'running')
-        .orderBy('runs.createdAt', 'desc')
-        .limit(25)
-        .execute(),
     ])
 
     const projectsTotal = parseCount(projectsTotalRow?.count)
@@ -157,16 +129,6 @@ export const dashboardRouter = router({
       DAILY_WINDOW_DAYS,
     )
 
-    const runningCiRuns: RunningCiRun[] = runningRuns.map((run) => ({
-      id: run.id,
-      number: run.number ?? null,
-      repoName: run.repoName,
-      ownerSlug: run.ownerSlug,
-      branchName: run.branchName,
-      startedAt: run.createdAt ? run.createdAt.toISOString() : null,
-      updatedAt: run.updatedAt ? run.updatedAt.toISOString() : null,
-    }))
-
     return {
       projects: {
         total: projectsTotal,
@@ -179,10 +141,6 @@ export const dashboardRouter = router({
       runs: {
         total: runsTotal,
         daily: runsSeries,
-      },
-      runningCi: {
-        total: runningCiRuns.length,
-        runs: runningCiRuns,
       },
     }
   }),

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { MetricCard } from '@/components/dashboard/metric-card'
-import { RunningCiList } from '@/components/dashboard/running-ci-list'
 import { AppProvider } from '@/components/providers/app-provider'
 import { LoadingProgress } from '@/components/ui/loading-progress'
 
@@ -17,24 +16,10 @@ interface DashboardMetrics {
   daily: ReadonlyArray<DailyMetricPoint>
 }
 
-interface RunningCiRun {
-  id: string
-  number: number | null
-  repoName: string
-  ownerSlug: string
-  branchName: string
-  startedAt: string | null
-  updatedAt: string | null
-}
-
 interface DashboardData {
   projects: DashboardMetrics
   users: DashboardMetrics
   runs: DashboardMetrics
-  runningCi: {
-    total: number
-    runs: ReadonlyArray<RunningCiRun>
-  }
 }
 
 export function DashboardApp() {
@@ -129,9 +114,6 @@ function DashboardAppContent() {
             data={data.runs.daily}
             strokeColor="hsl(var(--chart-3))"
           />
-        </div>
-        <div className="mt-6">
-          <RunningCiList total={data.runningCi.total} runs={data.runningCi.runs} />
         </div>
       </div>
     </AppLayout>
