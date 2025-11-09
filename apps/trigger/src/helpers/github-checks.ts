@@ -4,10 +4,10 @@ import { logger } from '@trigger.dev/sdk'
 export type AggregatedCounts = {
   pass: number
   fail: number
-  blocked: number
+  error: number
 }
 
-type RunOutcome = 'pass' | 'fail' | 'skipped'
+type RunOutcome = 'pass' | 'fail' | 'skipped' | 'error'
 
 type BuildCheckRunContentParams =
   | {
@@ -67,6 +67,8 @@ function mapOutcomeToConclusion(
       return 'success'
     case 'fail':
       return 'failure'
+    case 'error':
+      return 'failure'
     case 'skipped':
     default:
       return 'neutral'
@@ -105,7 +107,7 @@ export function buildCheckRunContent(
     textLines.push(
       `Passed: ${params.counts.pass}`,
       `Failed: ${params.counts.fail}`,
-      `Blocked: ${params.counts.blocked}`,
+      `Errors: ${params.counts.error}`,
     )
   }
 

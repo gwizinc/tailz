@@ -147,7 +147,7 @@ export const testStoryTask = task({
 
       const failureAnalysis = {
         version: 1,
-        conclusion: 'fail',
+        conclusion: 'error',
         explanation: failureDescription,
         evidence: [],
       }
@@ -155,7 +155,7 @@ export const testStoryTask = task({
       await db
         .updateTable('storyTestResults')
         .set({
-          status: 'fail',
+          status: 'error',
           analysisVersion: 1,
           analysis: failureAnalysis,
           completedAt: new Date(),

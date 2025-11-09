@@ -1,6 +1,6 @@
 import { StoryCard } from './StoryCard'
 
-type StoryStatus = 'pass' | 'fail' | 'blocked' | 'running' | null
+type StoryStatus = 'pass' | 'fail' | 'error' | 'running' | null
 
 interface StoryItem {
   id: string

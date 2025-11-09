@@ -18,7 +18,7 @@ interface RepoItem {
   defaultBranch?: string
   isPrivate: boolean
   storyCount: number
-  lastRunStatus: 'pass' | 'fail' | 'skipped' | 'running' | null
+  lastRunStatus: 'pass' | 'fail' | 'skipped' | 'running' | 'error' | null
   lastRunAt: Date | null
 }
 
@@ -56,7 +56,13 @@ export function OrgRepoBySlugLoader({ orgSlug }: { orgSlug: string }) {
               enabled: boolean
               isPrivate: boolean
               storyCount: number
-              lastRunStatus: 'pass' | 'fail' | 'skipped' | 'running' | null
+              lastRunStatus:
+                | 'pass'
+                | 'fail'
+                | 'skipped'
+                | 'running'
+                | 'error'
+                | null
               lastRunAt: Date | null
             }>
           )

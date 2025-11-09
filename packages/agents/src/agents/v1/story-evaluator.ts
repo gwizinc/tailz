@@ -29,13 +29,13 @@ const evidenceItemSchema = z.object({
 
 const storyAnalysisSchema = z.object({
   version: z.literal(1),
-  conclusion: z.enum(['pass', 'fail', 'blocked']),
+  conclusion: z.enum(['pass', 'fail', 'error']),
   explanation: z.string().min(1),
   evidence: z.array(evidenceItemSchema).default([]),
 })
 
 const storyTestResultSchema = z.object({
-  status: z.enum(['pass', 'fail', 'blocked', 'running']).default('running'),
+  status: z.enum(['pass', 'fail', 'running', 'error']).default('running'),
   analysis: storyAnalysisSchema.nullable().default(null),
 })
 
@@ -75,6 +75,9 @@ export function normalizeStoryTestResult(
 
   const analysisVersion = raw.analysis?.version ?? 1
 
+  const normalizedStatus: StoryTestResultPayload['status'] =
+    raw.status === 'running' ? 'error' : raw.status
+
   const analysis = raw.analysis
     ? {
         conclusion: raw.analysis.conclusion,
@@ -91,7 +94,7 @@ export function normalizeStoryTestResult(
     : null
 
   return {
-    status: raw.status,
+    status: normalizedStatus,
     analysisVersion,
     analysis,
     startedAt: startedAt.toISOString(),
@@ -117,9 +120,9 @@ function buildStoryEvaluationInstructions(): string {
     # Evaluation Mindset
     - Treat the repository as the single source of truth.
     - Only mark a story as "passed" when concrete code evidence confirms that each step is implemented and functionally connected.
-    - A step is "blocked" if supporting code is missing, incomplete, or ambiguous.
+    - When supporting code is missing, incomplete, or ambiguous, mark the relevant step—and overall story—as "failed" and explain what is missing.
     - A step is "failed" if code exists but clearly contradicts or prevents the expected behavior.
-    - A story may be "partially passed" if some steps are confirmed and others are blocked or failed; you must represent this in the evidence list.
+    - If some steps succeed while others fail, the overall story must still be marked as "failed" and you must document both the successes and the gaps.
     
     # Schema
     \`\`\`
@@ -149,15 +152,15 @@ function buildStoryEvaluationInstructions(): string {
     - When a step depends on another, cross-reference evidence from earlier steps rather than duplicating it.
 
     # When to Stop
-    - When all steps are either satisfied, blocked, or failed.
+    - When every step is confirmed as satisfied or failed.
     - When sufficient verified evidence exists for every "passed" step.
     - Do not continue searching once a definitive conclusion is reached.
 
     # Rules
     - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
-    - Explanation should clearly state why the story passes, fails, or is blocked. Use concise language that a human reviewer can follow quickly.
-    - If available evidence is insufficient to decide, mark the status as "blocked" and describe what is missing in the explanation.
-    - If no relevant evidence is found after reasonable searches, include \`"evidence": []\` and set \`"status": "blocked"\`.
+    - Explanation should clearly state why the story passes or fails. Use concise language that a human reviewer can follow quickly.
+    - If available evidence is insufficient to decide, set the status to "fail" and describe exactly what is missing or uncertain.
+    - Reserve the "error" status exclusively for internal failures (for example, tooling issues). Lack of evidence after reasonable searches should result in \`"status": "fail"\` and an empty evidence list.
     - Use shareThought to describe reasoning between steps, not raw searches.
     - Keep it short, factual, and time-ordered.
     - Do not include internal thoughts in final output, instead use shareThought to describe your reasoning.
@@ -255,25 +258,24 @@ export async function runStoryEvaluationAgent(
     toolCallCount,
   }
 
-  const conclusion =
-    parsedOutput.status === 'running' ? 'blocked' : parsedOutput.status
+  const normalizedStatus: StoryTestModelOutput['status'] =
+    parsedOutput.status === 'running' ? 'error' : parsedOutput.status
 
-  const outputWithAnalysis: StoryTestModelOutput =
-    parsedOutput.status === 'running'
-      ? {
-          ...parsedOutput,
-          analysis: null,
-        }
-      : {
-          ...parsedOutput,
-          analysis: parsedOutput.analysis ?? {
+  const outputWithAnalysis: StoryTestModelOutput = {
+    ...parsedOutput,
+    status: normalizedStatus,
+    analysis:
+      parsedOutput.status === 'running'
+        ? null
+        : (parsedOutput.analysis ?? {
             version: 1,
-            conclusion,
+            conclusion:
+              normalizedStatus === 'error' ? 'error' : normalizedStatus,
             explanation:
               'Model did not supply analysis - TODO use AI to summarize complete findings later.',
             evidence: [],
-          },
-        }
+          }),
+  }
 
   return {
     output: outputWithAnalysis,

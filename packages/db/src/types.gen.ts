@@ -423,7 +423,7 @@ export interface StoryTestResult {
    */
   startedAt: Generated<Timestamp | null>;
   /**
-   * Outcome status of the evaluation (pass, fail, blocked, running)
+   * Outcome status of the evaluation (pass, fail, running, error)
    */
   status: string;
   /**

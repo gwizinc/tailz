@@ -1,11 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
+  AlertTriangle,
   CheckCircle2,
-  Clock,
   GitBranch,
   GitCommit,
-  GitPullRequest,
   Loader2,
   MinusCircle,
   Timer,
@@ -22,7 +21,7 @@ interface StoryAnalysisEvidence {
 }
 
 interface StoryAnalysis {
-  conclusion: 'pass' | 'fail' | 'blocked'
+  conclusion: 'pass' | 'fail' | 'error'
   explanation: string
   evidence: StoryAnalysisEvidence[]
 }
@@ -30,7 +29,7 @@ interface StoryAnalysis {
 interface StoryResult {
   id: string
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'blocked'
+  status: 'pass' | 'fail' | 'running' | 'error'
   analysisVersion: number
   analysis: StoryAnalysis | null
   startedAt: string | null
@@ -43,7 +42,7 @@ interface StoryResult {
 interface RunStory {
   storyId: string
   resultId: string | null
-  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'error'
   summary: string | null
   startedAt: string | null
   completedAt: string | null
@@ -65,7 +64,7 @@ interface Run {
   branchName: string
   commitMessage: string | null
   prNumber: string | null
-  status: 'pass' | 'fail' | 'skipped' | 'running'
+  status: 'pass' | 'fail' | 'skipped' | 'running' | 'error'
   summary: string | null
   createdAt: string
   updatedAt: string
@@ -125,6 +124,16 @@ function getStatusDisplay(status: Run['status']): StatusDisplay {
         chipClassName: 'border-primary/30 bg-primary/10 text-primary',
         chipIconClassName: 'text-primary',
         shouldSpin: true,
+      }
+    case 'error':
+      return {
+        label: 'Error',
+        Icon: AlertTriangle,
+        heroClassName: 'text-orange-600 dark:text-orange-500',
+        chipClassName:
+          'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-500',
+        chipIconClassName: 'text-orange-600 dark:text-orange-500',
+        shouldSpin: false,
       }
   }
 }

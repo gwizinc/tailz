@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { protectedProcedure, router } from '../trpc'
 
-type RepoListItemStatus = 'pass' | 'fail' | 'skipped' | 'running'
+type RepoListItemStatus = 'pass' | 'fail' | 'skipped' | 'running' | 'error'
 
 type RepoListItem = {
   id: string
@@ -91,7 +91,9 @@ export const repoRouter = router({
       >(
         latestRuns
           .filter(
-            (entry): entry is {
+            (
+              entry,
+            ): entry is {
               repoId: string
               status: RepoListItemStatus
               createdAt: Date
@@ -101,7 +103,8 @@ export const repoRouter = router({
               (entry.status === 'pass' ||
                 entry.status === 'fail' ||
                 entry.status === 'skipped' ||
-                entry.status === 'running'),
+                entry.status === 'running' ||
+                entry.status === 'error'),
           )
           .map((entry) => [
             entry.repoId,

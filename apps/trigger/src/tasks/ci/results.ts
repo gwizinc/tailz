@@ -7,7 +7,7 @@ import type { BatchTriggerResult } from './sandbox'
 export interface AggregatedRunOutcome {
   aggregated: AggregatedCounts
   updatedRunStories: RunStory[]
-  finalStatus: 'pass' | 'fail' | 'skipped'
+  finalStatus: 'pass' | 'fail' | 'skipped' | 'error'
   summaryText: string
   summaryParts: string[]
 }
@@ -24,7 +24,7 @@ export function aggregateBatchResults({
   const aggregated: AggregatedCounts = {
     pass: 0,
     fail: 0,
-    blocked: 0,
+    error: 0,
   }
   const updatedRunStories: RunStory[] = []
 
@@ -38,7 +38,7 @@ export function aggregateBatchResults({
     if (result.ok) {
       const output = result.output as {
         resultId: string
-        status: 'pass' | 'fail' | 'blocked' | 'running'
+        status: 'pass' | 'fail' | 'running' | 'error'
         analysisVersion: number
         analysis: StoryAnalysisV1 | null
       }
@@ -47,8 +47,8 @@ export function aggregateBatchResults({
         aggregated.pass += 1
       } else if (output.status === 'fail') {
         aggregated.fail += 1
-      } else if (output.status === 'blocked') {
-        aggregated.blocked += 1
+      } else if (output.status === 'error') {
+        aggregated.error += 1
       }
 
       updatedRunStories.push({
@@ -60,7 +60,7 @@ export function aggregateBatchResults({
         completedAt: new Date().toISOString(),
       })
     } else {
-      aggregated.fail += 1
+      aggregated.error += 1
       const errorMessage =
         result.error &&
         typeof result.error === 'object' &&
@@ -72,7 +72,7 @@ export function aggregateBatchResults({
 
       updatedRunStories.push({
         storyId: story.id,
-        status: 'fail',
+        status: 'error',
         resultId: null,
         summary: errorMessage,
         startedAt: initialRunStories[index]?.startedAt ?? null,
@@ -98,8 +98,12 @@ export function aggregateBatchResults({
 function determineFinalStatus(
   aggregated: AggregatedCounts,
   totalStories: number,
-): 'pass' | 'fail' | 'skipped' {
-  if (aggregated.fail > 0 || aggregated.blocked > 0) {
+): 'pass' | 'fail' | 'skipped' | 'error' {
+  if (aggregated.error > 0) {
+    return 'error'
+  }
+
+  if (aggregated.fail > 0) {
     return 'fail'
   }
 
@@ -114,7 +118,7 @@ function buildSummaryParts(aggregated: AggregatedCounts): string[] {
   return [
     `${aggregated.pass} passed`,
     `${aggregated.fail} failed`,
-    `${aggregated.blocked} blocked`,
+    `${aggregated.error} errors`,
   ]
 }
 
@@ -127,7 +131,7 @@ export async function updateRunResults({
 }: {
   db: DbClient
   runId: string
-  finalStatus: 'pass' | 'fail' | 'skipped'
+  finalStatus: 'pass' | 'fail' | 'skipped' | 'error'
   summaryText: string
   updatedRunStories: RunStory[]
 }): Promise<void> {
@@ -146,15 +150,17 @@ export async function markRunFailure({
   db,
   runId,
   summary,
+  status = 'fail',
 }: {
   db: DbClient
   runId: string
   summary: string
+  status?: 'fail' | 'error'
 }): Promise<void> {
   await db
     .updateTable('runs')
     .set({
-      status: 'fail',
+      status,
       summary,
     })
     .where('id', '=', runId)

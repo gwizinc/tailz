@@ -14,7 +14,7 @@ interface StoryItem {
   createdAt: string | null
   updatedAt: string | null
   groups: string[]
-  latestStatus: 'pass' | 'fail' | 'blocked' | 'running' | null
+  latestStatus: 'pass' | 'fail' | 'error' | 'running' | null
   latestStatusAt: string | null
 }
 

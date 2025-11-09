@@ -45,13 +45,13 @@ export const runRouter = router({
       // Map status: 'pass' -> 'success', 'fail' -> 'failed', 'skipped' -> 'skipped', 'running' -> 'running'
       const statusMap: Record<
         string,
-        'queued' | 'running' | 'success' | 'failed' | 'skipped'
+        'queued' | 'running' | 'success' | 'failed' | 'skipped' | 'error'
       > = {
         pass: 'success',
         fail: 'failed',
         skipped: 'skipped',
         running: 'running',
-        blocked: 'failed',
+        error: 'error',
       }
 
       const runs = dbRuns.map((run: any) => {
@@ -171,7 +171,7 @@ export const runRouter = router({
         branchName: string
         commitMessage: string | null
         prNumber: string | null
-        status: 'pass' | 'fail' | 'skipped' | 'running'
+        status: 'pass' | 'fail' | 'skipped' | 'running' | 'error'
         summary: string | null
         createdAt: Date
         updatedAt: Date
@@ -202,7 +202,7 @@ export const runRouter = router({
         {
           id: string
           storyId: string
-          status: 'pass' | 'fail' | 'blocked' | 'running'
+          status: 'pass' | 'fail' | 'running' | 'error'
           analysisVersion: number
           analysis: StoryAnalysisV1 | null
           startedAt: string | null
@@ -230,11 +230,11 @@ export const runRouter = router({
               ? result.updatedAt.toISOString()
               : (result.updatedAt ?? null)
 
-          const status = ['pass', 'fail', 'blocked', 'running'].includes(
+          const status = ['pass', 'fail', 'running', 'error'].includes(
             result.status,
           )
-            ? (result.status as 'pass' | 'fail' | 'blocked' | 'running')
-            : 'fail'
+            ? (result.status as 'pass' | 'fail' | 'running' | 'error')
+            : 'error'
 
           const analysis =
             result.analysis && typeof result.analysis === 'object'

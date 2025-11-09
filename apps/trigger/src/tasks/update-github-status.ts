@@ -3,12 +3,14 @@ import type { StoryTestResult } from '../types'
 import { createOctokit } from '../helpers/github'
 
 function mapRunStatusToConclusion(
-  status: 'pass' | 'fail' | 'skipped' | 'running',
+  status: 'pass' | 'fail' | 'skipped' | 'running' | 'error',
 ): 'success' | 'failure' | 'neutral' | 'cancelled' | undefined {
   switch (status) {
     case 'pass':
       return 'success'
     case 'fail':
+      return 'failure'
+    case 'error':
       return 'failure'
     case 'skipped':
       return 'neutral'
@@ -20,11 +22,12 @@ function mapRunStatusToConclusion(
 }
 
 function mapRunStatusToCheckStatus(
-  status: 'pass' | 'fail' | 'skipped' | 'running',
+  status: 'pass' | 'fail' | 'skipped' | 'running' | 'error',
 ): 'queued' | 'in_progress' | 'completed' {
   switch (status) {
     case 'running':
       return 'in_progress'
+    case 'error':
     case 'pass':
     case 'fail':
     case 'skipped':
@@ -53,13 +56,16 @@ export const updateGithubStatusTask = task({
       resultCount: payload.testResults.length,
     })
 
+    const hasError = payload.testResults.some((s) => s.status === 'error')
     const hasFail = payload.testResults.some((s) => s.status === 'fail')
     const allSkipped = payload.testResults.every((s) => s.status === 'skipped')
-    const finalStatus: 'pass' | 'fail' | 'skipped' = hasFail
-      ? 'fail'
-      : allSkipped
-        ? 'skipped'
-        : 'pass'
+    const finalStatus: 'pass' | 'fail' | 'skipped' | 'error' = hasError
+      ? 'error'
+      : hasFail
+        ? 'fail'
+        : allSkipped
+          ? 'skipped'
+          : 'pass'
 
     const checkStatus = mapRunStatusToCheckStatus(finalStatus)
     const conclusion = mapRunStatusToConclusion(finalStatus)
@@ -70,14 +76,17 @@ export const updateGithubStatusTask = task({
     const failedCount = payload.testResults.filter(
       (s) => s.status === 'fail',
     ).length
+    const errorCount = payload.testResults.filter(
+      (s) => s.status === 'error',
+    ).length
     const skippedCount = payload.testResults.filter(
       (s) => s.status === 'skipped',
     ).length
 
     const output = {
       title: `Run completed: ${finalStatus}`,
-      summary: `${passedCount} passed, ${failedCount} failed, ${skippedCount} skipped`,
-      text: `Total stories: ${payload.testResults.length}\nPassed: ${passedCount}\nFailed: ${failedCount}\nSkipped: ${skippedCount}`,
+      summary: `${passedCount} passed, ${failedCount} failed, ${skippedCount} skipped, ${errorCount} errors`,
+      text: `Total stories: ${payload.testResults.length}\nPassed: ${passedCount}\nFailed: ${failedCount}\nSkipped: ${skippedCount}\nErrors: ${errorCount}`,
     }
 
     const octokit = createOctokit(payload.installationId)

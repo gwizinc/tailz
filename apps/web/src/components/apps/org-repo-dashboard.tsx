@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { SiGithub } from 'react-icons/si'
-import { BookOpen, Clock3, ChevronDown } from 'lucide-react'
+import { BookOpen, Clock3, ChevronDown, Plus } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,7 @@ interface RepoItem {
   defaultBranch?: string
   isPrivate: boolean
   storyCount: number
-  lastRunStatus: 'pass' | 'fail' | 'skipped' | 'running' | null
+  lastRunStatus: 'pass' | 'fail' | 'skipped' | 'running' | 'error' | null
   lastRunAt: Date | null
 }
 
@@ -70,6 +70,10 @@ export function OrgRepoDashboard({ org, repos }: Props) {
     running: {
       label: 'Running',
       dotClass: 'bg-primary',
+    },
+    error: {
+      label: 'Error',
+      dotClass: 'bg-orange-500',
     },
   }
 
@@ -242,11 +246,9 @@ export function OrgRepoDashboard({ org, repos }: Props) {
                 </span>
               </div>
             </div>
-            <Button
-              className="bg-chart-1 text-chart-foreground hover:bg-chart-1/90"
-              onClick={handleOpenDialog}
-            >
-              New repository
+            <Button onClick={handleOpenDialog} size="icon">
+              <Plus className="h-5 w-5" />
+              <span className="sr-only">New repository</span>
             </Button>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -292,11 +294,9 @@ export function OrgRepoDashboard({ org, repos }: Props) {
               title="No repositories activated yet"
               description="Enable your first repository to start tracking stories, CI runs, and more."
               action={
-                <Button
-                  className="bg-chart-1 text-chart-foreground hover:bg-chart-1/90"
-                  onClick={handleOpenDialog}
-                >
-                  New repository
+                <Button onClick={handleOpenDialog} size="icon">
+                  <Plus className="h-5 w-5" />
+                  <span className="sr-only">New repository</span>
                 </Button>
               }
             />

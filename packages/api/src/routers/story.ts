@@ -6,7 +6,7 @@ import type { Json, Story } from '@app/db/types'
 import { protectedProcedure, router } from '../trpc'
 import { parseEnv } from '../helpers/env'
 
-type StoryTestStatus = 'pass' | 'fail' | 'blocked' | 'running'
+type StoryTestStatus = 'pass' | 'fail' | 'error' | 'running'
 
 const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions'
 const OPENAI_ENRICH_MODEL = 'gpt-4o-mini'

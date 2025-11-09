@@ -661,7 +661,7 @@ CREATE TABLE public.runs (
     summary text,
     stories jsonb DEFAULT '[]'::jsonb NOT NULL,
     number integer NOT NULL,
-    CONSTRAINT runs_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'skipped'::text, 'running'::text])))
+    CONSTRAINT runs_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'skipped'::text, 'running'::text, 'error'::text])))
 );
 
 
@@ -725,7 +725,7 @@ COMMENT ON COLUMN public.runs.pr_number IS 'The pull request number associated w
 -- Name: COLUMN runs.status; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.runs.status IS 'The overall status of the run (pass, fail, skipped, running)';
+COMMENT ON COLUMN public.runs.status IS 'The overall status of the run (pass, fail, skipped, running, error)';
 
 
 --
@@ -910,7 +910,7 @@ CREATE TABLE public.story_test_results (
     duration_ms integer,
     analysis jsonb,
     analysis_version integer NOT NULL,
-    CONSTRAINT story_test_results_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text, 'running'::text])))
+    CONSTRAINT story_test_results_status_check CHECK ((status = ANY (ARRAY['pass'::text, 'fail'::text, 'running'::text, 'error'::text])))
 );
 
 
@@ -960,7 +960,7 @@ COMMENT ON COLUMN public.story_test_results.run_id IS 'Optional FK to runs.id wh
 -- Name: COLUMN story_test_results.status; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.story_test_results.status IS 'Outcome status of the evaluation (pass, fail, blocked, running)';
+COMMENT ON COLUMN public.story_test_results.status IS 'Outcome status of the evaluation (pass, fail, running, error)';
 
 
 --

@@ -105,7 +105,7 @@ export async function completeCheckRunSuccess({
   checkRunId?: number
   runId: string
   branchName: string
-  status: 'pass' | 'fail' | 'skipped'
+  status: 'pass' | 'fail' | 'skipped' | 'error'
   summary: string
   counts: AggregatedCounts
 }): Promise<void> {
@@ -136,12 +136,14 @@ export async function completeCheckRunFailure({
   runId,
   branchName,
   summary,
+  status = 'fail',
 }: {
   checkRunBase: CheckRunBaseParams | null
   checkRunId?: number
   runId: string
   branchName: string
   summary: string
+  status?: 'fail' | 'error'
 }): Promise<void> {
   if (!checkRunBase) {
     return
@@ -152,7 +154,7 @@ export async function completeCheckRunFailure({
     runNumber: checkRunBase.runNumber,
     runId,
     branchName,
-    status: 'fail',
+    status,
     summary,
   })
 

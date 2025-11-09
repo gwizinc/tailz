@@ -1,9 +1,16 @@
-import { CheckCircle2, Clock, Loader2, MinusCircle, XCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  MinusCircle,
+  XCircle,
+} from 'lucide-react'
 
 interface RunItem {
   id: string
   runId: string
-  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped'
+  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped' | 'error'
   createdAt: string
   updatedAt: string
   durationMs: number
@@ -60,11 +67,13 @@ function formatDate(dateString: string): string {
 function getStatusIcon(status: RunItem['status']) {
   switch (status) {
     case 'success':
-      return (
-        <CheckCircle2 className="size-4 text-chart-1" />
-      )
+      return <CheckCircle2 className="size-4 text-chart-1" />
     case 'failed':
       return <XCircle className="size-4 text-destructive" />
+    case 'error':
+      return (
+        <AlertTriangle className="size-4 text-orange-600 dark:text-orange-500" />
+      )
     case 'skipped':
       return <MinusCircle className="size-4 text-muted-foreground" />
     case 'running':

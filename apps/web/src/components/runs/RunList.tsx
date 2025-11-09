@@ -1,7 +1,7 @@
 interface RunItem {
   id: string
   runId: string
-  status: 'queued' | 'running' | 'success' | 'failed'
+  status: 'queued' | 'running' | 'success' | 'failed' | 'error'
   createdAt: string
   commitSha: string
 }

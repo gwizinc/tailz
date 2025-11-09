@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-type StoryStatus = 'pass' | 'fail' | 'blocked' | 'running' | null
+type StoryStatus = 'pass' | 'fail' | 'error' | 'running' | null
 
 interface StoryCardProps {
   id: string
@@ -32,11 +32,11 @@ function getStatusDisplay(status: StoryStatus) {
         textClass: 'text-destructive',
         dotClass: 'bg-destructive',
       }
-    case 'blocked':
+    case 'error':
       return {
-        label: 'Blocked',
-        textClass: 'text-chart-4',
-        dotClass: 'bg-chart-4',
+        label: 'Error',
+        textClass: 'text-orange-600 dark:text-orange-500',
+        dotClass: 'bg-orange-500',
       }
     case 'running':
       return {

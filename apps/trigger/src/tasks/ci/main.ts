@@ -171,6 +171,7 @@ export const runCiTask = task({
         db,
         runId,
         summary: errorMessage,
+        status: 'error',
       })
 
       await completeCheckRunFailure({
@@ -179,6 +180,7 @@ export const runCiTask = task({
         runId,
         branchName,
         summary: errorMessage,
+        status: 'error',
       })
 
       throw error

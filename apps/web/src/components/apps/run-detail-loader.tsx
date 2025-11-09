@@ -13,7 +13,7 @@ interface StoryAnalysisEvidence {
 }
 
 interface StoryAnalysis {
-  conclusion: 'pass' | 'fail' | 'blocked'
+  conclusion: 'pass' | 'fail' | 'error'
   explanation: string
   evidence: StoryAnalysisEvidence[]
 }
@@ -21,7 +21,7 @@ interface StoryAnalysis {
 interface StoryResult {
   id: string
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'blocked'
+  status: 'pass' | 'fail' | 'running' | 'error'
   analysisVersion: number
   analysis: StoryAnalysis | null
   startedAt: string | null
@@ -34,7 +34,7 @@ interface StoryResult {
 interface RunStory {
   storyId: string
   resultId: string | null
-  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'error'
   summary: string | null
   startedAt: string | null
   completedAt: string | null
@@ -56,7 +56,7 @@ interface Run {
   branchName: string
   commitMessage: string | null
   prNumber: string | null
-  status: 'pass' | 'fail' | 'skipped' | 'running'
+  status: 'pass' | 'fail' | 'skipped' | 'running' | 'error'
   summary: string | null
   createdAt: string
   updatedAt: string

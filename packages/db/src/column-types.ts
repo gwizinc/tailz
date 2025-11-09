@@ -18,14 +18,14 @@ export interface StoryAnalysisEvidenceReference {
 }
 
 export interface StoryAnalysisV1 {
-  conclusion: 'pass' | 'fail' | 'blocked'
+  conclusion: 'pass' | 'fail' | 'error'
   explanation: string
   evidence: StoryAnalysisEvidenceReference[]
 }
 
 export interface RunStory {
   storyId: string
-  status: 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+  status: 'pass' | 'fail' | 'running' | 'skipped' | 'error'
   resultId?: string | null
   startedAt?: string | null
   completedAt?: string | null
@@ -40,7 +40,7 @@ export type RunStoryColumnType = ColumnType<
 >
 
 export interface StoryTestResultPayload {
-  status: 'pass' | 'fail' | 'blocked' | 'running'
+  status: 'pass' | 'fail' | 'running' | 'error'
   analysisVersion: number
   analysis: StoryAnalysisV1 | null
   rawOutput?: JSONValue

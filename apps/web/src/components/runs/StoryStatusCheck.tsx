@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type StoryStatus = 'pass' | 'fail' | 'running' | 'skipped' | 'blocked'
+type StoryStatus = 'pass' | 'fail' | 'running' | 'skipped' | 'error'
 
 interface StoryStatusCheckProps {
   status: StoryStatus
@@ -54,12 +54,12 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
           className={cn('text-muted-foreground', iconProps.className)}
         />
       )
-    case 'blocked':
+    case 'error':
       return (
         <AlertTriangle
           {...iconProps}
           className={cn(
-            'text-amber-600 dark:text-amber-500',
+            'text-orange-600 dark:text-orange-500',
             iconProps.className,
           )}
         />
