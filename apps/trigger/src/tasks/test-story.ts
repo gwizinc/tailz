@@ -118,6 +118,7 @@ export const testStoryTask = task({
       logger.info('Story evaluation completed', {
         storyId: payload.storyId,
         runId: payload.runId,
+        evaluation,
         status: normalized.status,
         resultId,
       })
