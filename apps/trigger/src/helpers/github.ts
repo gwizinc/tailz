@@ -80,3 +80,28 @@ export async function getOctokitClient(repoId: string): Promise<OctokitClient> {
     token,
   }
 }
+
+export interface BranchDetails {
+  commitSha: string | null
+  commitMessage: string | null
+}
+
+export async function getGithubBranchDetails(
+  octokit: Octokit,
+  params: {
+    owner: string
+    repo: string
+    branch: string
+  },
+): Promise<BranchDetails> {
+  const branchData = await octokit.rest.repos.getBranch({
+    owner: params.owner,
+    repo: params.repo,
+    branch: params.branch,
+  })
+
+  return {
+    commitSha: branchData.data.commit?.sha ?? null,
+    commitMessage: branchData.data.commit?.commit?.message ?? null,
+  }
+}

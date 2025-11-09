@@ -3,7 +3,14 @@ import { logger, task, tasks } from '@trigger.dev/sdk'
 import { json, setupDb, sql } from '@app/db'
 import type { RunStory, StoryAnalysisV1 } from '@app/db'
 import { parseEnv } from '@app/agents'
-import { getOctokitClient } from '../helpers/github'
+import { getGithubBranchDetails, getOctokitClient } from '../helpers/github'
+import {
+  buildCheckRunContent,
+  formatStoryCount,
+  submitCheckRun,
+  type AggregatedCounts,
+  type CheckRunBaseParams,
+} from '../helpers/github-checks'
 
 interface RunCiPayload {
   orgSlug: string
@@ -78,6 +85,32 @@ export const runCiTask = task({
     const runSummary =
       stories.length === 0 ? 'No stories available for evaluation' : null
 
+    const {
+      repo,
+      octokit,
+      token: githubToken,
+    } = await getOctokitClient(repoRecord.repoId)
+
+    let commitSha: string | null = null
+    let commitMessage: string | null = null
+
+    try {
+      const branchDetails = await getGithubBranchDetails(octokit, {
+        owner: repoRecord.ownerLogin,
+        repo: repoRecord.repoName,
+        branch: branchName,
+      })
+
+      commitSha = branchDetails.commitSha
+      commitMessage = branchDetails.commitMessage
+    } catch (error) {
+      logger.warn('Failed to fetch branch commit details', {
+        repoId: repoRecord.repoId,
+        branchName,
+        error,
+      })
+    }
+
     /**
      * 💎 Create Run Record
      */
@@ -96,8 +129,8 @@ export const runCiTask = task({
         ${branchName},
         ${runStatus},
         ${JSON.stringify(initialRunStories)}::jsonb,
-        NULL,
-        NULL,
+        ${commitSha},
+        ${commitMessage},
         NULL,
         ${runSummary}
       )
@@ -111,21 +144,97 @@ export const runCiTask = task({
     }
 
     const runId = runInsert.id
+    const baseUrl = env.SITE_BASE_URL
+    const detailsUrl =
+      baseUrl !== undefined
+        ? `${baseUrl}/org/${repoRecord.ownerLogin}/${repoRecord.repoName}/runs/${runInsert.number}`
+        : null
+
+    const checkRunBase: CheckRunBaseParams | null =
+      commitSha !== null
+        ? {
+            octokit,
+            owner: repoRecord.ownerLogin,
+            repo: repoRecord.repoName,
+            headSha: commitSha,
+            runId,
+            runNumber: runInsert.number,
+            branchName,
+            detailsUrl,
+          }
+        : null
+
+    let checkRunId: number | undefined
+
+    if (checkRunBase) {
+      const startContent = buildCheckRunContent({
+        phase: 'start',
+        runNumber: checkRunBase.runNumber,
+        runId,
+        branchName,
+        summary:
+          stories.length === 0
+            ? 'No stories available for evaluation'
+            : `Evaluating ${formatStoryCount(stories.length)}`,
+        storyCount: stories.length,
+      })
+
+      try {
+        checkRunId = await submitCheckRun({
+          ...checkRunBase,
+          content: startContent,
+        })
+      } catch (error) {
+        logger.warn('Failed to create initial GitHub check run', {
+          runId,
+          error,
+        })
+      }
+    } else {
+      logger.warn(
+        'Skipping GitHub check run creation due to missing commit SHA',
+        {
+          repoId: repoRecord.repoId,
+          branchName,
+        },
+      )
+    }
 
     logger.info('Created run record', {
       runId,
       repoId: repoRecord.repoId,
       branchName,
       storyCount: stories.length,
+      commitSha,
+      detailsUrl,
     })
 
     if (stories.length === 0) {
+      const summaryText = 'No stories available for evaluation'
+
+      if (checkRunBase) {
+        const completionContent = buildCheckRunContent({
+          phase: 'complete',
+          runNumber: checkRunBase.runNumber,
+          runId,
+          branchName,
+          status: 'skipped',
+          summary: summaryText,
+        })
+
+        await submitCheckRun({
+          ...checkRunBase,
+          content: completionContent,
+          existingCheckRunId: checkRunId,
+        })
+      }
+
       return {
         success: true,
         runId,
         runNumber: runInsert.number,
         status: 'skipped',
-        summary: 'No stories available for evaluation',
+        summary: summaryText,
         stories: [],
       }
     }
@@ -133,9 +242,6 @@ export const runCiTask = task({
     const daytona = new Daytona({
       apiKey: env.DAYTONA_API_KEY,
     })
-    const { repo, token: githubToken } = await getOctokitClient(
-      repoRecord.repoId,
-    )
     const repoUrl = `https://github.com/${repo.ownerLogin}/${repo.repoName}.git`
     const repoPath = `workspace/${repo.repoName}`
 
@@ -187,7 +293,7 @@ export const runCiTask = task({
 
       const updatedRunStories: RunStory[] = []
 
-      const aggregated = {
+      const aggregated: AggregatedCounts = {
         pass: 0,
         fail: 0,
         blocked: 0,
@@ -268,11 +374,13 @@ export const runCiTask = task({
       /**
        * 💎 Update Run Record
        */
+      const summaryText = summaryParts.join(', ')
+
       await db
         .updateTable('runs')
         .set({
           status: finalStatus,
-          summary: summaryParts.join(', '),
+          summary: summaryText,
           stories: json(updatedRunStories),
         })
         .where('id', '=', runId)
@@ -284,6 +392,24 @@ export const runCiTask = task({
         summaryParts,
       })
 
+      if (checkRunBase) {
+        const completionContent = buildCheckRunContent({
+          phase: 'complete',
+          runNumber: checkRunBase.runNumber,
+          runId,
+          branchName,
+          status: finalStatus,
+          summary: summaryText,
+          counts: aggregated,
+        })
+
+        await submitCheckRun({
+          ...checkRunBase,
+          content: completionContent,
+          existingCheckRunId: checkRunId,
+        })
+      }
+
       /**
        * 💎 Return Results
        */
@@ -292,9 +418,45 @@ export const runCiTask = task({
         runId,
         runNumber: runInsert.number,
         status: finalStatus,
-        summary: summaryParts.join(', '),
+        summary: summaryText,
         stories: updatedRunStories,
       }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Run execution failed'
+
+      logger.error('Run CI task failed', {
+        runId,
+        error,
+      })
+
+      await db
+        .updateTable('runs')
+        .set({
+          status: 'fail',
+          summary: errorMessage,
+        })
+        .where('id', '=', runId)
+        .execute()
+
+      if (checkRunBase) {
+        const failureContent = buildCheckRunContent({
+          phase: 'complete',
+          runNumber: checkRunBase.runNumber,
+          runId,
+          branchName,
+          status: 'fail',
+          summary: errorMessage,
+        })
+
+        await submitCheckRun({
+          ...checkRunBase,
+          content: failureContent,
+          existingCheckRunId: checkRunId,
+        })
+      }
+
+      throw error
     } finally {
       if (sandbox) {
         const sandboxId = sandbox.id
