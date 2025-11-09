@@ -112,12 +112,6 @@ export function StoryDetailLoader({
                   {story.name}
                 </h1>
               )}
-              {story.commitSha ? (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {story.commitSha.slice(0, 7)} • {story.branchName}
-                  {story.createdAt ? ` • ${story.createdAt}` : ''}
-                </div>
-              ) : null}
             </div>
             <div className="flex gap-2 items-center">
               {isEditing ? (
