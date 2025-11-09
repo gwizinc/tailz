@@ -19,6 +19,45 @@ function hasLoginProperty(
   )
 }
 
+type AccountWithLogin = { login: string } & Record<string, unknown>
+
+function getAccountName(account: AccountWithLogin): string | null {
+  return typeof account.name === 'string' && account.name.length > 0
+    ? account.name
+    : null
+}
+
+function getAccountType(account: AccountWithLogin): string | null {
+  return typeof account.type === 'string' && account.type.length > 0
+    ? account.type
+    : null
+}
+
+async function resolveAccountName(
+  octokit: ReturnType<typeof createOctokit>,
+  account: AccountWithLogin,
+): Promise<string | null> {
+  const existingName = getAccountName(account)
+
+  if (existingName) {
+    return existingName
+  }
+
+  const accountType = getAccountType(account)
+
+  if (accountType === 'Organization') {
+    const org = await octokit.rest.orgs.get({ org: account.login })
+
+    return org.data.name ?? null
+  }
+
+  const user = await octokit.rest.users.getByUsername({
+    username: account.login,
+  })
+
+  return user.data.name ?? null
+}
+
 function parseInstallationId(
   raw: SyncGithubInstallationPayload['installationId'],
 ): {
@@ -53,11 +92,15 @@ export const syncGithubInstallationTask = task({
 
     const account = installation.data.account
 
+    console.log('account', account)
+
     if (!hasLoginProperty(account)) {
       throw new TypeError(
         `Missing account information for installation ${installationId}`,
       )
     }
+
+    const accountName = await resolveAccountName(octokit, account)
 
     const ownerExternalId =
       typeof account.id === 'number' || typeof account.id === 'string'
@@ -66,10 +109,10 @@ export const syncGithubInstallationTask = task({
 
     const ownerValues = {
       login: account.login,
-      name: 'name' in account ? (account.name ?? null) : null,
-      type: 'type' in account ? (account.type as string | null) : null,
-      avatarUrl: 'avatar_url' in account ? (account.avatar_url ?? null) : null,
-      htmlUrl: 'html_url' in account ? (account.html_url ?? null) : null,
+      name: accountName,
+      type: account.type,
+      avatarUrl: account.avatar_url,
+      htmlUrl: account.html_url,
       externalId: ownerExternalId,
       installationId: installationIdBigInt,
     }
