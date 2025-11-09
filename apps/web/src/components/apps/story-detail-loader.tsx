@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { Trash2 } from 'lucide-react'
+import { Sparkles, Trash2 } from 'lucide-react'
 
 interface Story {
   id: string
@@ -54,6 +54,7 @@ export function StoryDetailLoader({
   const [storyContent, setStoryContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isEnriching, setIsEnriching] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -82,6 +83,30 @@ export function StoryDetailLoader({
       isMounted = false
     }
   }, [trpc, orgSlug, repoName, storyId])
+
+  const handleEnrichStory = async () => {
+    setIsEnriching(true)
+    setError(null)
+    try {
+      const result = await trpc.story.enrich.mutate({
+        orgSlug,
+        repoName,
+        storyId,
+        story: storyContent,
+      })
+
+      const enriched = result.enrichedStory
+      setStoryContent(enriched)
+      setIsEditing(true)
+      setStory((prev) => (prev ? { ...prev, story: enriched } : prev))
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Failed to enrich story content',
+      )
+    } finally {
+      setIsEnriching(false)
+    }
+  }
 
   return (
     <AppLayout
@@ -114,6 +139,20 @@ export function StoryDetailLoader({
               )}
             </div>
             <div className="flex gap-2 items-center">
+              <Button
+                type="button"
+                className={cn(
+                  'h-9 px-4 text-sm text-white',
+                  'bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 shadow-sm',
+                  'hover:from-violet-600 hover:via-indigo-600 hover:to-sky-600 hover:shadow-md',
+                  'focus-visible:ring-indigo-500/70 focus-visible:ring-offset-1',
+                )}
+                onClick={() => void handleEnrichStory()}
+                disabled={isEnriching || isSaving}
+              >
+                <Sparkles className="h-4 w-4" />
+                {isEnriching ? 'Enriching...' : 'Enrich'}
+              </Button>
               {isEditing ? (
                 <>
                   <Button

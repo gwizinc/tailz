@@ -8,6 +8,23 @@ import { parseEnv } from '../helpers/env'
 
 type StoryTestStatus = 'pass' | 'fail' | 'blocked' | 'running'
 
+const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions'
+const OPENAI_ENRICH_MODEL = 'gpt-4o-mini'
+
+const openAiChatCompletionSchema = z
+  .object({
+    choices: z
+      .array(
+        z.object({
+          message: z.object({
+            content: z.string(),
+          }),
+        }),
+      )
+      .min(1),
+  })
+  .passthrough()
+
 function deriveGroupNamesFromFiles(files: Json | null): string[] {
   if (!files || !Array.isArray(files)) {
     return []
@@ -33,7 +50,9 @@ function deriveGroupNamesFromFiles(files: Json | null): string[] {
 
     let group = segments[0]
     if (
-      (segments[0] === 'apps' || segments[0] === 'packages' || segments[0] === 'services') &&
+      (segments[0] === 'apps' ||
+        segments[0] === 'packages' ||
+        segments[0] === 'services') &&
       segments.length >= 2
     ) {
       group = `${segments[0]}/${segments[1]}`
@@ -91,7 +110,10 @@ export const storyRouter = router({
 
       const storyIds = stories.map((story) => story.id)
 
-      let latestStatuses = new Map<string, { status: StoryTestStatus; createdAt: Date | null }>()
+      let latestStatuses = new Map<
+        string,
+        { status: StoryTestStatus; createdAt: Date | null }
+      >()
 
       if (storyIds.length > 0) {
         const statusRows = await ctx.db
@@ -108,18 +130,15 @@ export const storyRouter = router({
           .orderBy('storyTestResults.id', 'desc')
           .execute()
 
-        latestStatuses = statusRows.reduce(
-          (acc, row) => {
-            if (!acc.has(row.storyId)) {
-              acc.set(row.storyId, {
-                status: row.status as StoryTestStatus,
-                createdAt: row.createdAt ?? null,
-              })
-            }
-            return acc
-          },
-          new Map<string, { status: StoryTestStatus; createdAt: Date | null }>(),
-        )
+        latestStatuses = statusRows.reduce((acc, row) => {
+          if (!acc.has(row.storyId)) {
+            acc.set(row.storyId, {
+              status: row.status as StoryTestStatus,
+              createdAt: row.createdAt ?? null,
+            })
+          }
+          return acc
+        }, new Map<string, { status: StoryTestStatus; createdAt: Date | null }>())
       }
 
       return {
@@ -338,6 +357,118 @@ export const storyRouter = router({
           createdAt: updatedStory.createdAt?.toISOString() ?? null,
           updatedAt: updatedStory.updatedAt?.toISOString() ?? null,
         },
+      }
+    }),
+
+  enrich: protectedProcedure
+    .input(
+      z.object({
+        orgSlug: z.string(),
+        repoName: z.string(),
+        storyId: z.string(),
+        story: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const env = parseEnv(ctx.env)
+
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('login', '=', input.orgSlug)
+        .executeTakeFirst()
+
+      if (!owner) {
+        throw new Error(`Owner with slug ${input.orgSlug} not found`)
+      }
+
+      const repo = await ctx.db
+        .selectFrom('repos')
+        .selectAll()
+        .where('ownerId', '=', owner.id)
+        .where('name', '=', input.repoName)
+        .executeTakeFirst()
+
+      if (!repo) {
+        throw new Error(
+          `Repository ${input.repoName} not found for owner ${input.orgSlug}`,
+        )
+      }
+
+      const existingStory = await ctx.db
+        .selectFrom('stories')
+        .select(['story'])
+        .where('id', '=', input.storyId)
+        .where('repoId', '=', repo.id)
+        .executeTakeFirst()
+
+      if (!existingStory && !input.story) {
+        throw new Error(`Story ${input.storyId} not found`)
+      }
+
+      const baseStory = input.story ?? existingStory?.story ?? ''
+      const trimmedStory = baseStory.trim()
+
+      if (trimmedStory.length === 0) {
+        throw new Error('Story content is empty, cannot enrich')
+      }
+
+      // TODO add the story format here, the type of story it is
+      const userPrompt = [
+        'Enrich the following user story with more detail while preserving intent, keeping the output in the same format.',
+        'Return only the enriched story text.',
+        '',
+        trimmedStory,
+      ].join('\n')
+
+      const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: OPENAI_ENRICH_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content: `
+              You are a senior QA software engineer specializing in user story writing.
+              You are given a user story and you need to enrich it with more detail while preserving intent, keeping the output in the same format.
+              
+              # Important
+              - You must preserve the intent from the original story. Do not add extra details.
+              - Focus more on spell checking, grammar, structure, organization, and formatting.
+              - Write the story in gherkin-style, plain text
+              - You will return only the enriched story text.
+              `,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+          temperature: 0.7,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(
+          `Failed to enrich story via OpenAI: ${response.status} ${errorText}`,
+        )
+      }
+
+      const parsed = openAiChatCompletionSchema.parse(await response.json())
+
+      const enrichedStory = parsed.choices[0]?.message.content?.trim()
+
+      if (!enrichedStory) {
+        throw new Error('OpenAI response did not include enriched content')
+      }
+
+      return {
+        enrichedStory,
       }
     }),
 
