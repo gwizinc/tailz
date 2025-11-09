@@ -1,5 +1,5 @@
 import type { Sandbox } from '@daytonaio/sdk'
-import { ToolLoopAgent, Output, tool } from 'ai'
+import { ToolLoopAgent, Output, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
@@ -7,7 +7,7 @@ import { createReadFileTool } from '../../tools/read-file-tool'
 
 const SEARCH_CODE_AGENT_ID = 'sandbox-search-code'
 const DEFAULT_SEARCH_CODE_MODEL = 'gpt-5-mini'
-const DEFAULT_SEARCH_CODE_MAX_STEPS = 8
+const DEFAULT_SEARCH_CODE_MAX_STEPS = 30
 
 export const SearchRepoCodeParams = z.object({
   task: z
@@ -136,14 +136,7 @@ export async function createSearchCodeTool(ctx: SearchCodeAgentContext) {
       runCommand: runCommandTool,
       readFiles: readFileTool,
     },
-    stopWhen: ({ steps }) => {
-      const stepCount = steps.length
-      const lastStep = steps[stepCount - 1]
-      const latestText = lastStep?.text ?? ''
-      const hasFilePath = latestText.includes('"filePath"')
-
-      return hasFilePath || stepCount > maxSteps
-    },
+    stopWhen: stepCountIs(maxSteps),
     output: Output.text(),
   })
 
@@ -152,6 +145,7 @@ export async function createSearchCodeTool(ctx: SearchCodeAgentContext) {
     description: 'Search the code base and read file contents.',
     inputSchema: SearchRepoCodeParams,
     execute: async (input) => {
+      console.log('⛩️ New search code tool', { input })
       const result = await agent.generate({ prompt: input.task })
       return result.output
     },

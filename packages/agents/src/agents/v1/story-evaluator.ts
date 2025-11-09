@@ -1,4 +1,4 @@
-import { ToolLoopAgent, Output, type FinishReason } from 'ai'
+import { ToolLoopAgent, Output, type FinishReason, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { logger } from '@trigger.dev/sdk'
 import { z } from 'zod'
@@ -21,10 +21,10 @@ const DEFAULT_MAX_STEPS = 30
 const STORY_EVALUATION_AGENT_ID = 'story-evaluation'
 
 const evidenceItemSchema = z.object({
-  filePath: z.string(),
-  startLine: z.number().int().min(0).nullable().optional(),
-  endLine: z.number().int().min(0).nullable().optional(),
-  note: z.string().nullish(),
+  filePath: z.string().min(1),
+  startLine: z.number().int().min(1),
+  endLine: z.number().int().min(1),
+  note: z.string().min(1),
 })
 
 const storyAnalysisSchema = z.object({
@@ -114,9 +114,6 @@ function buildStoryEvaluationInstructions(): string {
     3. When you find a line of code that is relevant to the step, add it to the evidence list.
     4. Repeat for each step. Until you have a complete list of evidence for each step.
     
-    # Important
-    - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
-
     # Evaluation Mindset
     - Treat the repository as the single source of truth.
     - Only mark a story as "passed" when concrete code evidence confirms that each step is implemented and functionally connected.
@@ -131,11 +128,10 @@ function buildStoryEvaluationInstructions(): string {
 
     # Tools
     - **shareThought**: summarize your intent, plan next steps, and note important discoveries for human reviewers.
-    - **searchCode**: delegate shell work to the sandbox search specialist. Provide a clear task with any useful filters or response expectations; the specialist can retry commands on your behalf. Remember that the Daytona terminal is non-interactive, so commands must complete without prompts. When suggesting ripgrep searches, include the "." path (for example: \`rg pattern .\`).
+    - **searchCode**: provide a clear task, function, or content to find within the codebase.
 
     # When using searchCode
     - Include a clear intent phrase, e.g. "Find function definitions for handleLogin" or "Locate where password reset emails are sent."
-    - Prefer targeted ripgrep searches using unique keywords, filenames, or function names derived from the story step.
     - After receiving results, verify code semantics by reading context or re-querying with more specific patterns.
     - Avoid redundant searches for the same concept once confirmed.
 
@@ -144,7 +140,6 @@ function buildStoryEvaluationInstructions(): string {
     - Each evidence item must include:
       - A meaningful note summarizing what this code does.
       - A file path and line range.
-      - Optional confidence: "high" | "medium" | "low"
     - Prefer top-level functions, components, or effects that implement user-facing outcomes.
 
     # Step Continuity
@@ -160,10 +155,9 @@ function buildStoryEvaluationInstructions(): string {
     - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
     - Explanation should clearly state why the story passes or fails. Use concise language that a human reviewer can follow quickly.
     - If available evidence is insufficient to decide, set the status to "fail" and describe exactly what is missing or uncertain.
-    - Reserve the "error" status exclusively for internal failures (for example, tooling issues). Lack of evidence after reasonable searches should result in \`"status": "fail"\` and an empty evidence list.
-    - Use shareThought to describe reasoning between steps, not raw searches.
     - Keep it short, factual, and time-ordered.
     - Do not include internal thoughts in final output, instead use shareThought to describe your reasoning.
+    - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
     `
 }
 
@@ -220,15 +214,7 @@ export async function runStoryEvaluationAgent(
       shareThought: shareThoughtTool,
       searchCode: searchCodeTool,
     },
-    // TODO: surface stopWhen tuning once we gather additional telemetry from longer stories.
-    stopWhen: ({ steps }) => {
-      const stepCount = steps.length
-      const lastStep = steps[stepCount - 1]
-      const latestText = lastStep?.text ?? ''
-      const hasStatus = latestText.includes('"status"')
-
-      return hasStatus || stepCount > maxSteps
-    },
+    stopWhen: stepCountIs(maxSteps),
     output: Output.object({ schema: storyTestResultSchema }),
   })
 
