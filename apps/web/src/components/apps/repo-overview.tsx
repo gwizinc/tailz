@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import type { inferRouterOutputs } from '@trpc/server'
+import type { AppRouter } from '@app/api'
 import { ChevronDown, GitBranch } from 'lucide-react'
 import { SiGithub } from 'react-icons/si'
 
@@ -31,33 +33,10 @@ import {
 import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
 import { StoryList } from '@/components/stories/StoryList'
 
-interface BranchItem {
-  name: string
-  headSha?: string
-  updatedAt?: string
-}
-
-interface RunItem {
-  id: string
-  runId: string
-  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped'
-  createdAt: string
-  updatedAt: string
-  durationMs: number
-  commitSha: string
-  commitMessage: string | null
-  branchName: string
-}
-
-interface StoryItem {
-  id: string
-  name: string
-  story: string
-  commitSha: string | null
-  branchName: string
-  createdAt: string | null
-  updatedAt: string | null
-}
+type RouterOutputs = inferRouterOutputs<AppRouter>
+type BranchItem = RouterOutputs['branch']['listByRepo']['branches'][number]
+type RunItem = RouterOutputs['run']['listByRepo']['runs'][number]
+type StoryItem = RouterOutputs['story']['listByBranch']['stories'][number]
 
 interface Props {
   orgSlug: string
@@ -115,7 +94,7 @@ export function RepoOverview({
   }, [trpc, orgSlug, repoName, selectedBranch])
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const [isIndexingRepo, setIsIndexingRepo] = useState(false)
+  const [isIndexingRepo] = useState(false)
   const [indexRepoError, setIndexRepoError] = useState<string | null>(null)
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
   const [prDialogOpen, setPrDialogOpen] = useState(false)
@@ -132,7 +111,6 @@ export function RepoOverview({
       await trpc.run.create.mutate({
         orgSlug,
         repoName,
-        // Omit branchName to use default branch
       })
       // Refresh runs list after successful creation
       if (onRefreshRuns) {
@@ -147,55 +125,21 @@ export function RepoOverview({
     }
   }
 
-  const handleFindStoriesInCommit = async () => {
+  const handleFindStoriesInCommit = () => {
     if (!commitSha.trim()) {
       setIndexRepoError('Commit SHA is required')
       return
     }
-    setIsIndexingRepo(true)
-    setIndexRepoError(null)
-    try {
-      await trpc.repo.findStoriesInCommit.mutate({
-        orgSlug,
-        repoName,
-        commitSha: commitSha.trim(),
-      })
-      setCommitDialogOpen(false)
-      setCommitSha('')
-    } catch (error) {
-      setIndexRepoError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to find stories in commit',
-      )
-    } finally {
-      setIsIndexingRepo(false)
-    }
+    setIndexRepoError('Finding stories by commit is not available yet')
   }
 
-  const handleFindStoriesInPR = async () => {
+  const handleFindStoriesInPR = () => {
     const prNum = Number.parseInt(prNumber.trim(), 10)
     if (Number.isNaN(prNum) || prNum < 1) {
       setIndexRepoError('Valid PR number is required')
       return
     }
-    setIsIndexingRepo(true)
-    setIndexRepoError(null)
-    try {
-      await trpc.repo.findStoriesInPullRequest.mutate({
-        orgSlug,
-        repoName,
-        pullNumber: prNum,
-      })
-      setPrDialogOpen(false)
-      setPrNumber('')
-    } catch (error) {
-      setIndexRepoError(
-        error instanceof Error ? error.message : 'Failed to find stories in PR',
-      )
-    } finally {
-      setIsIndexingRepo(false)
-    }
+    setIndexRepoError('Finding stories by pull request is not available yet')
   }
 
   // Filter runs and stories by selected branch

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { Daytona } from '@daytonaio/sdk'
 import { logger, task, tasks } from '@trigger.dev/sdk'
 import { json, setupDb, sql } from '@app/db'

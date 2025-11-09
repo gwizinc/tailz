@@ -66,7 +66,6 @@ export function createReadFileTool(ctx: {
       try {
         const downloadedFile = await ctx.sandbox.fs.downloadFile(workspacePath)
         const content = downloadedFile.toString('utf-8')
-        console.log('📄 File content:', { workspacePath, content })
         return content
       } catch (error) {
         console.error(`📄 Failed to read file`, { error })

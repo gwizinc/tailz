@@ -8,9 +8,9 @@ export {
 export type { StoryEvaluationAgentResult } from './agents/story-evaluator'
 
 export {
-  createTerminalCommandTool as createSandboxCommandTool,
-  terminalCommandInputSchema as sandboxCommandInputSchema,
-} from './tools/terminal-command-tool'
+  createSearchCodeTool as createSandboxSearchTool,
+  SearchRepoCodeParams as sandboxSearchParams,
+} from './agents/search-code-tool'
 export {
   createShareThoughtTool,
   shareThoughtInputSchema,

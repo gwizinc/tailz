@@ -1,9 +1,8 @@
 import type { Sandbox } from '@daytonaio/sdk'
 import { tool } from 'ai'
 import { z } from 'zod'
-import { stripBashLcPrefix } from '../helpers/bash'
 
-export const terminalCommandInputSchema = z.object({
+const terminalCommandInputSchema = z.object({
   description: z
     .string()
     .min(1)
@@ -28,11 +27,6 @@ export const terminalCommandInputSchema = z.object({
   //   .optional(),
 })
 
-/**
- * ! important - change into an agent.
- * `rg` must be used with `.` as in `rg hello .` to work
- */
-
 export function createTerminalCommandTool(ctx: {
   sandbox: Sandbox
   repoName: string
@@ -40,11 +34,11 @@ export function createTerminalCommandTool(ctx: {
   return tool({
     name: 'terminalCommand',
     description:
-      'Execute read-only shell commands (e.g. rg, fd, tree, sed, grep, git, find, etc.) inside the Daytona sandbox workspace to inspect the codebase.',
+      'Execute read-only, non-interactive shell commands (e.g. rg, fd, tree, sed, grep, git, find, etc.) inside the Daytona sandbox workspace.',
     inputSchema: terminalCommandInputSchema,
     execute: async (input) => {
       const result = await ctx.sandbox.process.executeCommand(
-        stripBashLcPrefix(input.command),
+        input.command,
         `workspace/${ctx.repoName}`,
       )
 

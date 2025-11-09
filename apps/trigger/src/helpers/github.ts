@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
 import { setupDb } from '@app/db'
@@ -16,7 +15,7 @@ export function createOctokit(installationId: number): Octokit {
   })
 }
 
-export interface RepoWithOctokit {
+interface RepoWithOctokit {
   repo: {
     repoName: string
     ownerLogin: string
@@ -25,9 +24,7 @@ export interface RepoWithOctokit {
   octokit: Octokit
 }
 
-export async function getRepoWithOctokit(
-  repoId: string,
-): Promise<RepoWithOctokit> {
+async function getRepoWithOctokit(repoId: string): Promise<RepoWithOctokit> {
   const env = parseEnv()
   const db = setupDb(env.DATABASE_URL)
 
@@ -58,7 +55,7 @@ export async function getRepoWithOctokit(
   }
 }
 
-export interface OctokitClient extends RepoWithOctokit {
+interface OctokitClient extends RepoWithOctokit {
   token: string
 }
 

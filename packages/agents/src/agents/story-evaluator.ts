@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { ToolLoopAgent, Output, stepCountIs, type FinishReason } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { logger } from '@trigger.dev/sdk'
@@ -10,10 +9,12 @@ import type {
 } from '@app/db'
 
 import { parseEnv } from '../helpers/env'
-import { createTerminalCommandTool } from '../tools/terminal-command-tool'
+import {
+  createSearchCodeTool,
+  SEARCH_CODE_AGENT_MODEL,
+} from './search-code-tool'
 import { createShareThoughtTool } from '../tools/share-thought-tool'
 import { Daytona } from '@daytonaio/sdk'
-import { createReadFileTool } from '../tools/read-file-tool'
 
 const DEFAULT_STORY_MODEL = 'gpt-5-mini'
 const DEFAULT_MAX_STEPS = 30
@@ -99,14 +100,14 @@ export function normalizeStoryTestResult(
   }
 }
 
-function buildStoryEvaluationInstructions(args: { outline: string }): string {
+function buildStoryEvaluationInstructions(): string {
   // * Dedent does not work in this project
   return `
     You are an expert software QA engineer evaluating whether a user story is achievable given the current repository state.
 
     # How to perform your evaluation
     1. Break apart the story into meaningful steps that can be searched for in the codebase.
-    2. With each step, use the provided tools to review and walk-through the codebase to determine if the step is possible to achieve.
+    2. With each step, use the provided tools to determine if the step is supported by code in the database.
     3. When you find a line of code that is relevant to the step, add it to the evidence list.
     4. Repeat for each step. Until you have a complete list of evidence for each step.
     
@@ -119,23 +120,14 @@ function buildStoryEvaluationInstructions(args: { outline: string }): string {
     \`\`\`
 
     # Tools
-    - Call the "shareThought" tool frequently to summarize your intent, plan next steps, and note important discoveries for human reviewers.
-    - Call the "sandboxCommand" tool to execute read-only shell commands (like ripgrep) in the Daytona sandbox for direct repository inspection.
-    - Call the "readFile" tool to read the contents of a file from the Daytona sandbox workspace.
-
-    ## Advice
-    - Use flags to order results by most recently edited so you are more likely to find the most relevant code/file when there are many candidates.
-      - Eg: \`rg --sortr=modified\` or \`fd <pattern> -X ls -t\`
-    - Use git history/blame and commit messages to understand the historical context of the code.
-    - Use git history to identify file edit co-occurrences to ensure you are not missing any relevant code.
+    - **shareThought**: summarize your intent, plan next steps, and note important discoveries for human reviewers.
+    - **searchCode**: delegate shell work to the sandbox search specialist. Provide a clear task with any useful filters or response expectations; the specialist can retry commands on your behalf. Remember that the Daytona terminal is non-interactive, so commands must complete without prompts. When suggesting ripgrep searches, include the "." path (for example: \`rg pattern .\`).
+    - **readFile**: read the contents of a file from the Daytona sandbox workspace.
 
     # Rules
     - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
     - Explanation should clearly state why the story passes, fails, or is blocked. Use concise language that a human reviewer can follow quickly.
     - If available evidence is insufficient to decide, mark the status as "blocked" and describe what is missing in the explanation.
-
-    # Repo Outline
-    ${args.outline}
     `
 }
 
@@ -170,39 +162,25 @@ export async function runStoryEvaluationAgent(
   const daytona = new Daytona({ apiKey: env.DAYTONA_API_KEY })
   const sandbox = await daytona.get(options.daytonaSandboxId)
 
-  const repoOutline = await sandbox.process.executeCommand(
-    'tree -L 3',
-    `workspace/${options.repoName}`,
-  )
-  if (repoOutline.exitCode !== 0) {
-    throw new Error(`Failed to get repo outline: ${repoOutline.result}`)
-  }
-  const outline = repoOutline.result ?? ''
-  console.log('🔍 Outline generated', { outline })
-
-  const terminalCommandTool = createTerminalCommandTool({
+  const searchCodeTool = await createSearchCodeTool({
     sandbox,
     repoName: options.repoName,
+    model: openAiProvider(SEARCH_CODE_AGENT_MODEL),
   })
+
   const shareThoughtTool = createShareThoughtTool({
     storyName: options.storyName,
     repoId: options.repoId,
     runId: options.runId ?? null,
   })
 
-  const readFileTool = createReadFileTool({
-    sandbox,
-    repoName: options.repoName,
-  })
-
   const agent = new ToolLoopAgent({
     id: STORY_EVALUATION_AGENT_ID,
     model: openAiProvider(effectiveModelId),
-    instructions: buildStoryEvaluationInstructions({ outline }),
+    instructions: buildStoryEvaluationInstructions(),
     tools: {
       shareThought: shareThoughtTool,
-      terminalCommand: terminalCommandTool,
-      readFile: readFileTool,
+      searchCode: searchCodeTool,
     },
     // TODO: surface stopWhen tuning once we gather additional telemetry from longer stories.
     stopWhen: stepCountIs(

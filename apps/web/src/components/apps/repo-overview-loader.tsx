@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { inferRouterOutputs } from '@trpc/server'
+import type { AppRouter } from '@app/api'
 
 import { useTRPCClient } from '@/client/trpc'
 import { LoadingProgress } from '@/components/ui/loading-progress'
@@ -6,40 +8,16 @@ import { AppProvider } from '@/components/providers/app-provider'
 
 import { RepoOverview } from './repo-overview'
 
-interface BranchItem {
-  name: string
-  headSha?: string
-  updatedAt?: string
-}
+type RouterOutputs = inferRouterOutputs<AppRouter>
+type RepoDetailsOutput = RouterOutputs['repo']['getBySlug']
+type BranchesOutput = RouterOutputs['branch']['listByRepo']
+type RunsOutput = RouterOutputs['run']['listByRepo']
+type StoriesOutput = RouterOutputs['story']['listByBranch']
 
-interface RunItem {
-  id: string
-  runId: string
-  status: 'queued' | 'running' | 'success' | 'failed' | 'skipped'
-  createdAt: string
-  updatedAt: string
-  durationMs: number
-  commitSha: string
-  commitMessage: string | null
-  branchName: string
-}
-
-interface RepoInfo {
-  id: string
-  name: string
-  defaultBranch: string | null
-  enabled: boolean
-}
-
-interface StoryItem {
-  id: string
-  name: string
-  story: string
-  commitSha: string | null
-  branchName: string
-  createdAt: string | null
-  updatedAt: string | null
-}
+type RepoInfo = RepoDetailsOutput['repo']
+type BranchItem = BranchesOutput['branches'][number]
+type RunItem = RunsOutput['runs'][number]
+type StoryItem = StoriesOutput['stories'][number]
 
 export function RepoOverviewLoader({
   orgSlug,
@@ -50,60 +28,59 @@ export function RepoOverviewLoader({
 }) {
   const trpc = useTRPCClient()
   const [isLoading, setIsLoading] = useState(true)
-  const [repo, setRepo] = useState<RepoInfo | null>(null)
+  const [repo, setRepo] = useState<RepoInfo>(null)
   const [branches, setBranches] = useState<BranchItem[]>([])
   const [runs, setRuns] = useState<RunItem[]>([])
   const [stories, setStories] = useState<StoryItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const loadData = async (branchName?: string) => {
-    try {
-      const [repoResp, branchesResp, runsResp] = await Promise.all([
-        trpc.repo.getBySlug.query({ orgSlug, repoName }),
-        trpc.branch.listByRepo.query({ orgSlug, repoName }),
-        trpc.run.listByRepo.query({ orgSlug, repoName }),
-      ])
-      if (repoResp.repo) {
-        setRepo(repoResp.repo)
-        const defaultBranch =
-          repoResp.repo.defaultBranch || branchesResp.branches[0]?.name || ''
-        const branchToUse = branchName || defaultBranch
+  const loadData = useCallback(
+    async (branchName?: string) => {
+      setIsLoading(true)
+      try {
+        const [repoResp, branchesResp, runsResp] = await Promise.all([
+          trpc.repo.getBySlug.query({ orgSlug, repoName }),
+          trpc.branch.listByRepo.query({ orgSlug, repoName }),
+          trpc.run.listByRepo.query({ orgSlug, repoName }),
+        ])
 
-        // Load stories for the selected branch
-        if (branchToUse) {
-          const storiesResp = await trpc.story.listByBranch.query({
-            orgSlug,
-            repoName,
-            branchName: branchToUse,
-          })
-          setStories(storiesResp.stories as StoryItem[])
+        if (repoResp.repo) {
+          setRepo(repoResp.repo)
+          const defaultBranch =
+            repoResp.repo.defaultBranch ?? branchesResp.branches[0]?.name ?? ''
+          const branchToUse = branchName ?? defaultBranch
+
+          if (branchToUse) {
+            const storiesResp = await trpc.story.listByBranch.query({
+              orgSlug,
+              repoName,
+              branchName: branchToUse,
+            })
+            setStories(storiesResp.stories)
+          } else {
+            setStories([])
+          }
+        } else {
+          setRepo(null)
+          setStories([])
         }
+
+        setBranches(branchesResp.branches)
+        setRuns(runsResp.runs)
+        setError(null)
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to load data')
+      } finally {
+        setIsLoading(false)
       }
-      setBranches(branchesResp.branches)
-      setRuns(runsResp.runs as RunItem[])
-      setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    },
+    [trpc, orgSlug, repoName],
+  )
 
   useEffect(() => {
-    let isMounted = true
-    async function load() {
-      await loadData()
-      if (!isMounted) {
-        return
-      }
-    }
-    void load()
-    return () => {
-      isMounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trpc, orgSlug, repoName, refreshKey])
+    void loadData()
+  }, [loadData, refreshKey])
 
   const handleRefreshRuns = () => {
     setRefreshKey((prev) => prev + 1)
