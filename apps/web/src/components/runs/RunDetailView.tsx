@@ -225,32 +225,15 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                     {commitTitle}
                   </h1>
                   <div
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-muted-foreground flex flex-wrap items-center gap-2"
                     title={absoluteStarted}
                   >
-                    Run triggered {relativeStarted}
+                    <span>Run triggered {relativeStarted}</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Timer className="size-3.5" />
+                      Runtime {durationDisplay}
+                    </span>
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="size-3.5" />
-                    {absoluteStarted}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Timer className="size-3.5" />
-                    Runtime {durationDisplay}
-                  </span>
-                  {pullRequestUrl ? (
-                    <a
-                      href={pullRequestUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
-                    >
-                      <GitPullRequest className="size-3.5" />
-                      PR #{run.prNumber}
-                    </a>
-                  ) : null}
                 </div>
               </div>
             </div>
