@@ -2,6 +2,20 @@
 import Layout from '@/layouts/layout.astro'
 import { GITHUB_APP_SLUG } from 'astro:env/server'
 import { SetupInstallAppWrapper } from '@/components/apps/setup-install-app-wrapper'
+import { z } from 'zod'
+
+const setupQuerySchema = z.object({
+  installation_id: z.string().optional(),
+  setup_action: z.enum(['install', 'update']).optional(),
+})
+
+const parsedQuery = setupQuerySchema.safeParse(
+  Object.fromEntries(Astro.url.searchParams.entries()),
+)
+
+if (parsedQuery.success && parsedQuery.data.setup_action === 'update') {
+  return Astro.redirect('/')
+}
 
 const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
 ---
