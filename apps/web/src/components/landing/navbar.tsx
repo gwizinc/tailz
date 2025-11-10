@@ -17,13 +17,13 @@ export function LandingNavbar() {
         </a>
         <nav className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 md:gap-8 text-sm font-medium text-muted-foreground">
           <a
-            href="#product"
+            href="/#product"
             className="transition-colors hover:text-foreground focus-visible:text-foreground"
           >
             Product
           </a>
           <a
-            href="#pricing"
+            href="#/pricing"
             className="transition-colors hover:text-foreground focus-visible:text-foreground"
           >
             Pricing
