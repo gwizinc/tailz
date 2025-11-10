@@ -75,13 +75,6 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
   const rightActions = (
     <div className="flex items-center gap-2">
       <Button
-        variant="outline"
-        className="h-8 px-3 text-sm"
-        onClick={() => void navigate('/dashboard')}
-      >
-        Dashboard
-      </Button>
-      <Button
         className={cn(
           'h-8 px-3 text-sm text-white',
           'bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 shadow-sm',
@@ -160,7 +153,7 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
       <div className="flex items-center justify-between gap-3 px-4 py-2">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <a
-            href="/"
+            href="/app"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
           >
             <MdTempleBuddhist size={20} /> Kyoto
