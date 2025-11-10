@@ -1,19 +1,16 @@
 ---
 import Layout from '@/layouts/layout.astro'
 import { SetupInstallAppWrapper } from '@/components/apps/setup-install-app-wrapper'
-import { SetupSyncStatusWrapper } from '@/components/apps/setup-sync-status-wrapper'
 import { GITHUB_APP_SLUG } from 'astro:env/server'
 import { z } from 'zod'
 
 const setupQuerySchema = z.object({
   installation_id: z.string().optional(),
   setup_action: z.enum(['install', 'update']).optional(),
-  syncing: z.string().optional(),
 })
 
 const queryEntries = Object.fromEntries(Astro.url.searchParams.entries())
 const parsedQuery = setupQuerySchema.safeParse(queryEntries)
-let showSyncStatus = false
 
 if (parsedQuery.success) {
   const { installation_id: installationId, setup_action: setupAction } =
@@ -30,19 +27,11 @@ if (parsedQuery.success) {
   if (setupAction === 'update') {
     return Astro.redirect('/app')
   }
-
-  showSyncStatus = parsedQuery.data.syncing === '1'
 }
 
 const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
 ---
 
 <Layout title="Connect GitHub">
-  {
-    showSyncStatus ? (
-      <SetupSyncStatusWrapper client:load />
-    ) : (
-      <SetupInstallAppWrapper client:load installUrl={installUrl} />
-    )
-  }
+  <SetupInstallAppWrapper client:load installUrl={installUrl} />
 </Layout>
