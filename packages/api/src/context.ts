@@ -20,7 +20,6 @@ export interface Env {
   githubAppId: string
   githubAppPrivateKey: string
   githubWebhookSecret: string
-  openRouterApiKey: string
   openAiApiKey: string
   databaseUrl: string
   triggerSecretKey: string
