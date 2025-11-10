@@ -56,7 +56,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [session.data, setupStatus])
 
   if (session.isPending) {
-    // You might want a more sophisticated loading skeleton here
+    // TODO You might want a more sophisticated loading skeleton here
+    // TODO and show cherry blossoms blossoming on the skeleton items
+    // TODO show the headers always
     return <LoadingProgress label="Loading session..." />
   }
 
