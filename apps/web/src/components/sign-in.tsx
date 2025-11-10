@@ -48,20 +48,11 @@ export function SignIn() {
     <div className={cn('flex flex-col items-center gap-6 w-full max-w-md')}>
       {/* Company Logo/Name */}
       <div className="flex items-center gap-2 self-center font-medium">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <GalleryVerticalEnd className="size-4" />
-        </div>
         ⛩️ Kyoto
       </div>
 
       {/* Sign In Card */}
       <Card className="w-full">
-        <CardHeader className="text-center">
-          <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            Enter your email below to login to your account
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <div className="grid gap-4">
             <div
@@ -89,14 +80,6 @@ export function SignIn() {
                 </svg>
                 Sign in with GitHub
               </Button>
-            </div>
-
-            {/* Sign up link */}
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
-              <a href="#" className="underline underline-offset-4">
-                Sign up
-              </a>
             </div>
           </div>
         </CardContent>

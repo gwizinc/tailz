@@ -5,6 +5,7 @@ import react from '@astrojs/react'
 import vercel from '@astrojs/vercel'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, envField } from 'astro/config'
+import sentry from '@sentry/astro'
 
 function setEnv(name: string, value?: string) {
   if (value) {
@@ -66,7 +67,14 @@ const config = defineConfig({
       })
     : node({ mode: 'standalone' }),
 
-  integrations: [react()],
+  integrations: [
+    react(),
+    sentry({
+      project: 'vercel',
+      org: 'kyoto',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
   vite: {
     optimizeDeps: {
       include: [
@@ -180,6 +188,11 @@ const config = defineConfig({
         optional: false,
       }),
       OPENAI_API_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: false,
+      }),
+      SENTRY_AUTH_TOKEN: envField.string({
         context: 'server',
         access: 'secret',
         optional: false,

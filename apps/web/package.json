@@ -35,6 +35,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@sentry/astro": "^10.23.0",
     "@tanstack/react-query": "^5.90.5",
     "@trigger.dev/sdk": "^4.0.6",
     "@trpc/client": "11.6.0",
