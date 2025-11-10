@@ -97,8 +97,8 @@ export function AppSidebar() {
       <NavItem
         icon={<Home size={15} />}
         label="Home"
-        href={'/'}
-        active={currentPath === '/'}
+        href={'/app'}
+        active={currentPath === '/app' || currentPath.startsWith('/app/')}
       />
 
       <div className="grow" />
