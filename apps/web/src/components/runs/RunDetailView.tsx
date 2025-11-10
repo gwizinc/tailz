@@ -11,6 +11,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { LuOrigami } from 'react-icons/lu'
 import { StoryStatusCheck } from './StoryStatusCheck'
 
 interface StoryAnalysisEvidence {
@@ -339,7 +340,13 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
       {/* Stories Column */}
       <div className="flex-1 overflow-auto p-6 space-y-4">
         <div>
-          <h2 className="text-sm font-medium text-foreground mb-4">Stories</h2>
+          <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <LuOrigami
+              aria-hidden="true"
+              className="h-4 w-4 text-muted-foreground"
+            />
+            Stories
+          </h2>
           {run.stories.length === 0 ? (
             <div className="text-sm text-muted-foreground">
               No stories in this run.

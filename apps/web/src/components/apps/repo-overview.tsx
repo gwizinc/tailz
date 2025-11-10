@@ -3,6 +3,7 @@ import type { inferRouterOutputs } from '@trpc/server'
 import type { AppRouter } from '@app/api'
 import { GitBranch } from 'lucide-react'
 import { SiGithub } from 'react-icons/si'
+import { LuOrigami } from 'react-icons/lu'
 
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
@@ -159,9 +160,15 @@ export function RepoOverview({
             <div className="border rounded-md overflow-hidden">
               <div className="flex items-center justify-between bg-muted px-4 py-2 border-b">
                 <div className="flex items-baseline gap-2">
-                  <h2 className="text-sm font-medium text-foreground">
-                    Stories
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <LuOrigami
+                      aria-hidden="true"
+                      className="h-4 w-4 text-muted-foreground"
+                    />
+                    <h2 className="text-sm font-medium text-foreground">
+                      Stories
+                    </h2>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {filteredStories.length} total
                   </span>

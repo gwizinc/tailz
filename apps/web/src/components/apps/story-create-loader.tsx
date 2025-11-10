@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronDown, Sparkles } from 'lucide-react'
+import { LuOrigami } from 'react-icons/lu'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { Input } from '@/components/ui/input'
@@ -245,9 +246,15 @@ export function StoryCreateLoader({
     >
       <div className="p-6 flex flex-col h-full overflow-hidden">
         <div className="flex items-center justify-between mb-6 shrink-0">
-          <h1 className="text-xl font-semibold text-foreground">
-            Create New Story
-          </h1>
+          <div className="flex items-center gap-2">
+            <LuOrigami
+              aria-hidden="true"
+              className="h-5 w-5 text-muted-foreground"
+            />
+            <h1 className="text-xl font-semibold text-foreground">
+              Create New Story
+            </h1>
+          </div>
           <Button
             type="button"
             className={cn(
