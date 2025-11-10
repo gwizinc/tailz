@@ -172,7 +172,7 @@ export function StoryCreateLoader({
     setError(null)
 
     try {
-      const result = await trpc.story.create.mutate({
+      await trpc.story.create.mutate({
         orgSlug,
         repoName,
         branchName: selectedBranch,
@@ -182,8 +182,8 @@ export function StoryCreateLoader({
         files: [],
       })
 
-      // Navigate to the story detail page
-      window.location.href = `/org/${orgSlug}/repo/${repoName}/stories/${result.story.id}`
+      // Navigate back to the repository page after creating the story
+      window.location.href = `/org/${orgSlug}/repo/${repoName}`
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create story')
       setIsSaving(false)
