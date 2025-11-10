@@ -1,0 +1,8 @@
+export { LandingHero } from './hero'
+export { FeatureGrid } from './features'
+export { Metrics } from './metrics'
+export { Testimonials } from './testimonials'
+export { Pricing } from './pricing'
+export { Faq } from './faq'
+export { CallToAction } from './cta'
+export { LandingFooter } from './footer'

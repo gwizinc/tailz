@@ -25,7 +25,7 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
         <CheckCircle2
           {...iconProps}
           className={cn(
-            'text-green-600 dark:text-green-500',
+            'text-green-600',
             iconProps.className,
           )}
         />
@@ -34,7 +34,7 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
       return (
         <XCircle
           {...iconProps}
-          className={cn('text-red-600 dark:text-red-500', iconProps.className)}
+          className={cn('text-red-600', iconProps.className)}
         />
       )
     case 'running':
@@ -42,7 +42,7 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
         <Loader2
           {...iconProps}
           className={cn(
-            'text-yellow-600 dark:text-yellow-500 animate-spin',
+            'text-yellow-600 animate-spin',
             iconProps.className,
           )}
         />
@@ -59,7 +59,7 @@ export function StoryStatusCheck({ status, className }: StoryStatusCheckProps) {
         <AlertTriangle
           {...iconProps}
           className={cn(
-            'text-orange-600 dark:text-orange-500',
+            'text-orange-600',
             iconProps.className,
           )}
         />

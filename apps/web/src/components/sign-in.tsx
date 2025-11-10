@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 
-import { signIn } from '@/client/auth-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -20,21 +19,24 @@ export function SignIn() {
     return redirectParam || '/'
   })
 
-  const handleGoogleSignIn = async () => {
-    await signIn.social(
-      {
-        provider: 'github',
-        callbackURL,
-      },
-      {
-        onRequest: () => {
-          setLoading(true)
-        },
-        onResponse: () => {
-          setLoading(false)
-        },
-      },
-    )
+  const handleGitHubSignIn = () => {
+    if (loading) {
+      return
+    }
+
+    setLoading(true)
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const loginUrl = new URL('/login', window.location.origin)
+
+    if (callbackURL && callbackURL !== '/') {
+      loginUrl.searchParams.set('redirect', callbackURL)
+    }
+
+    window.location.href = loginUrl.toString()
   }
 
   return (
@@ -58,7 +60,7 @@ export function SignIn() {
                 variant="outline"
                 className={cn('w-full gap-2')}
                 disabled={loading}
-                onClick={handleGoogleSignIn}
+                onClick={handleGitHubSignIn}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

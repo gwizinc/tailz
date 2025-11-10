@@ -130,10 +130,9 @@ function getStatusDisplay(status: Run['status']): StatusDisplay {
       return {
         label: 'Error',
         Icon: AlertTriangle,
-        heroClassName: 'text-orange-600 dark:text-orange-500',
-        chipClassName:
-          'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-500',
-        chipIconClassName: 'text-orange-600 dark:text-orange-500',
+        heroClassName: 'text-orange-600',
+        chipClassName: 'border-orange-500/30 bg-orange-500/10 text-orange-600',
+        chipIconClassName: 'text-orange-600',
         shouldSpin: false,
       }
   }

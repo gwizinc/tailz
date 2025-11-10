@@ -2,9 +2,8 @@
 
 import { navigate } from 'astro:transitions/client'
 import { LogOut, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MdTempleBuddhist } from 'react-icons/md'
-import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useTRPCClient } from '@/client/trpc'
 import { useSession, signOut } from '@/client/auth-client'
 import type { BreadcrumbItem } from '@/components/common/Breadcrumbs'
@@ -31,15 +29,10 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
   const trpc = useTRPCClient()
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   const session = useSession()
-  const { setTheme, resolvedTheme } = useTheme()
 
   const user = session.data?.user
   const userImage = user?.image
   const userName = user?.name || user?.email || 'User'
-
-  const handleToggleTheme = useCallback(() => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
-  }, [resolvedTheme, setTheme])
 
   useEffect(() => {
     if (!session.data) {
@@ -121,23 +114,6 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
               </p>
             ) : null}
           </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={(event) => {
-              event.preventDefault()
-              const target = event.target as HTMLElement | null
-              if (target?.closest('[data-theme-toggle-button="true"]')) {
-                return
-              }
-              handleToggleTheme()
-            }}
-            className="gap-2 cursor-pointer"
-          >
-            <span className="text-sm">Theme</span>
-            <div className="ml-auto">
-              <ThemeToggle />
-            </div>
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void signOut()}>
             <LogOut className="mr-2 h-4 w-4" />

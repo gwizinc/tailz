@@ -30,7 +30,7 @@ const STATUS_META: Record<
   },
   error: {
     label: 'Error',
-    textClass: 'text-orange-600 dark:text-orange-500',
+    textClass: 'text-orange-600',
     dotClass: 'bg-orange-500',
   },
 }

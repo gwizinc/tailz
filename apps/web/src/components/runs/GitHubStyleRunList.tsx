@@ -72,7 +72,7 @@ function getStatusIcon(status: RunItem['status']) {
       return <XCircle className="size-4 text-destructive" />
     case 'error':
       return (
-        <AlertTriangle className="size-4 text-orange-600 dark:text-orange-500" />
+        <AlertTriangle className="size-4 text-orange-600" />
       )
     case 'skipped':
       return <MinusCircle className="size-4 text-muted-foreground" />
