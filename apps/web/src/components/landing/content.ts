@@ -114,7 +114,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Team',
-    price: '$49',
+    price: '$50',
     description: 'Purpose built for fast-growing teams shipping weekly.',
     highlighted: true,
     cta: 'Start 30-day trial',
