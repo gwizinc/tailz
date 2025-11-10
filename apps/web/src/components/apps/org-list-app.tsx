@@ -115,9 +115,7 @@ export function OrgListApp() {
     <AppLayout>
       <div className="p-6 flex flex-col h-full overflow-auto">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold text-foreground">
-            Organizations
-          </h1>
+          <h1 className="text-xl font-semibold text-foreground">Teams</h1>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>

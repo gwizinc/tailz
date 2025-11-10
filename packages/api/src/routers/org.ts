@@ -20,7 +20,10 @@ export const orgRouter = router({
       .select((eb) => [
         eb.ref('owners.login').as('slug'),
         eb.ref('owners.name').as('accountName'),
-        eb.fn.count('repos.id').as('repoCount'),
+        eb.fn
+          .count('repos.id')
+          .filterWhere('repos.enabled', '=', true)
+          .as('repoCount'),
       ])
       .where('owners.installationId', 'is not', null)
       .groupBy(['owners.login', 'owners.name'])
