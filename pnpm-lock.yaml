@@ -262,6 +262,9 @@ importers:
       '@app/db':
         specifier: workspace:*
         version: link:../db
+      '@octokit/auth-app':
+        specifier: ^8.1.2
+        version: 8.1.2
       '@trigger.dev/sdk':
         specifier: ^4.0.6
         version: 4.0.6(ai@5.0.89(zod@3.25.76))(bufferutil@4.0.9)(zod@3.25.76)

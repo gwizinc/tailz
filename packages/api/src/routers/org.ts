@@ -1,7 +1,27 @@
 import { configure, tasks } from '@trigger.dev/sdk'
 
 import { parseEnv } from '../helpers/env'
+import {
+  listGithubAppInstallations,
+  type GithubInstallationSummary,
+} from '../helpers/github-app'
 import { router, protectedProcedure } from '../trpc'
+
+function formatTriggerError(reason: unknown): string {
+  if (reason instanceof Error) {
+    return reason.message
+  }
+
+  if (typeof reason === 'string') {
+    return reason
+  }
+
+  try {
+    return JSON.stringify(reason)
+  } catch {
+    return String(reason)
+  }
+}
 
 export const orgRouter = router({
   getDefault: protectedProcedure.query(() => {
@@ -120,6 +140,59 @@ export const orgRouter = router({
       triggered: installations.length - failed,
       total: installations.length,
       failed,
+    }
+  }),
+  syncHubInstallations: protectedProcedure.mutation(async ({ ctx }) => {
+    const env = parseEnv(ctx.env)
+
+    const installationSummaries = await listGithubAppInstallations({
+      appId: env.GITHUB_APP_ID,
+      privateKey: env.GITHUB_APP_PRIVATE_KEY,
+    })
+
+    if (installationSummaries.length === 0) {
+      return {
+        triggered: 0,
+        total: 0,
+        failed: 0,
+        installations: [],
+      }
+    }
+
+    configure({
+      secretKey: env.TRIGGER_SECRET_KEY,
+    })
+
+    const results = await Promise.allSettled<unknown>(
+      installationSummaries.map((installation) =>
+        tasks.trigger('sync-github-installation', {
+          installationId: installation.installationId,
+        }),
+      ),
+    )
+
+    let failed = 0
+
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failed += 1
+
+        const summary: GithubInstallationSummary | undefined =
+          installationSummaries[index]
+        const errorMessage = formatTriggerError(result.reason)
+
+        console.error('Failed to trigger sync for installation', {
+          installationId: summary?.installationId ?? null,
+          error: errorMessage,
+        })
+      }
+    })
+
+    return {
+      triggered: installationSummaries.length - failed,
+      total: installationSummaries.length,
+      failed,
+      installations: installationSummaries,
     }
   }),
 })
