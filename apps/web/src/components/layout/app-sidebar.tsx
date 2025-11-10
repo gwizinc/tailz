@@ -1,7 +1,7 @@
 import { navigate } from 'astro:transitions/client'
 import { Home, LogOut, Zap } from 'lucide-react'
 import { useState } from 'react'
-import { GiWhaleTail } from 'react-icons/gi'
+import { MdTempleBuddhist } from 'react-icons/md'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -92,7 +92,7 @@ export function AppSidebar() {
 
   return (
     <div className="w-[56px] h-full bg-background border-r flex flex-col items-center py-4 gap-6 px-2">
-      <GiWhaleTail size={24} className="text-muted-foreground" />
+      <MdTempleBuddhist size={24} className="text-muted-foreground" />
 
       <NavItem
         icon={<Home size={15} />}

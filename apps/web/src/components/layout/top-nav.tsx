@@ -3,7 +3,7 @@
 import { navigate } from 'astro:transitions/client'
 import { LogOut, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { GiWhaleTail } from 'react-icons/gi'
+import { MdTempleBuddhist } from 'react-icons/md'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
@@ -163,7 +163,7 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
             href="/"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
           >
-            <GiWhaleTail size={20} />
+            <MdTempleBuddhist size={20} /> Kyoto
           </a>
           {breadcrumbs ? (
             <Breadcrumbs
