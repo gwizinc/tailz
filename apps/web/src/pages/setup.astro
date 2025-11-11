@@ -13,7 +13,7 @@ const queryEntries = Object.fromEntries(Astro.url.searchParams.entries())
 const parsedQuery = setupQuerySchema.safeParse(queryEntries)
 
 if (parsedQuery.success) {
-  const { installation_id: installationId, setup_action: setupAction } =
+  const { installation_id: installationId } =
     parsedQuery.data
 
   if (installationId) {
@@ -23,10 +23,10 @@ if (parsedQuery.success) {
     }`
     return Astro.redirect(callbackUrl)
   }
+}
 
-  if (setupAction === 'update') {
-    return Astro.redirect('/app')
-  }
+if (Astro.locals.userId) {
+  return Astro.redirect('/app')
 }
 
 const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
