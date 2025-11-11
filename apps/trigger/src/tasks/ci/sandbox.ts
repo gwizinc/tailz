@@ -22,6 +22,7 @@ interface RunStoriesWithSandboxParams {
   stories: StoryRow[]
   initialRunStories: RunStory[]
   runId: string
+  agentVersion?: 'v1' | 'v2'
 }
 
 export async function runStoriesWithSandbox({
@@ -33,6 +34,7 @@ export async function runStoriesWithSandbox({
   stories,
   initialRunStories,
   runId,
+  agentVersion = 'v1',
 }: RunStoriesWithSandboxParams): Promise<AggregatedRunOutcome> {
   const daytona = new Daytona({
     apiKey: daytonaApiKey,
@@ -78,6 +80,7 @@ export async function runStoriesWithSandbox({
           storyId: story.id,
           runId,
           daytonaSandboxId: sandbox?.id,
+          agentVersion,
         },
       })),
     )

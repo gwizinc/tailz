@@ -125,6 +125,7 @@ export const runCiTask = task({
         stories,
         initialRunStories,
         runId,
+        agentVersion: payload.agentVersion,
       })
 
       await updateRunResults({

@@ -215,7 +215,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
     actorHandle.length > 1 ? (actorHandle[1]?.toUpperCase() ?? '?') : '?'
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col">
       {/* Top Section: Metadata */}
       <div className="border-b bg-muted/30">
         <div className="p-6 space-y-6">
@@ -337,7 +337,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
       </div>
 
       {/* Stories Column */}
-      <div className="flex-1 overflow-auto p-6 space-y-4">
+      <div className="p-6 space-y-4">
         <div>
           <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
             <LuOrigami

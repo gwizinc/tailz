@@ -76,6 +76,7 @@ export const pushHandler: WebhookHandler = async ({
       orgSlug: ownerLogin,
       repoName,
       branchName,
+      agentVersion: 'v2',
     })
 
     logger.info('Queued CI run from push event', {

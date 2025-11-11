@@ -118,6 +118,7 @@ export const pullRequestHandler: WebhookHandler = async ({
       repoName,
       branchName,
       prNumber,
+      agentVersion: 'v2',
     })
 
     logger.info('Queued CI run from pull_request event', {

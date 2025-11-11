@@ -5,6 +5,7 @@ export interface RunCiPayload {
   repoName: string
   branchName?: string | null
   prNumber?: string | null
+  agentVersion?: 'v1' | 'v2'
 }
 
 export type StoryRow = {

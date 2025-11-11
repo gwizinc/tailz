@@ -11,9 +11,9 @@ interface Props {
 
 export function AppLayout({ children, breadcrumbs, right }: Props) {
   return (
-    <div className="h-screen w-full flex flex-col bg-background">
+    <div className="min-h-screen w-full flex flex-col bg-background">
       <TopNav breadcrumbs={breadcrumbs} right={right} />
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <div className="flex-1">{children}</div>
     </div>
   )
 }

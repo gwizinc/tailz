@@ -16,6 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
 import { StoryList } from '@/components/stories/StoryList'
 
@@ -81,7 +87,7 @@ export function RepoOverview({
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
-  const handleStartRun = async () => {
+  const handleStartRun = async (agentVersion: 'v1' | 'v2') => {
     if (!defaultBranch) {
       return
     }
@@ -91,6 +97,7 @@ export function RepoOverview({
       await trpc.run.create.mutate({
         orgSlug,
         repoName,
+        agentVersion,
       })
       // Refresh runs list after successful creation
       if (onRefreshRuns) {
@@ -211,14 +218,31 @@ export function RepoOverview({
                   </div>
                 </div>
                 {defaultBranch && (
-                  <Button
-                    onClick={handleStartRun}
-                    disabled={isCreatingRun}
-                    variant="default"
-                    size="sm"
-                  >
-                    {isCreatingRun ? 'Starting...' : 'Start new run'}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        disabled={isCreatingRun}
+                        variant="default"
+                        size="sm"
+                      >
+                        {isCreatingRun ? 'Starting...' : 'Start new run'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => handleStartRun('v1')}
+                        disabled={isCreatingRun}
+                      >
+                        Run with Agent v1
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleStartRun('v2')}
+                        disabled={isCreatingRun}
+                      >
+                        Run with Agent v2
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
               <GitHubStyleRunList

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { SiGithub } from 'react-icons/si'
-import { BookOpen, Clock3, ChevronDown, Plus, BookMarked } from 'lucide-react'
+import { Clock3, ChevronDown, Plus, BookMarked } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -350,7 +350,6 @@ export function OrgRepoDashboard({ org, repos }: Props) {
                       </div>
                       <div className="flex flex-wrap items-center gap-5 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-muted-foreground" />
                           <span>{formatStoryCount(repo.storyCount)}</span>
                         </div>
                         <div className="flex items-center gap-2">

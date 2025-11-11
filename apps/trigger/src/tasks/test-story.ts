@@ -6,6 +6,8 @@ import {
   parseEnv,
   normalizeStoryTestResult,
   runStoryEvaluationAgent,
+  normalizeStoryTestResultV2,
+  runStoryEvaluationAgentV2,
 } from '@app/agents'
 
 interface TestStoryPayload {
@@ -14,6 +16,8 @@ interface TestStoryPayload {
   runId: string
   /** The Daytona Sandbox ID */
   daytonaSandboxId: string
+  /** The agent version to use (v1 or v2) */
+  agentVersion?: 'v1' | 'v2'
   // TODO support if daytonaSandboxId is null so we can create a new sandbox for this single story execution
 }
 
@@ -66,20 +70,31 @@ export const testStoryTask = task({
     }
 
     try {
+      const agentVersion = payload.agentVersion ?? 'v1'
+
       /**
        * 💎 Run Story Evaluation Agent
        */
-      const evaluation = await runStoryEvaluationAgent({
-        ...storyRecord,
-        runId: payload.runId,
-        daytonaSandboxId: payload.daytonaSandboxId,
-        maxSteps: 30,
-      })
+      const evaluation =
+        agentVersion === 'v2'
+          ? await runStoryEvaluationAgentV2({
+              ...storyRecord,
+              runId: payload.runId,
+              daytonaSandboxId: payload.daytonaSandboxId,
+              maxSteps: 30,
+            })
+          : await runStoryEvaluationAgent({
+              ...storyRecord,
+              runId: payload.runId,
+              daytonaSandboxId: payload.daytonaSandboxId,
+              maxSteps: 30,
+            })
 
       logger.info('Story evaluation agent completed', {
         storyId: payload.storyId,
         runId: payload.runId,
         resultId,
+        agentVersion,
         finishReason: evaluation.finishReason,
         agentSteps: evaluation.metrics.stepCount,
         contextToolCalls: evaluation.metrics.toolCallCount,
@@ -90,11 +105,10 @@ export const testStoryTask = task({
       /**
        * 💎 Normalize and Persist Story Test Result
        */
-      const normalized = normalizeStoryTestResult(
-        modelOutput,
-        startedAt,
-        new Date(),
-      )
+      const normalized =
+        agentVersion === 'v2'
+          ? normalizeStoryTestResultV2(modelOutput, startedAt, new Date())
+          : normalizeStoryTestResult(modelOutput, startedAt, new Date())
 
       const completedAt = normalized.completedAt
         ? new Date(normalized.completedAt)
