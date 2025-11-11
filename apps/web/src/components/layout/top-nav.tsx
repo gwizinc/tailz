@@ -135,7 +135,7 @@ export function TopNav({ breadcrumbs, right }: TopNavProps) {
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <MdTempleBuddhist size={20} />{' '}
-            <span className="font-display">Kyoto</span>
+            <span className="font-display text-lg">Kyoto</span>
           </a>
           {breadcrumbs ? (
             <Breadcrumbs
