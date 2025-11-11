@@ -23,10 +23,19 @@ const DEFAULT_MAX_STEPS = 30
 const STORY_EVALUATION_AGENT_ID = 'story-evaluation-v2'
 
 const evidenceItemSchema = z.object({
+  step: z
+    .string()
+    .min(3)
+    .describe('Describe the goal that is being evaluated.'),
   filePath: z.string().min(1),
   startLine: z.number().int().min(1),
   endLine: z.number().int().min(1),
-  note: z.string().min(1),
+  note: z
+    .string()
+    .min(1)
+    .describe(
+      'An explanation in markdown that elaborates briefly on this evidence.',
+    ),
 })
 
 const storyAnalysisSchema = z.object({
@@ -86,6 +95,7 @@ export function normalizeStoryTestResult(
         explanation: raw.analysis.explanation,
         evidence: raw.analysis.evidence.map<StoryAnalysisEvidenceReference>(
           (item) => ({
+            step: item.step ?? null,
             filePath: item.filePath,
             startLine: item.startLine ?? null,
             endLine: item.endLine ?? null,

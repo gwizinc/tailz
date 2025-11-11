@@ -6,6 +6,7 @@ import { LoadingProgress } from '@/components/ui/loading-progress'
 import { RunDetailView } from '@/components/runs/RunDetailView'
 
 interface StoryAnalysisEvidence {
+  step: string | null
   filePath: string
   startLine: number | null
   endLine: number | null

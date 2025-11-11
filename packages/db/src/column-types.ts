@@ -11,6 +11,7 @@ export type JSONValue =
   | Array<JSONValue>
 
 export interface StoryAnalysisEvidenceReference {
+  step: string | null
   filePath: string
   startLine: number | null
   endLine: number | null

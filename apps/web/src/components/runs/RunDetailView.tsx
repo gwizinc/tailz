@@ -18,6 +18,7 @@ import { GherkinViewer } from '@/components/gherkin/GherkinViewer'
 import { StoryStatusCheck } from './StoryStatusCheck'
 
 interface StoryAnalysisEvidence {
+  step: string | null
   filePath: string
   startLine: number | null
   endLine: number | null
@@ -296,34 +297,6 @@ function formatEvidenceSummary(
   const lastSpace = truncated.lastIndexOf(' ')
   const safeSlice = lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated
   return `${safeSlice.trimEnd()}…`
-}
-
-function buildEvidenceLink(args: {
-  orgSlug: string
-  repoName: string
-  referenceSha: string | null
-  filePath: string
-  startLine: number | null
-  endLine: number | null
-}): string | null {
-  const { orgSlug, repoName, referenceSha, filePath, startLine, endLine } = args
-  if (!referenceSha || !filePath) {
-    return null
-  }
-
-  const encodedPath = filePath
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')
-
-  const lineFragment =
-    startLine && endLine
-      ? `#L${startLine}-L${endLine}`
-      : startLine
-        ? `#L${startLine}`
-        : ''
-
-  return `https://github.com/${orgSlug}/${repoName}/blob/${referenceSha}/${encodedPath}${lineFragment}`
 }
 
 export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
@@ -661,8 +634,6 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                     timelineParts.length > 0
                       ? `${statusDescriptor} ${timelineParts.join(' ')}`
                       : statusDescriptor
-                  const referenceSha =
-                    run.commitSha ?? selectedStory.story?.commitSha ?? null
                   const conclusionStyles = analysis
                     ? getConclusionStyles(analysis.conclusion)
                     : null
@@ -688,7 +659,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                     const resolvedConclusionStyles = conclusionStyles ?? {
                       container: 'border-border bg-muted/40',
                       badge: 'bg-muted text-foreground',
-                      label: analysis.conclusion.toUpperCase(),
+                      label: analysis.conclusion,
                     }
 
                     return (
@@ -714,18 +685,14 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                             </div>
                             <div className="space-y-2">
                               {analysis.evidence.map((evidence, index) => {
-                                const summaryText = formatEvidenceSummary(
-                                  evidence.note,
-                                  evidence.filePath,
-                                )
-                                const evidenceLink = buildEvidenceLink({
-                                  orgSlug,
-                                  repoName,
-                                  referenceSha,
-                                  filePath: evidence.filePath,
-                                  startLine: evidence.startLine,
-                                  endLine: evidence.endLine,
-                                })
+                                const summaryTitle =
+                                  evidence.step?.trim() &&
+                                  evidence.step.trim().length > 0
+                                    ? evidence.step.trim()
+                                    : formatEvidenceSummary(
+                                        evidence.note,
+                                        evidence.filePath,
+                                      )
 
                                 const lineInfo =
                                   evidence.startLine && evidence.endLine
@@ -743,7 +710,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                                       <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
                                       <div className="space-y-1">
                                         <span className="block font-medium">
-                                          {summaryText}
+                                          {summaryTitle}
                                         </span>
                                         <span className="block text-xs text-muted-foreground">
                                           {evidence.filePath}
@@ -826,26 +793,13 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                           </div>
                         </div>
 
-                        {conclusionContent}
-
                         {scenarioText ? (
                           <div className="space-y-2">
-                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                              Scenario Under Test
-                            </div>
                             <GherkinViewer text={scenarioText} />
                           </div>
                         ) : null}
 
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Processed Story Snapshot
-                          </div>
-                          <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
-                            This run will display the saved story summary once
-                            processing completes.
-                          </div>
-                        </div>
+                        {conclusionContent}
                       </CardContent>
                     </Card>
                   )
