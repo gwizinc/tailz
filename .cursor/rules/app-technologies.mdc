@@ -15,3 +15,4 @@ alwaysApply: true
 - **Auth** - We use better-auth
 - **Testing** - We use vitest for testing.
 - **DB** - We use postgres and kysely as the client.
+- **Octokit** for all GitHub API calls
