@@ -181,6 +181,7 @@ ${JSON.stringify(storyTestResultSchema.shape, null, 2)}
 - Explanation should clearly state why the story passes or fails. Use concise language that a human reviewer can follow quickly.
 - If available evidence is insufficient to decide, set the status to "fail" and describe exactly what is missing or uncertain.
 - Keep it short, factual, and time-ordered.
+- Output summaries in Markdown format so they render cleanly for humans. Use headings and bullet lists where they improve clarity.
 - Do not include internal thoughts in final output, instead use shareThought to describe your reasoning.
 - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
 
@@ -307,7 +308,7 @@ export async function runStoryEvaluationAgent(
             conclusion:
               normalizedStatus === 'error' ? 'error' : normalizedStatus,
             explanation:
-              'Model did not supply analysis - TODO use AI to summarize complete findings later.',
+              '**Summary unavailable.** Model did not supply analysis; TODO: summarize complete findings later.',
             evidence: [],
           }),
   }
