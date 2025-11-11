@@ -12,7 +12,7 @@ type RouterOutputs = inferRouterOutputs<AppRouter>
 type RepoDetailsOutput = RouterOutputs['repo']['getBySlug']
 type BranchesOutput = RouterOutputs['branch']['listByRepo']
 type RunsOutput = RouterOutputs['run']['listByRepo']
-type StoriesOutput = RouterOutputs['story']['listByBranch']
+type StoriesOutput = RouterOutputs['story']['listByRepo']
 
 type RepoInfo = RepoDetailsOutput['repo']
 type BranchItem = BranchesOutput['branches'][number]
@@ -35,48 +35,35 @@ export function RepoOverviewLoader({
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const loadData = useCallback(
-    async (branchName?: string) => {
-      setIsLoading(true)
-      try {
-        const [repoResp, branchesResp, runsResp] = await Promise.all([
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const [repoResp, branchesResp, runsResp, storiesResp] = await Promise.all(
+        [
           trpc.repo.getBySlug.query({ orgSlug, repoName }),
           trpc.branch.listByRepo.query({ orgSlug, repoName }),
           trpc.run.listByRepo.query({ orgSlug, repoName }),
-        ])
+          trpc.story.listByRepo.query({ orgSlug, repoName }),
+        ],
+      )
 
-        if (repoResp.repo) {
-          setRepo(repoResp.repo)
-          const defaultBranch =
-            repoResp.repo.defaultBranch ?? branchesResp.branches[0]?.name ?? ''
-          const branchToUse = branchName ?? defaultBranch
-
-          if (branchToUse) {
-            const storiesResp = await trpc.story.listByBranch.query({
-              orgSlug,
-              repoName,
-              branchName: branchToUse,
-            })
-            setStories(storiesResp.stories)
-          } else {
-            setStories([])
-          }
-        } else {
-          setRepo(null)
-          setStories([])
-        }
-
-        setBranches(branchesResp.branches)
-        setRuns(runsResp.runs)
-        setError(null)
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load data')
-      } finally {
-        setIsLoading(false)
+      if (repoResp.repo) {
+        setRepo(repoResp.repo)
+        setStories(storiesResp.stories)
+      } else {
+        setRepo(null)
+        setStories([])
       }
-    },
-    [trpc, orgSlug, repoName],
-  )
+
+      setBranches(branchesResp.branches)
+      setRuns(runsResp.runs)
+      setError(null)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [trpc, orgSlug, repoName])
 
   useEffect(() => {
     void loadData()

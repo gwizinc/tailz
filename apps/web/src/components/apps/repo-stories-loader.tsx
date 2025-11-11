@@ -18,14 +18,12 @@ interface StoryItem {
   latestStatusAt: string | null
 }
 
-export function BranchStoriesLoader({
+export function RepoStoriesLoader({
   orgSlug,
   repoName,
-  branchName,
 }: {
   orgSlug: string
   repoName: string
-  branchName: string
 }) {
   const trpc = useTRPCClient()
   const [isLoading, setIsLoading] = useState(true)
@@ -36,10 +34,9 @@ export function BranchStoriesLoader({
     let isMounted = true
     async function load() {
       try {
-        const resp = await trpc.story.listByBranch.query({
+        const resp = await trpc.story.listByRepo.query({
           orgSlug,
           repoName,
-          branchName,
         })
         if (!isMounted) {
           return
@@ -55,7 +52,7 @@ export function BranchStoriesLoader({
     return () => {
       isMounted = false
     }
-  }, [trpc, orgSlug, repoName, branchName])
+  }, [trpc, orgSlug, repoName])
 
   return (
     <AppLayout
@@ -76,7 +73,6 @@ export function BranchStoriesLoader({
               stories={stories}
               orgSlug={orgSlug}
               repoName={repoName}
-              branchName={branchName}
             />
           </div>
         </div>

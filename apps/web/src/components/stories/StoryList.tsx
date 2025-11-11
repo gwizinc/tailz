@@ -19,15 +19,9 @@ interface StoryListProps {
   stories: StoryItem[]
   orgSlug: string
   repoName: string
-  branchName: string
 }
 
-export function StoryList({
-  stories,
-  orgSlug,
-  repoName,
-  branchName: _branchName,
-}: StoryListProps) {
+export function StoryList({ stories, orgSlug, repoName }: StoryListProps) {
   if (stories.length === 0) {
     return (
       <div className="px-4 py-6 text-sm text-muted-foreground">

@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { inferRouterOutputs } from '@trpc/server'
 import type { AppRouter } from '@app/api'
-import { GitBranch } from 'lucide-react'
 import { SiGithub } from 'react-icons/si'
 import { LuOrigami } from 'react-icons/lu'
 import { CiBoxList } from 'react-icons/ci'
@@ -9,26 +8,13 @@ import { CiBoxList } from 'react-icons/ci'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
 import { StoryList } from '@/components/stories/StoryList'
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
 type BranchItem = RouterOutputs['branch']['listByRepo']['branches'][number]
 type RunItem = RouterOutputs['run']['listByRepo']['runs'][number]
-type StoryItem = RouterOutputs['story']['listByBranch']['stories'][number]
+type StoryItem = RouterOutputs['story']['listByRepo']['stories'][number]
 
 interface Props {
   orgSlug: string
@@ -46,48 +32,15 @@ export function RepoOverview({
   defaultBranch,
   branches,
   runs,
-  stories: initialStories,
+  stories,
   onRefreshRuns,
 }: Props) {
   const trpc = useTRPCClient()
-  const [selectedBranch, setSelectedBranch] = useState<string>(
-    defaultBranch || branches[0]?.name || '',
-  )
-  const [stories, setStories] = useState(initialStories)
-
-  // Reload stories when branch changes
-  useEffect(() => {
-    if (!selectedBranch) {
-      return
-    }
-
-    let isMounted = true
-    async function loadStories() {
-      try {
-        const storiesResp = await trpc.story.listByBranch.query({
-          orgSlug,
-          repoName,
-          branchName: selectedBranch,
-        })
-        if (isMounted) {
-          setStories(storiesResp.stories)
-        }
-      } catch (_e) {
-        // Silently fail - stories might not exist for this branch
-        if (isMounted) {
-          setStories([])
-        }
-      }
-    }
-    void loadStories()
-    return () => {
-      isMounted = false
-    }
-  }, [trpc, orgSlug, repoName, selectedBranch])
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
-  const handleStartRun = async (agentVersion: 'v1' | 'v2') => {
+  const handleStartRun = async () => {
+    const agentVersion: 'v1' | 'v2' = 'v2'
     if (!defaultBranch) {
       return
     }
@@ -112,12 +65,6 @@ export function RepoOverview({
     }
   }
 
-  // Filter runs and stories by selected branch
-  const filteredRuns = runs.filter((run) => run.branchName === selectedBranch)
-  const filteredStories = stories.filter(
-    (story) => story.branchName === selectedBranch,
-  )
-
   return (
     <AppLayout
       breadcrumbs={[
@@ -139,25 +86,7 @@ export function RepoOverview({
             </a>
             <span>{repoName}</span>
           </h1>
-          <div className="flex items-center gap-3">
-            {branches.length > 0 && (
-              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                <SelectTrigger className="w-[180px]">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <GitBranch className="h-4 w-4 shrink-0" />
-                    <SelectValue placeholder="Select branch" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.name} value={branch.name}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+          <div className="flex items-center gap-3" />
         </div>
         {createError && (
           <div className="mb-4 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
@@ -180,12 +109,10 @@ export function RepoOverview({
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
-                    {filteredStories.length} total
+                    {stories.length} total
                   </span>
                   <Button asChild variant="outline" size="sm">
-                    <a
-                      href={`/org/${orgSlug}/repo/${repoName}/stories/new?branch=${encodeURIComponent(selectedBranch)}`}
-                    >
+                    <a href={`/org/${orgSlug}/repo/${repoName}/stories/new`}>
                       Add new story
                     </a>
                   </Button>
@@ -193,10 +120,9 @@ export function RepoOverview({
               </div>
               <div className="max-h-[600px] overflow-auto">
                 <StoryList
-                  stories={filteredStories}
+                  stories={stories}
                   orgSlug={orgSlug}
                   repoName={repoName}
-                  branchName={selectedBranch}
                 />
               </div>
             </div>
@@ -218,35 +144,18 @@ export function RepoOverview({
                   </div>
                 </div>
                 {defaultBranch && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        disabled={isCreatingRun}
-                        variant="default"
-                        size="sm"
-                      >
-                        {isCreatingRun ? 'Starting...' : 'Start new run'}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => handleStartRun('v1')}
-                        disabled={isCreatingRun}
-                      >
-                        Run with Agent v1
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleStartRun('v2')}
-                        disabled={isCreatingRun}
-                      >
-                        Run with Agent v2
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    disabled={isCreatingRun}
+                    variant="default"
+                    size="sm"
+                    onClick={handleStartRun}
+                  >
+                    {isCreatingRun ? 'Starting...' : 'Start new run'}
+                  </Button>
                 )}
               </div>
               <GitHubStyleRunList
-                runs={filteredRuns}
+                runs={runs}
                 orgSlug={orgSlug}
                 repoName={repoName}
               />
