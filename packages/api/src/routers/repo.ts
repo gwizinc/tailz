@@ -1,7 +1,11 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
-import { findOwnerForUser, findRepoForUser } from '../helpers/memberships'
+import {
+  findOwnerForUser,
+  findRepoForUser,
+  requireRepoForUser,
+} from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
 
 type RepoListItemStatus = 'pass' | 'fail' | 'skipped' | 'running' | 'error'
@@ -158,17 +162,8 @@ export const repoRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { repo: null }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -196,30 +191,11 @@ export const repoRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       if (repo.enabled) {
         return { enabled: true, repoId: repo.id }
@@ -243,30 +219,11 @@ export const repoRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       if (!repo.enabled) {
         return { enabled: false, repoId: repo.id }

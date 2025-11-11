@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@app/db": "workspace:*",
+    "@octokit/request": "^10.0.6",
     "@trigger.dev/sdk": "^4.0.6",
     "@trpc/server": "11.6.0",
     "kysely": "^0.28.8",

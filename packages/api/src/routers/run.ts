@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { configure, tasks } from '@trigger.dev/sdk'
 
 import type { RunStory, StoryAnalysisV1 } from '@app/db'
-import { findOwnerForUser, findRepoForUser } from '../helpers/memberships'
+import { findRepoForUser, requireRepoForUser } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
 import { parseEnv } from '../helpers/env'
 
@@ -17,17 +17,8 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { runs: [] }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -111,17 +102,8 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { run: null }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -328,30 +310,11 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       const env = parseEnv(ctx.env)
 
