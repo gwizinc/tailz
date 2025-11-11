@@ -10,7 +10,6 @@ import type {
 } from '@app/db'
 
 import { parseEnv } from '../../helpers/env'
-import { createShareThoughtTool } from '../../tools/share-thought-tool'
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
 import { createReadFileTool } from '../../tools/read-file-tool'
 import {
@@ -26,7 +25,9 @@ const evidenceItemSchema = z.object({
   step: z
     .string()
     .min(3)
-    .describe('Describe the goal that is being evaluated.'),
+    .describe(
+      'Describe the goal that is being evaluated. Short and human-readable.',
+    ),
   filePath: z.string().min(1),
   startLine: z.number().int().min(1),
   endLine: z.number().int().min(1),
@@ -176,7 +177,6 @@ You must search, verify, and extract exact file excerpts that prove each step of
   - A meaningful note summarizing what this code does.
   - A file path and line range.
 - Prefer top-level functions, components, or effects that implement user-facing outcomes.
-- Format every evidence note as Markdown, beginning with a short bolded title followed by any supporting details.
 
 # Step Continuity
 - Maintain a mental map of dependencies between steps (e.g., "create user" must precede "log in user").
@@ -190,10 +190,9 @@ ${JSON.stringify(storyTestResultSchema.shape, null, 2)}
 # Rules
 - When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
 - Explanation should clearly state why the story passes or fails. Use concise language that a human reviewer can follow quickly.
-- Format the explanation in Markdown, starting with a concise heading-style title before providing supporting details (lists or paragraphs) as needed.
 - If available evidence is insufficient to decide, set the status to "fail" and describe exactly what is missing or uncertain.
 - Keep it short, factual, and time-ordered.
-- Output summaries in Markdown format so they render cleanly for humans. Use headings and bullet lists where they improve clarity.
+- Output summaries in Markdown format so they render cleanly for humans.
 - Do not include internal thoughts in final output, instead use shareThought to describe your reasoning.
 - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
 
@@ -252,12 +251,6 @@ export async function runStoryEvaluationAgent(
     repoName: options.repoName,
   })
 
-  const shareThoughtTool = createShareThoughtTool({
-    storyName: options.storyName,
-    repoId: options.repoId,
-    runId: options.runId ?? null,
-  })
-
   const resolveLibraryTool = createResolveLibraryTool({
     apiKey: env.CONTEXT7_API_KEY,
   })
@@ -273,7 +266,6 @@ export async function runStoryEvaluationAgent(
     model: openAiProvider(effectiveModelId),
     instructions: buildStoryEvaluationInstructions(outline),
     tools: {
-      shareThought: shareThoughtTool,
       terminalCommand: terminalCommandTool,
       readFile: readFileTool,
       resolveLibrary: resolveLibraryTool,
