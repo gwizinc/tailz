@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { ChevronDown, Sparkles } from 'lucide-react'
 import { LuOrigami } from 'react-icons/lu'
 import { useTRPCClient } from '@/client/trpc'
@@ -6,14 +6,7 @@ import { AppLayout } from '@/components/layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { LoadingProgress } from '@/components/ui/loading-progress'
 import { cn } from '@/lib/utils'
-
-interface BranchItem {
-  name: string
-  headSha?: string
-  updatedAt?: string
-}
 
 interface StoryTemplate {
   id: string
@@ -82,10 +75,6 @@ export function StoryCreateLoader({
   repoName: string
 }) {
   const trpc = useTRPCClient()
-  const [isLoading, setIsLoading] = useState(true)
-  const [branches, setBranches] = useState<BranchItem[]>([])
-  const [selectedBranch, setSelectedBranch] = useState<string>('')
-  const [commitSha, setCommitSha] = useState<string | null>(null)
   const [storyName, setStoryName] = useState('')
   const [storyContent, setStoryContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -96,75 +85,9 @@ export function StoryCreateLoader({
   )
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
-  // Get branch from URL query params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const branchParam = params.get('branch')
-    if (branchParam) {
-      setSelectedBranch(branchParam)
-    }
-  }, [])
-
-  // Load branches and set initial branch/commit
-  useEffect(() => {
-    let isMounted = true
-    async function load() {
-      try {
-        const branchesResp = await trpc.branch.listByRepo.query({
-          orgSlug,
-          repoName,
-        })
-        if (!isMounted) {
-          return
-        }
-
-        setBranches(branchesResp.branches)
-
-        // Set selected branch if not already set
-        if (!selectedBranch && branchesResp.branches.length > 0) {
-          const branch = branchesResp.branches[0]
-          setSelectedBranch(branch.name)
-          setCommitSha(branch.headSha || null)
-        } else if (selectedBranch) {
-          // Find the selected branch and set commit SHA
-          const branch = branchesResp.branches.find(
-            (b) => b.name === selectedBranch,
-          )
-          if (branch) {
-            setCommitSha(branch.headSha || null)
-          }
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load branches')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      isMounted = false
-    }
-  }, [trpc, orgSlug, repoName, selectedBranch])
-
-  // Update commit SHA when branch changes
-  useEffect(() => {
-    if (!selectedBranch) {
-      return
-    }
-    const branch = branches.find((b) => b.name === selectedBranch)
-    if (branch) {
-      setCommitSha(branch.headSha || null)
-    }
-  }, [selectedBranch, branches])
-
   const handleSave = async () => {
     if (!storyName.trim() || !storyContent.trim()) {
       setError('Story name and content are required')
-      return
-    }
-
-    if (!selectedBranch) {
-      setError('No branch available for story creation')
       return
     }
 
@@ -175,8 +98,6 @@ export function StoryCreateLoader({
       await trpc.story.create.mutate({
         orgSlug,
         repoName,
-        branchName: selectedBranch,
-        commitSha,
         name: storyName.trim(),
         story: storyContent,
         files: [],
@@ -220,20 +141,6 @@ export function StoryCreateLoader({
   const handleTemplateSelect = (template: StoryTemplate) => {
     setStoryContent(template.content)
     textareaRef.current?.focus()
-  }
-
-  if (isLoading) {
-    return (
-      <AppLayout
-        breadcrumbs={[
-          { label: orgSlug, href: `/org/${orgSlug}` },
-          { label: repoName, href: `/org/${orgSlug}/repo/${repoName}` },
-          { label: 'New Story', href: '#' },
-        ]}
-      >
-        <LoadingProgress label="Loading..." />
-      </AppLayout>
-    )
   }
 
   return (

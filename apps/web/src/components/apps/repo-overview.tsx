@@ -12,7 +12,6 @@ import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
 import { StoryList } from '@/components/stories/StoryList'
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
-type BranchItem = RouterOutputs['branch']['listByRepo']['branches'][number]
 type RunItem = RouterOutputs['run']['listByRepo']['runs'][number]
 type StoryItem = RouterOutputs['story']['listByRepo']['stories'][number]
 
@@ -20,7 +19,6 @@ interface Props {
   orgSlug: string
   repoName: string
   defaultBranch: string | null
-  branches: BranchItem[]
   runs: RunItem[]
   stories: StoryItem[]
   onRefreshRuns?: () => void
@@ -30,7 +28,6 @@ export function RepoOverview({
   orgSlug,
   repoName,
   defaultBranch,
-  branches,
   runs,
   stories,
   onRefreshRuns,

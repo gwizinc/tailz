@@ -211,8 +211,6 @@ export const storyRouter = router({
       z.object({
         orgSlug: z.string(),
         repoName: z.string(),
-        branchName: z.string(),
-        commitSha: z.string().nullable(),
         name: z.string().min(1),
         story: z.string().min(1),
         files: z.array(z.string()).default([]),
@@ -236,8 +234,6 @@ export const storyRouter = router({
         .insertInto('stories')
         .values({
           repoId: repo.id,
-          branchName: input.branchName,
-          commitSha: input.commitSha,
           name: input.name,
           story: input.story,
           files: input.files as unknown as Json,
@@ -250,8 +246,6 @@ export const storyRouter = router({
           id: newStory.id,
           name: newStory.name,
           story: newStory.story,
-          commitSha: newStory.commitSha,
-          branchName: newStory.branchName,
           createdAt: newStory.createdAt?.toISOString() ?? null,
           updatedAt: newStory.updatedAt?.toISOString() ?? null,
         },

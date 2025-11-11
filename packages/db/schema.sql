@@ -2,10 +2,24 @@
 -- PostgreSQL database dump
 --
 
-\restrict OaaZtxGZvUgoPhKMDcyIBSkzJ0Ss4FXKXzlkguXLYefudMPtvNbMET0u2N9IM0W
+\restrict CkT6klcddfHqkZWm8ayKVEtTFcU6hAJwBPtgDevob5A77vNOGiJ24ytMa48T3EL
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
+
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS '';
 
 
 --
@@ -949,8 +963,6 @@ CREATE TABLE public.stories (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     repo_id uuid NOT NULL,
-    branch_name text NOT NULL,
-    commit_sha text,
     name text NOT NULL,
     story text NOT NULL,
     files jsonb DEFAULT '[]'::jsonb NOT NULL
@@ -983,20 +995,6 @@ COMMENT ON COLUMN public.stories.updated_at IS 'The time when the story was last
 --
 
 COMMENT ON COLUMN public.stories.repo_id IS 'FK to repos.id of the repository this story belongs to';
-
-
---
--- Name: COLUMN stories.branch_name; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.stories.branch_name IS 'The branch name this story was generated from (e.g., "main", "master")';
-
-
---
--- Name: COLUMN stories.commit_sha; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.stories.commit_sha IS 'The SHA of the commit that was analyzed';
 
 
 --
@@ -1551,20 +1549,6 @@ CREATE INDEX runs_status_idx ON public.runs USING btree (status);
 
 
 --
--- Name: stories_branch_name_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX stories_branch_name_idx ON public.stories USING btree (branch_name);
-
-
---
--- Name: stories_repo_branch_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX stories_repo_branch_idx ON public.stories USING btree (repo_id, branch_name);
-
-
---
 -- Name: stories_repo_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1821,5 +1805,5 @@ ALTER TABLE ONLY public.story_test_results
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OaaZtxGZvUgoPhKMDcyIBSkzJ0Ss4FXKXzlkguXLYefudMPtvNbMET0u2N9IM0W
+\unrestrict CkT6klcddfHqkZWm8ayKVEtTFcU6hAJwBPtgDevob5A77vNOGiJ24ytMa48T3EL
 

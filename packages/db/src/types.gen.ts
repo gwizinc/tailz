@@ -406,14 +406,6 @@ export interface Session {
 
 export interface Story {
   /**
-   * The branch name this story was generated from (e.g., "main", "master")
-   */
-  branchName: string;
-  /**
-   * The SHA of the commit that was analyzed
-   */
-  commitSha: string | null;
-  /**
    * The time when the story was created
    */
   createdAt: Generated<Timestamp | null>;

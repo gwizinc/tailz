@@ -10,12 +10,10 @@ import { RepoOverview } from './repo-overview'
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
 type RepoDetailsOutput = RouterOutputs['repo']['getBySlug']
-type BranchesOutput = RouterOutputs['branch']['listByRepo']
 type RunsOutput = RouterOutputs['run']['listByRepo']
 type StoriesOutput = RouterOutputs['story']['listByRepo']
 
 type RepoInfo = RepoDetailsOutput['repo']
-type BranchItem = BranchesOutput['branches'][number]
 type RunItem = RunsOutput['runs'][number]
 type StoryItem = StoriesOutput['stories'][number]
 
@@ -29,7 +27,6 @@ export function RepoOverviewLoader({
   const trpc = useTRPCClient()
   const [isLoading, setIsLoading] = useState(true)
   const [repo, setRepo] = useState<RepoInfo>(null)
-  const [branches, setBranches] = useState<BranchItem[]>([])
   const [runs, setRuns] = useState<RunItem[]>([])
   const [stories, setStories] = useState<StoryItem[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -38,14 +35,11 @@ export function RepoOverviewLoader({
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [repoResp, branchesResp, runsResp, storiesResp] = await Promise.all(
-        [
-          trpc.repo.getBySlug.query({ orgSlug, repoName }),
-          trpc.branch.listByRepo.query({ orgSlug, repoName }),
-          trpc.run.listByRepo.query({ orgSlug, repoName }),
-          trpc.story.listByRepo.query({ orgSlug, repoName }),
-        ],
-      )
+      const [repoResp, runsResp, storiesResp] = await Promise.all([
+        trpc.repo.getBySlug.query({ orgSlug, repoName }),
+        trpc.run.listByRepo.query({ orgSlug, repoName }),
+        trpc.story.listByRepo.query({ orgSlug, repoName }),
+      ])
 
       if (repoResp.repo) {
         setRepo(repoResp.repo)
@@ -55,7 +49,6 @@ export function RepoOverviewLoader({
         setStories([])
       }
 
-      setBranches(branchesResp.branches)
       setRuns(runsResp.runs)
       setError(null)
     } catch (error) {
@@ -84,7 +77,6 @@ export function RepoOverviewLoader({
           orgSlug={orgSlug}
           repoName={repoName}
           defaultBranch={repo?.defaultBranch ?? null}
-          branches={branches}
           runs={runs}
           stories={stories}
           onRefreshRuns={handleRefreshRuns}
