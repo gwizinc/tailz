@@ -3,9 +3,10 @@ import { z } from 'zod'
 import { configure, tasks } from '@trigger.dev/sdk'
 
 import type { RunStory, StoryAnalysisV1 } from '@app/db'
-import { findOwnerForUser, findRepoForUser } from '../helpers/memberships'
+import { findRepoForUser, requireRepoForUser } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
 import { parseEnv } from '../helpers/env'
+import { fetchGithubFileSnippet } from '../actions/github/getters'
 
 export const runRouter = router({
   listByRepo: protectedProcedure
@@ -17,17 +18,8 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { runs: [] }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -111,17 +103,8 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { run: null }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -312,6 +295,54 @@ export const runRouter = router({
       }
     }),
 
+  getEvidenceSource: protectedProcedure
+    .input(
+      z.object({
+        orgSlug: z.string(),
+        repoName: z.string(),
+        commitSha: z.string(),
+        filePath: z.string(),
+        startLine: z.number().int().positive().optional(),
+        endLine: z.number().int().positive().optional(),
+        contextLines: z.number().int().min(0).max(50).default(8),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.user?.id
+
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' })
+      }
+
+      await requireRepoForUser(ctx.db, {
+        orgSlug: input.orgSlug,
+        repoName: input.repoName,
+        userId,
+      })
+
+      try {
+        const snippet = await fetchGithubFileSnippet({
+          owner: input.orgSlug,
+          repo: input.repoName,
+          commitSha: input.commitSha,
+          filePath: input.filePath,
+          startLine: input.startLine ?? null,
+          endLine: input.endLine ?? null,
+          contextLines: input.contextLines,
+        })
+
+        return { snippet }
+      } catch (error) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to load related code from GitHub',
+        })
+      }
+    }),
+
   create: protectedProcedure
     .input(
       z.object({
@@ -328,30 +359,11 @@ export const runRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       const env = parseEnv(ctx.env)
 

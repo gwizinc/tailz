@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import type { DB, Owner, Repo, Story } from '@app/db/types'
 import type { Kysely, Selectable } from 'kysely'
 
@@ -22,10 +23,11 @@ export async function findOwnerForUser(
 
 export async function findRepoForUser(
   db: Kysely<DB>,
-  params: WithUserId & { ownerId: string; repoName: string },
+  params: WithUserId & { orgSlug: string; repoName: string },
 ): Promise<Selectable<Repo> | null> {
   const repo = await db
     .selectFrom('repos')
+    .innerJoin('owners', 'owners.id', 'repos.ownerId')
     .innerJoin('repoMemberships', 'repoMemberships.repoId', 'repos.id')
     .innerJoin('ownerMemberships', (join) =>
       join
@@ -33,12 +35,28 @@ export async function findRepoForUser(
         .onRef('ownerMemberships.userId', '=', 'repoMemberships.userId'),
     )
     .selectAll('repos')
-    .where('repos.ownerId', '=', params.ownerId)
+    .where('owners.login', '=', params.orgSlug)
     .where('repos.name', '=', params.repoName)
     .where('repoMemberships.userId', '=', params.userId)
     .executeTakeFirst()
 
   return repo ?? null
+}
+
+export async function requireRepoForUser(
+  db: Kysely<DB>,
+  params: WithUserId & { orgSlug: string; repoName: string },
+): Promise<Selectable<Repo>> {
+  const repo = await findRepoForUser(db, params)
+
+  if (!repo) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Repository not accessible',
+    })
+  }
+
+  return repo
 }
 
 export async function findStoryForUser(

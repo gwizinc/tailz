@@ -5,9 +5,9 @@ import type { Updateable } from 'kysely'
 
 import type { Json, Story } from '@app/db/types'
 import {
-  findOwnerForUser,
   findRepoForUser,
   findStoryForUser,
+  requireRepoForUser,
 } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
 import { parseEnv } from '../helpers/env'
@@ -73,12 +73,11 @@ function deriveGroupNamesFromFiles(files: Json | null): string[] {
 }
 
 export const storyRouter = router({
-  listByBranch: protectedProcedure
+  listByRepo: protectedProcedure
     .input(
       z.object({
         orgSlug: z.string(),
         repoName: z.string(),
-        branchName: z.string(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -88,17 +87,8 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { stories: [] }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -107,12 +97,10 @@ export const storyRouter = router({
         return { stories: [] }
       }
 
-      // Query stories for this repo and branch
       const stories = await ctx.db
         .selectFrom('stories')
         .selectAll()
         .where('repoId', '=', repo.id)
-        .where('branchName', '=', input.branchName)
         .orderBy('createdAt', 'desc')
         .execute()
 
@@ -181,17 +169,8 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        return { story: null, filesTouched: [] }
-      }
-
       const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
+        orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
       })
@@ -246,30 +225,11 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       // Create story
       const newStory = await ctx.db
@@ -315,30 +275,11 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       // Check if story exists and belongs to repo
       const existingStory = await ctx.db
@@ -403,30 +344,11 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       const existingStory = await ctx.db
         .selectFrom('stories')
@@ -523,30 +445,11 @@ export const storyRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' })
       }
 
-      const owner = await findOwnerForUser(ctx.db, {
+      const repo = await requireRepoForUser(ctx.db, {
         orgSlug: input.orgSlug,
-        userId,
-      })
-
-      if (!owner) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Owner not accessible',
-        })
-      }
-
-      const repo = await findRepoForUser(ctx.db, {
-        ownerId: owner.id,
         repoName: input.repoName,
         userId,
       })
-
-      if (!repo) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Repository not accessible',
-        })
-      }
 
       // Check if story exists and belongs to repo
       const existingStory = await ctx.db
