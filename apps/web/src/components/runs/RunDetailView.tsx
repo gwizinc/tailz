@@ -1,8 +1,11 @@
+import { useMemo, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   GitBranch,
   GitCommit,
   Loader2,
@@ -11,7 +14,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { LuOrigami } from 'react-icons/lu'
+import { GherkinViewer } from '@/components/gherkin/GherkinViewer'
 import { StoryStatusCheck } from './StoryStatusCheck'
 
 interface StoryAnalysisEvidence {
@@ -138,6 +141,23 @@ function getStatusDisplay(status: Run['status']): StatusDisplay {
   }
 }
 
+function getRunStatusDescriptor(status: Run['status']): string {
+  switch (status) {
+    case 'pass':
+      return 'passed'
+    case 'fail':
+      return 'failed'
+    case 'skipped':
+      return 'skipped'
+    case 'running':
+      return 'running'
+    case 'error':
+      return 'errored'
+    default:
+      return status
+  }
+}
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleString()
@@ -190,8 +210,125 @@ function formatDurationMs(durationMs: number | null | undefined): string {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
 }
 
+function getConclusionStyles(conclusion: StoryAnalysis['conclusion']): {
+  container: string
+  badge: string
+  label: string
+} {
+  switch (conclusion) {
+    case 'pass':
+      return {
+        container: 'border-chart-1/40 bg-chart-1/10',
+        badge: 'bg-chart-1 text-background',
+        label: 'Passed',
+      }
+    case 'fail':
+      return {
+        container: 'border-destructive/40 bg-destructive/10',
+        badge: 'bg-destructive text-destructive-foreground',
+        label: 'Failed',
+      }
+    case 'error':
+      return {
+        container: 'border-orange-500/40 bg-orange-500/10',
+        badge: 'bg-orange-500 text-white',
+        label: 'Error',
+      }
+  }
+}
+
+type StoryStatusPillStatus = RunStory['status'] | StoryResult['status']
+
+function getStatusPillStyles(status: StoryStatusPillStatus): {
+  className: string
+  label: string
+} {
+  switch (status) {
+    case 'pass':
+      return {
+        className: 'border-chart-1/30 bg-chart-1/10 text-chart-1',
+        label: 'Passed',
+      }
+    case 'fail':
+      return {
+        className: 'border-destructive/30 bg-destructive/10 text-destructive',
+        label: 'Failed',
+      }
+    case 'running':
+      return {
+        className: 'border-primary/30 bg-primary/10 text-primary',
+        label: 'In Progress',
+      }
+    case 'skipped':
+      return {
+        className: 'border-border bg-muted text-muted-foreground',
+        label: 'Skipped',
+      }
+    case 'error':
+      return {
+        className: 'border-orange-500/30 bg-orange-500/10 text-orange-600',
+        label: 'Error',
+      }
+    default:
+      return {
+        className: 'border-border bg-muted text-muted-foreground',
+        label: status,
+      }
+  }
+}
+
+function formatEvidenceSummary(
+  note: string | null,
+  fallback: string,
+  maxLength = 120,
+): string {
+  const baseText = note?.trim() ?? ''
+  if (!baseText) {
+    return fallback
+  }
+
+  const condensed = baseText.replace(/\s+/g, ' ')
+  if (condensed.length <= maxLength) {
+    return condensed
+  }
+
+  const truncated = condensed.slice(0, maxLength).trimEnd()
+  const lastSpace = truncated.lastIndexOf(' ')
+  const safeSlice = lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated
+  return `${safeSlice.trimEnd()}…`
+}
+
+function buildEvidenceLink(args: {
+  orgSlug: string
+  repoName: string
+  referenceSha: string | null
+  filePath: string
+  startLine: number | null
+  endLine: number | null
+}): string | null {
+  const { orgSlug, repoName, referenceSha, filePath, startLine, endLine } = args
+  if (!referenceSha || !filePath) {
+    return null
+  }
+
+  const encodedPath = filePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+
+  const lineFragment =
+    startLine && endLine
+      ? `#L${startLine}-L${endLine}`
+      : startLine
+        ? `#L${startLine}`
+        : ''
+
+  return `https://github.com/${orgSlug}/${repoName}/blob/${referenceSha}/${encodedPath}${lineFragment}`
+}
+
 export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
   const statusDisplay = getStatusDisplay(run.status)
+  const runStatusDescriptor = getRunStatusDescriptor(run.status)
   const commitTitle =
     run.commitMessage?.split('\n')[0]?.trim() || 'Workflow run'
   const shortSha = run.commitSha ? run.commitSha.slice(0, 7) : null
@@ -213,6 +350,40 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
   const actorHandle = '@unknown'
   const actorInitial =
     actorHandle.length > 1 ? (actorHandle[1]?.toUpperCase() ?? '?') : '?'
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(
+    () => run.stories[0]?.storyId ?? null,
+  )
+
+  const storyStatusCounts = useMemo(
+    () =>
+      run.stories.reduce(
+        (acc, story) => {
+          const status = story.result?.status ?? story.status
+          if (status === 'pass') {
+            acc.pass += 1
+          } else if (status === 'fail') {
+            acc.fail += 1
+          } else if (status === 'error') {
+            acc.error += 1
+          }
+          return acc
+        },
+        { pass: 0, fail: 0, error: 0 },
+      ),
+    [run.stories],
+  )
+
+  const selectedStory = useMemo<RunStory | null>(() => {
+    if (selectedStoryId) {
+      const match = run.stories.find(
+        (story) => story.storyId === selectedStoryId,
+      )
+      if (match) {
+        return match
+      }
+    }
+    return run.stories[0] ?? null
+  }, [run.stories, selectedStoryId])
 
   return (
     <div className="flex flex-col">
@@ -233,14 +404,18 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                   <h1 className="text-xl font-semibold text-foreground md:text-2xl">
                     {commitTitle}
                   </h1>
-                  <div
-                    className="text-sm text-muted-foreground flex flex-wrap items-center gap-2"
-                    title={absoluteStarted}
-                  >
-                    <span>Run triggered {relativeStarted}</span>
+                  <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1">
                       <Timer className="size-3.5" />
-                      Runtime {durationDisplay}
+                      <span className="flex items-center gap-1">
+                        {runStatusDescriptor}{' '}
+                        <time dateTime={run.createdAt} title={absoluteStarted}>
+                          {relativeStarted}
+                        </time>
+                        {durationDisplay !== '—'
+                          ? ` in ${durationDisplay}`
+                          : ''}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -275,7 +450,10 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                       {actorHandle}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Committed {relativeStarted}
+                      Committed{' '}
+                      <time dateTime={run.createdAt} title={absoluteStarted}>
+                        {relativeStarted}
+                      </time>
                     </div>
                   </div>
                 </div>
@@ -326,9 +504,10 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                 </div>
               ) : null}
               {run.summary ? (
-                <div className="space-y-1 md:col-span-2">
-                  <div className="text-muted-foreground">Summary</div>
-                  <div className="text-foreground">{run.summary}</div>
+                <div className="space-y-2 md:col-span-2">
+                  <div className="prose prose-sm max-w-none text-foreground">
+                    <ReactMarkdown>{run.summary}</ReactMarkdown>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -337,197 +516,343 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
       </div>
 
       {/* Stories Column */}
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-6">
         <div>
-          <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
-            <LuOrigami
-              aria-hidden="true"
-              className="h-4 w-4 text-muted-foreground"
-            />
-            Stories
-          </h2>
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">
+              {storyStatusCounts.pass} passed
+            </span>
+            <span className="text-muted-foreground">
+              {storyStatusCounts.fail} failed
+            </span>
+            <span className="text-muted-foreground">
+              {storyStatusCounts.error} errors
+            </span>
+          </div>
           {run.stories.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No stories in this run.
+            <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
+              No stories were evaluated in this run.
             </div>
           ) : (
-            <ul className="divide-y rounded-md border">
-              {run.stories.map((runStory) => {
-                const storyTitle = runStory.story
-                  ? runStory.story.name
-                  : `Story not found (${runStory.storyId.slice(0, 8)}...)`
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <aside className="lg:w-72 lg:shrink-0">
+                <ul className="space-y-2">
+                  {run.stories.map((runStory) => {
+                    const storyTitle = runStory.story
+                      ? runStory.story.name
+                      : 'Story not found'
+                    const storyResult = runStory.result
+                    const startedTimestamp =
+                      storyResult?.startedAt ?? runStory.startedAt
+                    const completedTimestamp =
+                      storyResult?.completedAt ?? runStory.completedAt
+                    const durationMs =
+                      storyResult?.durationMs ??
+                      (startedTimestamp && completedTimestamp
+                        ? new Date(completedTimestamp).getTime() -
+                          new Date(startedTimestamp).getTime()
+                        : null)
+                    const durationDisplay = formatDurationMs(durationMs)
+                    const completedRelative = completedTimestamp
+                      ? formatRelativeTime(completedTimestamp)
+                      : runStory.status === 'running'
+                        ? 'In progress'
+                        : null
+                    const statusPill = getStatusPillStyles(
+                      storyResult ? storyResult.status : runStory.status,
+                    )
+                    const isSelected =
+                      selectedStory?.storyId === runStory.storyId
 
-                const storyResult = runStory.result
-                const startedTimestamp =
-                  storyResult?.startedAt ?? runStory.startedAt
-                const completedTimestamp =
-                  storyResult?.completedAt ?? runStory.completedAt
-
-                const durationMs =
-                  storyResult?.durationMs ??
-                  (startedTimestamp && completedTimestamp
-                    ? new Date(completedTimestamp).getTime() -
-                      new Date(startedTimestamp).getTime()
-                    : null)
-
-                const content = (
-                  <>
-                    <div className="mt-0.5">
-                      <StoryStatusCheck status={runStory.status} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-foreground">
-                        {storyTitle}
+                    return (
+                      <li key={runStory.storyId}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStoryId(runStory.storyId)}
+                          className={cn(
+                            'w-full rounded-md border px-3 py-3 text-left transition-colors',
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-primary-foreground'
+                              : 'border-border hover:bg-muted',
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <StoryStatusCheck status={runStory.status} />
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-sm font-medium text-foreground">
+                                  {storyTitle}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                                    statusPill.className,
+                                  )}
+                                >
+                                  {statusPill.label}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {completedRelative
+                                  ? `${completedRelative}${
+                                      durationDisplay !== '—'
+                                        ? ` · ${durationDisplay}`
+                                        : ''
+                                    }`
+                                  : durationDisplay !== '—'
+                                    ? `Duration ${durationDisplay}`
+                                    : 'Awaiting completion'}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </aside>
+              <section className="flex-1 min-w-0">
+                {(() => {
+                  if (!selectedStory) {
+                    return (
+                      <div className="rounded-md border border-dashed bg-muted/40 p-6 text-sm text-muted-foreground">
+                        Select a story to inspect the analysis details.
                       </div>
-                      {runStory.summary ? (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {runStory.summary}
+                    )
+                  }
+
+                  const storyTitle = selectedStory.story
+                    ? selectedStory.story.name
+                    : 'Story not found'
+                  const storyResult = selectedStory.result
+                  const analysis = storyResult?.analysis ?? null
+                  const scenarioText = selectedStory.story?.story ?? null
+                  const startedTimestamp =
+                    storyResult?.startedAt ?? selectedStory.startedAt
+                  const completedTimestamp =
+                    storyResult?.completedAt ?? selectedStory.completedAt
+                  const durationMs =
+                    storyResult?.durationMs ??
+                    (startedTimestamp && completedTimestamp
+                      ? new Date(completedTimestamp).getTime() -
+                        new Date(startedTimestamp).getTime()
+                      : null)
+                  const durationDisplay = formatDurationMs(durationMs)
+                  const startedTooltip = startedTimestamp
+                    ? formatDate(startedTimestamp)
+                    : undefined
+                  const completedRelative = completedTimestamp
+                    ? formatRelativeTime(completedTimestamp)
+                    : selectedStory.status === 'running'
+                      ? 'in progress'
+                      : null
+                  const statusPill = getStatusPillStyles(
+                    storyResult ? storyResult.status : selectedStory.status,
+                  )
+                  const statusDescriptor = statusPill.label.toLowerCase()
+                  const timelineParts: string[] = []
+                  if (completedRelative) {
+                    timelineParts.push(completedRelative)
+                  }
+                  if (durationDisplay !== '—') {
+                    timelineParts.push(`in ${durationDisplay}`)
+                  }
+                  const statusLine =
+                    timelineParts.length > 0
+                      ? `${statusDescriptor} ${timelineParts.join(' ')}`
+                      : statusDescriptor
+                  const referenceSha =
+                    run.commitSha ?? selectedStory.story?.commitSha ?? null
+                  const conclusionStyles = analysis
+                    ? getConclusionStyles(analysis.conclusion)
+                    : null
+
+                  const conclusionContent = (() => {
+                    if (!storyResult) {
+                      return (
+                        <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                          No evaluation result recorded for this story.
                         </div>
-                      ) : null}
-                      <div className="mt-3 space-y-2 text-xs">
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Story status:
-                            </span>{' '}
-                            {runStory.status.toUpperCase()}
-                          </span>
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Result status:
-                            </span>{' '}
-                            {storyResult
-                              ? storyResult.status.toUpperCase()
-                              : '—'}
-                          </span>
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Result ID:
-                            </span>{' '}
-                            {storyResult ? storyResult.id : '—'}
-                          </span>
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Analysis version:
-                            </span>{' '}
-                            {storyResult ? storyResult.analysisVersion : '—'}
-                          </span>
+                      )
+                    }
+
+                    if (!analysis) {
+                      return (
+                        <div className="rounded-md border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                          Evaluation completed without additional analysis
+                          details.
                         </div>
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Started:
-                            </span>{' '}
-                            {startedTimestamp
-                              ? formatDate(startedTimestamp)
-                              : '—'}
-                          </span>
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Completed:
-                            </span>{' '}
-                            {completedTimestamp
-                              ? formatDate(completedTimestamp)
-                              : '—'}
-                          </span>
-                          <span>
-                            <span className="font-medium text-foreground">
-                              Duration:
-                            </span>{' '}
-                            {formatDurationMs(durationMs)}
-                          </span>
+                      )
+                    }
+
+                    const resolvedConclusionStyles = conclusionStyles ?? {
+                      container: 'border-border bg-muted/40',
+                      badge: 'bg-muted text-foreground',
+                      label: analysis.conclusion.toUpperCase(),
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        <div
+                          className={cn(
+                            'rounded-md border p-4 sm:p-5',
+                            resolvedConclusionStyles.container,
+                          )}
+                        >
+                          <p className="text-sm font-semibold text-foreground">
+                            {resolvedConclusionStyles.label}
+                          </p>
+                          <p className="mt-2 text-sm text-foreground">
+                            {analysis.explanation}
+                          </p>
                         </div>
-                        {storyResult ? (
-                          storyResult.analysis ? (
-                            <div className="rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground">
-                              <div className="font-medium text-foreground">
-                                Conclusion:{' '}
-                                {storyResult.analysis.conclusion.toUpperCase()}
-                              </div>
-                              <div className="mt-1 text-foreground">
-                                {storyResult.analysis.explanation}
-                              </div>
-                              {storyResult.analysis.evidence.length > 0 ? (
-                                <div className="mt-2 space-y-1">
-                                  <div className="font-medium text-foreground">
-                                    Evidence
-                                  </div>
-                                  <ul className="list-disc space-y-1 pl-4">
-                                    {storyResult.analysis.evidence.map(
-                                      (evidence, index) => (
-                                        <li
-                                          key={`${storyResult.id}-evidence-${index}`}
-                                        >
-                                          <span className="text-foreground">
-                                            {evidence.filePath}
-                                          </span>
-                                          {evidence.startLine !== null &&
-                                          evidence.endLine !== null ? (
-                                            <span>
-                                              {' '}
-                                              ({evidence.startLine} -{' '}
-                                              {evidence.endLine})
-                                            </span>
-                                          ) : null}
+
+                        {analysis.evidence.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              Evidence
+                            </div>
+                            <div className="space-y-2">
+                              {analysis.evidence.map((evidence, index) => {
+                                const summaryText = formatEvidenceSummary(
+                                  evidence.note,
+                                  evidence.filePath,
+                                )
+                                const evidenceLink = buildEvidenceLink({
+                                  orgSlug,
+                                  repoName,
+                                  referenceSha,
+                                  filePath: evidence.filePath,
+                                  startLine: evidence.startLine,
+                                  endLine: evidence.endLine,
+                                })
+
+                                const lineInfo =
+                                  evidence.startLine && evidence.endLine
+                                    ? `L${evidence.startLine}-L${evidence.endLine}`
+                                    : evidence.startLine
+                                      ? `L${evidence.startLine}`
+                                      : null
+
+                                return (
+                                  <details
+                                    key={`${storyResult.id}-evidence-${index}`}
+                                    className="group rounded-md border bg-muted/40 text-sm text-foreground"
+                                  >
+                                    <summary className="flex w-full cursor-pointer select-none items-center gap-3 px-3 py-3 text-left [&::-webkit-details-marker]:hidden">
+                                      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+                                      <div className="space-y-1">
+                                        <span className="block font-medium">
+                                          {summaryText}
+                                        </span>
+                                        <span className="block text-xs text-muted-foreground">
+                                          {evidence.filePath}
+                                          {lineInfo ? ` · ${lineInfo}` : ''}
+                                        </span>
+                                      </div>
+                                    </summary>
+                                    <div className="space-y-4 border-t px-3 py-3 text-sm text-foreground">
+                                      <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2 rounded-md border bg-background p-3">
                                           {evidence.note ? (
-                                            <span className="block text-muted-foreground">
-                                              {evidence.note}
-                                            </span>
-                                          ) : null}
-                                        </li>
-                                      ),
-                                    )}
-                                  </ul>
+                                            <div className="prose prose-sm max-w-none text-foreground">
+                                              <ReactMarkdown>
+                                                {evidence.note}
+                                              </ReactMarkdown>
+                                            </div>
+                                          ) : (
+                                            <div className="text-sm text-muted-foreground">
+                                              No summary provided.
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="space-y-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
+                                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                            Related Code
+                                          </div>
+                                          <p>Code preview coming soon.</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </details>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  })()
+
+                  return (
+                    <Card className="border">
+                      <CardContent className="space-y-6 p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <StoryStatusCheck status={selectedStory.status} />
+                            <div className="space-y-2">
+                              <h3 className="text-lg font-semibold text-foreground">
+                                {storyTitle}
+                              </h3>
+                              <div
+                                className="text-sm text-muted-foreground"
+                                title={startedTooltip}
+                              >
+                                {statusLine}
+                              </div>
+                              {selectedStory.summary ? (
+                                <div className="prose prose-sm max-w-none text-muted-foreground">
+                                  <ReactMarkdown>
+                                    {selectedStory.summary}
+                                  </ReactMarkdown>
                                 </div>
                               ) : null}
                             </div>
-                          ) : (
-                            <div className="rounded-md border border-dashed bg-muted/30 p-3 text-muted-foreground">
-                              Evaluation completed without additional analysis
-                              details.
-                            </div>
-                          )
-                        ) : (
-                          <div className="rounded-md border border-dashed bg-muted/30 p-3 text-muted-foreground">
-                            No evaluation result recorded for this run story.
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )
+                          <div className="flex flex-wrap items-start justify-end gap-2">
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+                                statusPill.className,
+                              )}
+                            >
+                              {statusPill.label}
+                            </span>
+                            {storyResult ? (
+                              <span className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">
+                                Analysis v{storyResult.analysisVersion}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
 
-                if (runStory.story) {
-                  return (
-                    <li key={runStory.storyId}>
-                      <a
-                        href={`/org/${orgSlug}/repo/${repoName}/stories/${runStory.storyId}`}
-                        className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-accent/60"
-                      >
-                        {content}
-                      </a>
-                    </li>
+                        {conclusionContent}
+
+                        {scenarioText ? (
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              Scenario Under Test
+                            </div>
+                            <GherkinViewer text={scenarioText} />
+                          </div>
+                        ) : null}
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Processed Story Snapshot
+                          </div>
+                          <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
+                            This run will display the saved story summary once
+                            processing completes.
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )
-                }
-
-                return (
-                  <li key={runStory.storyId}>
-                    <div className="flex items-start gap-3 px-4 py-3">
-                      {content}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+                })()}
+              </section>
+            </div>
           )}
-        </div>
-        <div>
-          <h2 className="text-sm font-medium text-foreground mb-2">
-            Run Metadata
-          </h2>
-          <pre className="max-h-96 overflow-auto rounded-md border bg-muted p-4 text-xs font-mono text-muted-foreground">
-            {JSON.stringify(run, null, 2)}
-          </pre>
         </div>
       </div>
     </div>
