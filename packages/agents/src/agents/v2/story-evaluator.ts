@@ -11,6 +11,7 @@ import {
   createResolveLibraryTool,
   createGetLibraryDocsTool,
 } from '../../tools/context7-tool'
+import { createLspTool } from '../../tools/lsp-tool'
 import {
   storyTestResultSchema,
   type StoryEvaluationAgentMetrics,
@@ -85,6 +86,7 @@ If you find evidence that contradicts the user story, you must mark the story as
 - **readFile**: Read the full contents of a file to verify context and extract precise code snippets.
 - **resolveLibrary**: Resolve a library/package name to get its Context7 library ID. Use this when you need to understand how a specific library or framework works.
 - **getLibraryDocs**: Fetch up-to-date documentation for a library using its Context7 ID. Use this after resolveLibrary to get detailed documentation about APIs, patterns, or features.
+- **lsp**: Use the Language Server Protocol to list symbols in a file (\`documentSymbols\`) or discover symbols across the codebase (\`sandboxSymbols\`). Only supports TypeScript and Python sources.
 
 # Working Rules & Search Strategy
 - The terminal is **non-interactive** — never use commands that open editors or wait for input.
@@ -179,6 +181,11 @@ export async function runStoryEvaluationAgent(
     apiKey: env.CONTEXT7_API_KEY,
   })
 
+  const lspTool = createLspTool({
+    sandbox,
+    repoName: options.repoName,
+  })
+
   const maxSteps = Math.max(1, options.maxSteps ?? DEFAULT_MAX_STEPS)
   const telemetryMetadata: Record<string, string> = {
     storyName: options.storyName,
@@ -203,6 +210,7 @@ export async function runStoryEvaluationAgent(
       readFile: readFileTool,
       resolveLibrary: resolveLibraryTool,
       getLibraryDocs: getLibraryDocsTool,
+      lsp: lspTool,
     },
     experimental_telemetry: telemetryEnabled
       ? {

@@ -21,6 +21,7 @@ export {
   shareThoughtInputSchema,
 } from './tools/share-thought-tool'
 export { createReadFileTool, readFileInputSchema } from './tools/read-file-tool'
+export { createLspTool } from './tools/lsp-tool'
 export {
   createResolveLibraryTool,
   createGetLibraryDocsTool,
