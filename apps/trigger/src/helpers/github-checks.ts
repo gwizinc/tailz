@@ -89,7 +89,7 @@ export function buildCheckRunContent(
     return {
       status: 'in_progress',
       output: {
-        title: `⛩️ Kyoto - QA Run #${params.runNumber} running...`,
+        title: `Intent Test #${params.runNumber} running...`,
         summary: params.summary,
         text,
       },
@@ -115,7 +115,7 @@ export function buildCheckRunContent(
     status: 'completed',
     conclusion: mapOutcomeToConclusion(params.status),
     output: {
-      title: `⛩️ Kyoto - QA Run #${params.runNumber}`,
+      title: `Intent test #${params.runNumber}`,
       summary: params.summary,
       text: textLines.join('\n'),
     },
@@ -152,7 +152,7 @@ export async function submitCheckRun({
     const response = await octokit.rest.checks.create({
       owner,
       repo,
-      name: 'Kyoto/QA',
+      name: 'Kyoto',
       head_sha: headSha,
       status: content.status,
       details_url: detailsUrlValue,
@@ -215,7 +215,7 @@ async function handleCheckRunCreateFallback({
     const response = await octokit.rest.checks.create({
       owner,
       repo,
-      name: 'Kyoto/QA',
+      name: 'Kyoto',
       head_sha: headSha,
       status: content.status,
       details_url: detailsUrlValue,
