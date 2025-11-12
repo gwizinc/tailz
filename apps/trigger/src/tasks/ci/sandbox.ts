@@ -1,14 +1,13 @@
 import { Daytona } from '@daytonaio/sdk'
-import { logger, tasks } from '@trigger.dev/sdk'
+import pMap from 'p-map'
+import { logger } from '@trigger.dev/sdk'
 import type { RunStory } from '@app/db'
 import type { RepoRecord, StoryRow } from './types'
 import { aggregateBatchResults, type AggregatedRunOutcome } from './results'
+import { testStoryTask } from '../test-story'
 
 type DaytonaClient = InstanceType<typeof Daytona>
 type DaytonaSandbox = Awaited<ReturnType<DaytonaClient['create']>>
-export type BatchTriggerResult = Awaited<
-  ReturnType<typeof tasks.batchTriggerAndWait>
->
 
 interface RunStoriesWithSandboxParams {
   daytonaApiKey: string
@@ -74,29 +73,31 @@ export async function runStoriesWithSandbox({
       'rm -f ~/.git-credentials ~/.config/gh/hosts.yml || true',
     )
 
-    const batchResult = await tasks.batchTriggerAndWait(
-      'test-story',
-      stories.map((story) => ({
-        payload: {
-          storyId: story.id,
-          runId,
-          daytonaSandboxId: sandbox?.id,
-          agentVersion,
-        },
-        tags: [
-          `org_${repo.ownerLogin}`,
-          `repo_${repo.repoName}`,
-          `agent_${agentVersion}`,
-        ],
-        metadata: {
-          name: story.name,
-          story: story.story,
-        },
-      })),
-      {
-        // ! Temporarily while we figure out rate limiting
-        triggerSequentially: true,
+    const batchResult = await pMap(
+      stories,
+      async (story) => {
+        return await testStoryTask.triggerAndWait(
+          {
+            storyId: story.id,
+            runId,
+            // TODO fix this na here
+            daytonaSandboxId: sandbox?.id ?? 'na',
+            agentVersion,
+          },
+          {
+            tags: [
+              `org_${repo.ownerLogin}`,
+              `repo_${repo.repoName}`,
+              `agent_${agentVersion}`,
+            ],
+            metadata: {
+              name: story.name,
+              story: story.story,
+            },
+          },
+        )
       },
+      { concurrency: 1 },
     )
 
     return aggregateBatchResults({

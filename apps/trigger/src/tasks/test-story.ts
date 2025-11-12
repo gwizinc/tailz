@@ -23,6 +23,28 @@ interface TestStoryPayload {
   // TODO support if daytonaSandboxId is null so we can create a new sandbox for this single story execution
 }
 
+interface TestStoryResult {
+  success: boolean
+  storyId: string
+  runId: string | null
+  resultId: string
+  status: StoryTestResultPayload['status']
+  analysisVersion: StoryTestResultPayload['analysisVersion']
+  analysis: StoryTestResultPayload['analysis']
+}
+
+export type TestStoryTaskTriggerResult =
+  | {
+      ok: true
+      output: TestStoryResult
+      error?: undefined
+    }
+  | {
+      ok: false
+      error: unknown
+      output?: undefined
+    }
+
 export const testStoryTask = task({
   id: 'test-story',
   run: async (payload: TestStoryPayload) => {
@@ -138,7 +160,7 @@ export const testStoryTask = task({
         },
       )
 
-      return {
+      const result: TestStoryResult = {
         // Provide a succinct summary for orchestration tasks and UI consumption
         success: true,
         storyId: payload.storyId,
@@ -148,6 +170,7 @@ export const testStoryTask = task({
         analysisVersion: normalized.analysisVersion,
         analysis: normalized.analysis,
       }
+      return result
     } catch (error) {
       // Ensure the DB row reflects failure details before bubbling the error upward
       logger.error('Story evaluation failed', {

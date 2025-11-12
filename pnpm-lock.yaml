@@ -71,6 +71,9 @@ importers:
       '@trigger.dev/sdk':
         specifier: 4.0.7
         version: 4.0.7(ai@5.0.89(zod@4.1.12))(bufferutil@4.0.9)(zod@4.1.12)
+      p-map:
+        specifier: ^7.0.4
+        version: 7.0.4
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -5862,6 +5865,10 @@ packages:
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
+
+  p-map@7.0.4:
+    resolution: {integrity: sha512-tkAQEw8ysMzmkhgw8k+1U/iPhWNhykKnSk4Rd5zLoPJCuJaGRPo6YposrZgaxHKzDHdDWWZvE/Sk7hsL2X/CpQ==}
+    engines: {node: '>=18'}
 
   p-queue@8.1.0:
     resolution: {integrity: sha512-mxLDbbGIBEXTJL0zEx8JIylaj3xQ7Z/7eEVjcF9fJX4DBiH9oqe+oahYnlKKxm0Ci9TlWTyhSHgygxMxjIB2jw==}
@@ -14330,6 +14337,8 @@ snapshots:
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
+
+  p-map@7.0.4: {}
 
   p-queue@8.1.0:
     dependencies:

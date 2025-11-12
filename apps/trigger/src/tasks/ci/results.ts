@@ -1,8 +1,8 @@
 import { json } from '@app/db'
-import type { RunStory, StoryAnalysisV1 } from '@app/db'
+import type { RunStory } from '@app/db'
 import type { AggregatedCounts } from '../../helpers/github-checks'
 import type { DbClient, StoryRow } from './types'
-import type { BatchTriggerResult } from './sandbox'
+import type { TestStoryTaskTriggerResult } from '../test-story'
 
 export interface AggregatedRunOutcome {
   aggregated: AggregatedCounts
@@ -17,7 +17,7 @@ export function aggregateBatchResults({
   stories,
   initialRunStories,
 }: {
-  batchResult: BatchTriggerResult
+  batchResult: TestStoryTaskTriggerResult[]
   stories: StoryRow[]
   initialRunStories: RunStory[]
 }): AggregatedRunOutcome {
@@ -28,7 +28,7 @@ export function aggregateBatchResults({
   }
   const updatedRunStories: RunStory[] = []
 
-  batchResult.runs.forEach((result, index) => {
+  batchResult.forEach((result: TestStoryTaskTriggerResult, index) => {
     const story = stories[index]
 
     if (!story) {
@@ -36,12 +36,7 @@ export function aggregateBatchResults({
     }
 
     if (result.ok) {
-      const output = result.output as {
-        resultId: string
-        status: 'pass' | 'fail' | 'running' | 'error'
-        analysisVersion: number
-        analysis: StoryAnalysisV1 | null
-      }
+      const output = result.output
 
       if (output.status === 'pass') {
         aggregated.pass += 1
