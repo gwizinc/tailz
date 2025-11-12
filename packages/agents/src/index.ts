@@ -26,3 +26,8 @@ export {
   createResolveLibraryTool,
   createGetLibraryDocsTool,
 } from './tools/context7-tool'
+export {
+  runStoryStepDecomposerAgent,
+  type StoryStepDecomposerAgentOptions,
+  type StoryStepDecomposerAgentResult,
+} from './agents/v2/story-step-decomposer'
