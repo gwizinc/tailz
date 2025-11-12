@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/astro'
 import { navigate } from 'astro:transitions/client'
 import React, { useEffect } from 'react'
 
@@ -13,6 +14,24 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const session = useSession()
+  const sessionUser = session.data?.user ?? null
+
+  useEffect(() => {
+    if (session.isPending) {
+      return
+    }
+
+    if (session.error || !sessionUser) {
+      Sentry.setUser(null)
+      return
+    }
+
+    Sentry.setUser({
+      id: sessionUser.id,
+      email: sessionUser.email ?? undefined,
+      username: sessionUser.name ?? undefined,
+    })
+  }, [sessionUser, session.error, session.isPending])
 
   useEffect(() => {
     // Redirect if session exists but has no data (user not logged in)

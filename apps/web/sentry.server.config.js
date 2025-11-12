@@ -5,6 +5,7 @@ Sentry.init({
   // Adds request headers and IP for users, for more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+  environment: process.env.NODE_ENV ?? 'development',
   integrations: [
     Sentry.openAIIntegration({
       recordInputs: true,

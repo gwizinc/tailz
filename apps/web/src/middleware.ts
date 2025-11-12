@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/astro'
 import { defineMiddleware } from 'astro:middleware'
 
 import { auth } from './server/auth'
@@ -8,7 +9,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
     headers: context.request.headers,
   })
 
-  context.locals.userId = sessionData?.user?.id
+  const sessionUser = sessionData?.user
 
-  return await next()
+  context.locals.userId = sessionUser?.id ?? undefined
+
+  if (sessionUser?.id) {
+    Sentry.setUser({
+      id: sessionUser.id,
+      email: sessionUser.email ?? undefined,
+      username: sessionUser.name ?? undefined,
+    })
+  } else {
+    Sentry.setUser(null)
+  }
+
+  try {
+    return await next()
+  } finally {
+    Sentry.setUser(null)
+  }
 })

@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/layout.astro'
+import { DevTools } from '@/components/dev/dev-tools'
+
+export const prerender = false
+---
+
+<Layout title="Developer Tools">
+  <DevTools client:load />
+</Layout>
+
