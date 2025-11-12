@@ -136,7 +136,7 @@ export function RepoOverview({
                       aria-hidden="true"
                     />
                     <h2 className="text-base font-semibold text-foreground">
-                      Trace Evaluations
+                      Intent Test Runs
                     </h2>
                   </div>
                 </div>
