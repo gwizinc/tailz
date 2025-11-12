@@ -10,7 +10,7 @@ export const readFileInputSchema = z.object({
     .min(1)
     .max(4_096)
     .describe(
-      'Absolute or repo-relative path to the file within the Daytona sandbox workspace.',
+      'Absolute or repo-relative path to the file within the repository workspace.',
     ),
 })
 

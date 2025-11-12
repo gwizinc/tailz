@@ -15,16 +15,8 @@ const terminalCommandInputSchema = z.object({
     .min(1)
     .max(8_000)
     .describe(
-      'Shell command to run inside the Daytona sandbox. Use read-only commands like rg or ls.',
+      'The non-interactive shell command to run inside the VM sandbox.',
     ),
-  // cwd: z
-  //   .string()
-  //   .min(1)
-  //   .max(2_048)
-  //   .describe(
-  //     'Default path is root of the repo. Optional working directory to cd into before running the command.',
-  //   )
-  //   .optional(),
 })
 
 export function createTerminalCommandTool(ctx: {
@@ -34,7 +26,7 @@ export function createTerminalCommandTool(ctx: {
   return tool({
     name: 'terminalCommand',
     description:
-      'Execute read-only, non-interactive shell commands (e.g. rg, fd, tree, sed, grep, git, find, etc.) inside the Daytona sandbox workspace.',
+      'Execute read-only, non-interactive shell commands (e.g. rg, fd, tree, sed, grep, git, find, etc.) within the repository workspace.',
     inputSchema: terminalCommandInputSchema,
     execute: async (input) => {
       const result = await ctx.sandbox.process.executeCommand(
@@ -45,18 +37,11 @@ export function createTerminalCommandTool(ctx: {
       const output = result.result ?? ''
 
       if (result.exitCode !== 0) {
-        console.error(`⚡ ${input.description} failed`, {
-          input,
-          result,
-          output,
-        })
         return JSON.stringify({
           exitCode: result.exitCode,
           output,
         })
       }
-
-      console.debug(`⚡ ${input.description}`, { input, output })
 
       return output
     },

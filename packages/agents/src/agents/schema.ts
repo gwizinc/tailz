@@ -7,13 +7,7 @@ const evidenceItemSchema = z.object({
     .string()
     .min(3)
     .describe(
-      'Describe the goal that is being evaluated. Short and human-readable.',
-    ),
-  storyText: z
-    .string()
-    .min(1)
-    .describe(
-      'The verbatim snippet of the story text this step is evaluating.',
+      'Gherkin-style goal that is being evaluated. e.g. "Given a user is logged in" or "When a user clicks the button" or "Then the user should see the result".',
     ),
   conclusion: z.enum(['pass', 'fail']),
   filePath: z.string().min(1),
@@ -23,7 +17,7 @@ const evidenceItemSchema = z.object({
     .string()
     .min(1)
     .describe(
-      'An explanation in markdown that elaborates briefly on this evidence.',
+      'Markdown explanation that elaborates briefly on this discovery.',
     ),
 })
 
