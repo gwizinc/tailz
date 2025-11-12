@@ -165,20 +165,19 @@ export const testStoryTask = task({
         error instanceof Error ? error.message : 'Unknown error occurred'
 
       const failureAnalysis = {
-        version: 1,
-        conclusion: 'error',
+        conclusion: 'error' as const,
         explanation: failureDescription,
         evidence: [],
       }
 
       await db
         .updateTable('storyTestResults')
-        .set({
+        .set((eb) => ({
           status: 'error',
           analysisVersion: 1,
-          analysis: failureAnalysis,
+          analysis: eb.cast(eb.val(JSON.stringify(failureAnalysis)), 'jsonb'),
           completedAt: new Date(),
-        })
+        }))
         .where('id', '=', resultId)
         .execute()
 

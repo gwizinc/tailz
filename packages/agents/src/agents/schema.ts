@@ -8,6 +8,12 @@ const evidenceItemSchema = z.object({
     .describe(
       'Describe the goal that is being evaluated. Short and human-readable.',
     ),
+  storyText: z
+    .string()
+    .min(1)
+    .describe(
+      'The verbatim snippet of the story text this step is evaluating.',
+    ),
   conclusion: z.enum(['pass', 'fail']),
   filePath: z.string().min(1),
   startLine: z.number().int().min(1),

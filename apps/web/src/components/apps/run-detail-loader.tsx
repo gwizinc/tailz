@@ -221,12 +221,18 @@ function transformRunResponse(data: RunQueryOutput): Run | null {
         : null
 
     let analysis: StoryAnalysis | null = null
-    if (rawResult && isStoryAnalysis(rawResult.analysis)) {
+    if (rawResult && rawResult.analysis && isStoryAnalysis(rawResult.analysis)) {
+      const validatedAnalysis = rawResult.analysis
       analysis = {
-        ...rawResult.analysis,
-        evidence: rawResult.analysis.evidence.map((item) => ({
-          ...item,
+        conclusion: validatedAnalysis.conclusion,
+        explanation: validatedAnalysis.explanation,
+        evidence: validatedAnalysis.evidence.map((item) => ({
+          step: item.step,
           conclusion: item.conclusion === 'pass' ? 'pass' : 'fail',
+          filePath: item.filePath,
+          startLine: item.startLine,
+          endLine: item.endLine,
+          note: item.note,
         })),
       }
     }

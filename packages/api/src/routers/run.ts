@@ -139,12 +139,12 @@ export const runRouter = router({
 
       const storyResults = await ctx.db
         .selectFrom('storyTestResults')
-        .select((eb) => [
+        .select([
           'storyTestResults.id',
           'storyTestResults.storyId',
           'storyTestResults.status',
           'storyTestResults.analysisVersion',
-          eb.cast('storyTestResults.analysis', 'jsonb').as('analysis'),
+          'storyTestResults.analysis',
           'storyTestResults.startedAt',
           'storyTestResults.completedAt',
           'storyTestResults.durationMs',
