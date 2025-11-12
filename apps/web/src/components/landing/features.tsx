@@ -23,13 +23,9 @@ export function FeatureGrid() {
           </p>
           <p className="mt-6 pl-6 text-base italic text-muted-foreground sm:text-lg">
             <i>
-              Made with passion by the creator of{' '}
+              Crafted with intention by the creators of{' '}
               <a href="https://codecov.io" className="text-primary">
                 Codecov
-              </a>{' '}
-              and{' '}
-              <a href="https://gwiz.ai" className="text-primary">
-                Gwiz
               </a>
             </i>
           </p>
