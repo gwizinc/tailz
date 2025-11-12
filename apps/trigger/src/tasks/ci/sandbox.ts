@@ -47,7 +47,7 @@ export async function runStoriesWithSandbox({
   try {
     sandbox = await daytona.create({
       ephemeral: true,
-      autoArchiveInterval: 5,
+      autoArchiveInterval: 1, // 1 minute of no activity will kill the box
       labels: {
         'kyoto.repoId': repoRecord.repoId,
         'kyoto.slug': `${repo.ownerLogin}/${repo.repoName}`,
