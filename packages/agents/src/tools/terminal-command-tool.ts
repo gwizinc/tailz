@@ -3,13 +3,6 @@ import { tool } from 'ai'
 import { z } from 'zod'
 
 const terminalCommandInputSchema = z.object({
-  description: z
-    .string()
-    .min(1)
-    .max(256)
-    .describe(
-      'A short, human-readable description of the command intent. Like "find function called xyz"',
-    ),
   command: z
     .string()
     .min(1)
