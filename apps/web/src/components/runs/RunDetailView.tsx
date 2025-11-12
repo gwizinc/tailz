@@ -348,8 +348,28 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
   const actorHandle = '@unknown'
   const actorInitial =
     actorHandle.length > 1 ? (actorHandle[1]?.toUpperCase() ?? '?') : '?'
+  const sortedStories = useMemo(() => {
+    const statusPriority: Record<StoryStatusPillStatus, number> = {
+      fail: 0,
+      error: 1,
+      running: 2,
+      pass: 3,
+      skipped: 4,
+    }
+
+    return [...run.stories].sort((a, b) => {
+      const statusA = statusPriority[a.result?.status ?? a.status] ?? 99
+      const statusB = statusPriority[b.result?.status ?? b.status] ?? 99
+
+      if (statusA !== statusB) {
+        return statusA - statusB
+      }
+
+      return run.stories.indexOf(a) - run.stories.indexOf(b)
+    })
+  }, [run.stories])
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(
-    () => run.stories[0]?.storyId ?? null,
+    () => sortedStories[0]?.storyId ?? null,
   )
 
   const storyStatusCounts = useMemo(
@@ -373,15 +393,15 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
 
   const selectedStory = useMemo<RunStory | null>(() => {
     if (selectedStoryId) {
-      const match = run.stories.find(
+      const match = sortedStories.find(
         (story) => story.storyId === selectedStoryId,
       )
       if (match) {
         return match
       }
     }
-    return run.stories[0] ?? null
-  }, [run.stories, selectedStoryId])
+    return sortedStories[0] ?? null
+  }, [sortedStories, selectedStoryId])
 
   return (
     <div className="flex flex-col">
@@ -535,7 +555,7 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
             <div className="flex flex-col gap-6 lg:flex-row">
               <aside className="lg:w-72 lg:shrink-0">
                 <ul className="space-y-2">
-                  {run.stories.map((runStory) => {
+                  {sortedStories.map((runStory) => {
                     const storyTitle = runStory.story
                       ? runStory.story.name
                       : 'Story not found'
