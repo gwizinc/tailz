@@ -19,6 +19,7 @@ import { StoryStatusCheck } from './StoryStatusCheck'
 
 interface StoryAnalysisEvidence {
   step: string | null
+  conclusion: 'pass' | 'fail'
   filePath: string
   startLine: number | null
   endLine: number | null
@@ -275,6 +276,30 @@ function getStatusPillStyles(status: StoryStatusPillStatus): {
         className: 'border-border bg-muted text-muted-foreground',
         label: status,
       }
+  }
+}
+
+interface EvidenceConclusionDisplay {
+  Icon: LucideIcon
+  iconClassName: string
+  label: string
+}
+
+function getEvidenceConclusionDisplay(
+  conclusion: StoryAnalysisEvidence['conclusion'],
+): EvidenceConclusionDisplay {
+  if (conclusion === 'pass') {
+    return {
+      Icon: CheckCircle2,
+      iconClassName: 'text-chart-1',
+      label: 'Pass',
+    }
+  }
+
+  return {
+    Icon: XCircle,
+    iconClassName: 'text-destructive',
+    label: 'Fail',
   }
 }
 
@@ -700,46 +725,53 @@ export function RunDetailView({ run, orgSlug, repoName }: RunDetailViewProps) {
                                     : evidence.startLine
                                       ? `L${evidence.startLine}`
                                       : null
+                                const evidenceConclusion =
+                                  evidence.conclusion === 'pass'
+                                    ? 'pass'
+                                    : 'fail'
+                                const conclusionDisplay =
+                                  getEvidenceConclusionDisplay(
+                                    evidenceConclusion,
+                                  )
 
                                 return (
                                   <details
                                     key={`${storyResult.id}-evidence-${index}`}
                                     className="group rounded-md border bg-muted/40 text-sm text-foreground"
                                   >
-                                    <summary className="flex w-full cursor-pointer select-none items-center gap-3 px-3 py-3 text-left [&::-webkit-details-marker]:hidden">
+                                    <summary className="flex w-full cursor-pointer select-none items-center gap-2 px-3 py-3 text-left [&::-webkit-details-marker]:hidden">
                                       <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
-                                      <div className="space-y-1">
-                                        <span className="block font-medium">
-                                          {summaryTitle}
-                                        </span>
-                                        <span className="block text-xs text-muted-foreground">
-                                          {evidence.filePath}
-                                          {lineInfo ? ` · ${lineInfo}` : ''}
-                                        </span>
-                                      </div>
+                                      <conclusionDisplay.Icon
+                                        aria-label={conclusionDisplay.label}
+                                        className={cn(
+                                          'size-4 shrink-0',
+                                          conclusionDisplay.iconClassName,
+                                        )}
+                                      />
+                                      <span className="truncate text-sm font-medium text-foreground">
+                                        {summaryTitle}
+                                      </span>
                                     </summary>
-                                    <div className="space-y-4 border-t px-3 py-3 text-sm text-foreground">
-                                      <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2 rounded-md border bg-background p-3">
-                                          {evidence.note ? (
-                                            <div className="prose prose-sm max-w-none text-foreground">
-                                              <ReactMarkdown>
-                                                {evidence.note}
-                                              </ReactMarkdown>
-                                            </div>
-                                          ) : (
-                                            <div className="text-sm text-muted-foreground">
-                                              No summary provided.
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="space-y-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
-                                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                            Related Code
-                                          </div>
-                                          <p>Code preview coming soon.</p>
-                                        </div>
+                                    <div className="space-y-3 border-t px-3 py-3 text-sm text-foreground">
+                                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                        <code className="rounded bg-background px-1.5 py-0.5 font-mono text-[11px]">
+                                          {evidence.filePath}
+                                        </code>
+                                        {lineInfo ? (
+                                          <span>{lineInfo}</span>
+                                        ) : null}
                                       </div>
+                                      {evidence.note ? (
+                                        <div className="prose prose-sm max-w-none text-foreground">
+                                          <ReactMarkdown>
+                                            {evidence.note}
+                                          </ReactMarkdown>
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-muted-foreground">
+                                          No conclusion note provided.
+                                        </div>
+                                      )}
                                     </div>
                                   </details>
                                 )

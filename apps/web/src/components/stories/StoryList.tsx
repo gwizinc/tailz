@@ -6,8 +6,6 @@ interface StoryItem {
   id: string
   name: string
   story: string
-  commitSha: string | null
-  branchName: string
   createdAt: string | null
   updatedAt: string | null
   groups: string[]

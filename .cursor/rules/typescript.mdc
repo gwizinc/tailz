@@ -17,7 +17,7 @@ alwaysApply: false
 - Use `unknown` for variables that are not yet typed
 - Use `Zod` for schema validation
 - Use the type guards pattern for runtime type checking
-- Use `assertString` for runtime string checking
+- Use `import {is, assert} from @app/utils` for guards and assertions
 
 ## Naming Conventions
 

@@ -12,6 +12,7 @@ export type JSONValue =
 
 export interface StoryAnalysisEvidenceReference {
   step: string | null
+  conclusion: 'pass' | 'fail'
   filePath: string
   startLine: number | null
   endLine: number | null

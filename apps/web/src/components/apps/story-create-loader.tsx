@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { ChevronDown, Sparkles } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { LuOrigami } from 'react-icons/lu'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
@@ -79,7 +79,6 @@ export function StoryCreateLoader({
   const [storyContent, setStoryContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isEnriching, setIsEnriching] = useState(false)
   const [openTemplateId, setOpenTemplateId] = useState<string | null>(
     STORY_TEMPLATES[0]?.id ?? null,
   )
@@ -111,33 +110,6 @@ export function StoryCreateLoader({
     }
   }
 
-  const handleEnrichStory = async () => {
-    if (!storyContent.trim()) {
-      setError('Story content is required before enhancing')
-      return
-    }
-
-    setIsEnriching(true)
-    setError(null)
-    try {
-      const result = await trpc.story.enrich.mutate({
-        orgSlug,
-        repoName,
-        storyId: 'new',
-        story: storyContent,
-      })
-
-      setStoryContent(result.enrichedStory)
-      textareaRef.current?.focus()
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Failed to enhance story content',
-      )
-    } finally {
-      setIsEnriching(false)
-    }
-  }
-
   const handleTemplateSelect = (template: StoryTemplate) => {
     setStoryContent(template.content)
     textareaRef.current?.focus()
@@ -165,20 +137,6 @@ export function StoryCreateLoader({
           <div className="flex items-center gap-2">
             <Button type="button" onClick={handleSave} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Story'}
-            </Button>
-            <Button
-              type="button"
-              className={cn(
-                'h-9 px-4 text-sm text-white',
-                'bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 shadow-sm',
-                'hover:from-violet-600 hover:via-indigo-600 hover:to-sky-600 hover:shadow-md',
-                'focus-visible:ring-indigo-500/70 focus-visible:ring-offset-1',
-              )}
-              onClick={() => void handleEnrichStory()}
-              disabled={isEnriching || isSaving}
-            >
-              <Sparkles className="h-4 w-4" />
-              {isEnriching ? 'Enhancing...' : 'Enhance'}
             </Button>
           </div>
         </div>

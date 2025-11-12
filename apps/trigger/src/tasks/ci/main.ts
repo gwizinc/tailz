@@ -17,7 +17,7 @@ import {
   getBranchName,
   getInitialRunMeta,
   getRepoRecord,
-  getStoriesForBranch,
+  getStories,
 } from './setup'
 import { markRunFailure, updateRunResults } from './results'
 import { runStoriesWithSandbox } from './sandbox'
@@ -37,7 +37,7 @@ export const runCiTask = task({
       { payload },
     )
 
-    const stories = await getStoriesForBranch(db, repoRecord.repoId, branchName)
+    const stories = await getStories(db, repoRecord.repoId)
     const initialRunStories = buildInitialRunStories(stories)
     const { runStatus, runSummary } = getInitialRunMeta(stories)
 

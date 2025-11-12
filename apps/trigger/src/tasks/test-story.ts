@@ -1,6 +1,6 @@
 import { task, logger } from '@trigger.dev/sdk'
 
-import { setupDb } from '@app/db'
+import { setupDb, type StoryTestResultPayload } from '@app/db'
 
 import {
   parseEnv,
@@ -8,6 +8,7 @@ import {
   runStoryEvaluationAgent,
   normalizeStoryTestResultV2,
   runStoryEvaluationAgentV2,
+  type StoryEvaluationAgentResult,
 } from '@app/agents'
 
 interface TestStoryPayload {
@@ -36,8 +37,6 @@ export const testStoryTask = task({
         'stories.name as storyName',
         'stories.story as storyText',
         'stories.repoId as repoId',
-        'stories.commitSha as commitSha',
-        'stories.branchName as branchName',
         'repos.name as repoName',
       ])
       .where('stories.id', '=', payload.storyId)
@@ -70,25 +69,41 @@ export const testStoryTask = task({
     }
 
     try {
-      const agentVersion = payload.agentVersion ?? 'v1'
+      const agentVersion = payload.agentVersion ?? 'v2'
 
       /**
        * 💎 Run Story Evaluation Agent
        */
-      const evaluation =
-        agentVersion === 'v2'
-          ? await runStoryEvaluationAgentV2({
-              ...storyRecord,
-              runId: payload.runId,
-              daytonaSandboxId: payload.daytonaSandboxId,
-              maxSteps: 30,
-            })
-          : await runStoryEvaluationAgent({
-              ...storyRecord,
-              runId: payload.runId,
-              daytonaSandboxId: payload.daytonaSandboxId,
-              maxSteps: 30,
-            })
+      let evaluation: StoryEvaluationAgentResult
+      let normalized: StoryTestResultPayload
+
+      if (agentVersion === 'v2') {
+        const evaluationV2 = await runStoryEvaluationAgentV2({
+          ...storyRecord,
+          runId: payload.runId,
+          daytonaSandboxId: payload.daytonaSandboxId,
+          maxSteps: 30,
+        })
+        evaluation = evaluationV2
+        normalized = normalizeStoryTestResultV2(
+          evaluationV2.output,
+          startedAt,
+          new Date(),
+        )
+      } else {
+        const evaluationV1 = await runStoryEvaluationAgent({
+          ...storyRecord,
+          runId: payload.runId,
+          daytonaSandboxId: payload.daytonaSandboxId,
+          maxSteps: 30,
+        })
+        evaluation = evaluationV1
+        normalized = normalizeStoryTestResult(
+          evaluationV1.output,
+          startedAt,
+          new Date(),
+        )
+      }
 
       logger.info('Story evaluation agent completed', {
         storyId: payload.storyId,
@@ -99,16 +114,6 @@ export const testStoryTask = task({
         agentSteps: evaluation.metrics.stepCount,
         contextToolCalls: evaluation.metrics.toolCallCount,
       })
-
-      const modelOutput = evaluation.output
-
-      /**
-       * 💎 Normalize and Persist Story Test Result
-       */
-      const normalized =
-        agentVersion === 'v2'
-          ? normalizeStoryTestResultV2(modelOutput, startedAt, new Date())
-          : normalizeStoryTestResult(modelOutput, startedAt, new Date())
 
       const completedAt = normalized.completedAt
         ? new Date(normalized.completedAt)

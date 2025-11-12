@@ -14,23 +14,6 @@ import { parseEnv } from '../helpers/env'
 
 type StoryTestStatus = 'pass' | 'fail' | 'error' | 'running'
 
-const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions'
-const OPENAI_ENRICH_MODEL = 'gpt-4o-mini'
-
-const openAiChatCompletionSchema = z
-  .object({
-    choices: z
-      .array(
-        z.object({
-          message: z.object({
-            content: z.string(),
-          }),
-        }),
-      )
-      .min(1),
-  })
-  .passthrough()
-
 function deriveGroupNamesFromFiles(files: Json | null): string[] {
   if (!files || !Array.isArray(files)) {
     return []
@@ -142,8 +125,6 @@ export const storyRouter = router({
           id: story.id,
           name: story.name,
           story: story.story,
-          commitSha: story.commitSha,
-          branchName: story.branchName,
           createdAt: story.createdAt?.toISOString() ?? null,
           updatedAt: story.updatedAt?.toISOString() ?? null,
           groups: deriveGroupNamesFromFiles(story.files as Json),
@@ -197,8 +178,6 @@ export const storyRouter = router({
           id: story.id,
           name: story.name,
           story: story.story,
-          commitSha: story.commitSha,
-          branchName: story.branchName,
           createdAt: story.createdAt?.toISOString() ?? null,
           updatedAt: story.updatedAt?.toISOString() ?? null,
         },
@@ -312,115 +291,9 @@ export const storyRouter = router({
           id: updatedStory.id,
           name: updatedStory.name,
           story: updatedStory.story,
-          commitSha: updatedStory.commitSha,
-          branchName: updatedStory.branchName,
           createdAt: updatedStory.createdAt?.toISOString() ?? null,
           updatedAt: updatedStory.updatedAt?.toISOString() ?? null,
         },
-      }
-    }),
-
-  enrich: protectedProcedure
-    .input(
-      z.object({
-        orgSlug: z.string(),
-        repoName: z.string(),
-        storyId: z.string(),
-        story: z.string().min(1).optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const env = parseEnv(ctx.env)
-
-      const userId = ctx.user?.id
-
-      if (!userId) {
-        throw new TRPCError({ code: 'UNAUTHORIZED' })
-      }
-
-      const repo = await requireRepoForUser(ctx.db, {
-        orgSlug: input.orgSlug,
-        repoName: input.repoName,
-        userId,
-      })
-
-      const existingStory = await ctx.db
-        .selectFrom('stories')
-        .select(['story'])
-        .where('id', '=', input.storyId)
-        .where('repoId', '=', repo.id)
-        .executeTakeFirst()
-
-      if (!existingStory && !input.story) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Story ${input.storyId} not found`,
-        })
-      }
-
-      const baseStory = input.story ?? existingStory?.story ?? ''
-      const trimmedStory = baseStory.trim()
-
-      if (trimmedStory.length === 0) {
-        throw new Error('Story content is empty, cannot enrich')
-      }
-
-      // TODO add the story format here, the type of story it is
-      const userPrompt = [
-        'Enrich the following user story with more detail while preserving intent, keeping the output in the same format.',
-        'Return only the enriched story text.',
-        '',
-        trimmedStory,
-      ].join('\n')
-
-      const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: OPENAI_ENRICH_MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: `
-              You are a senior QA software engineer specializing in user story writing.
-              You are given a user story and you need to enrich it with more detail while preserving intent, keeping the output in the same format.
-              
-              # Important
-              - You must preserve the intent from the original story. Do not add extra details.
-              - Focus more on spell checking, grammar, structure, organization, and formatting.
-              - Write the story in gherkin-style, plain text
-              - You will return only the enriched story text.
-              `,
-            },
-            {
-              role: 'user',
-              content: userPrompt,
-            },
-          ],
-          temperature: 0.7,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(
-          `Failed to enrich story via OpenAI: ${response.status} ${errorText}`,
-        )
-      }
-
-      const parsed = openAiChatCompletionSchema.parse(await response.json())
-
-      const enrichedStory = parsed.choices[0]?.message.content?.trim()
-
-      if (!enrichedStory) {
-        throw new Error('OpenAI response did not include enriched content')
-      }
-
-      return {
-        enrichedStory,
       }
     }),
 

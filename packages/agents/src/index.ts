@@ -5,14 +5,12 @@ export {
   normalizeStoryTestResult,
 } from './agents/v1/story-evaluator'
 
-export type { StoryEvaluationAgentResult } from './agents/v1/story-evaluator'
-
 export {
   runStoryEvaluationAgent as runStoryEvaluationAgentV2,
   normalizeStoryTestResult as normalizeStoryTestResultV2,
 } from './agents/v2/story-evaluator'
 
-export type { StoryEvaluationAgentResult as StoryEvaluationAgentResultV2 } from './agents/v2/story-evaluator'
+export type { StoryEvaluationAgentResult } from './agents/schema'
 
 export {
   createSearchCodeTool as createSandboxSearchTool,

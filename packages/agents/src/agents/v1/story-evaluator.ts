@@ -1,12 +1,8 @@
-import { ToolLoopAgent, Output, type FinishReason, stepCountIs } from 'ai'
+import { ToolLoopAgent, Output, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { logger } from '@trigger.dev/sdk'
-import { z } from 'zod'
 
-import type {
-  StoryAnalysisEvidenceReference,
-  StoryTestResultPayload,
-} from '@app/db'
+import type { StoryTestResultPayload } from '@app/db'
 
 import { parseEnv } from '../../helpers/env'
 import {
@@ -15,59 +11,17 @@ import {
 } from './search-code-tool'
 import { createShareThoughtTool } from '../../tools/share-thought-tool'
 import { Daytona } from '@daytonaio/sdk'
+import {
+  storyTestResultSchema,
+  type StoryEvaluationAgentMetrics,
+  type StoryEvaluationAgentOptions,
+  type StoryEvaluationAgentResult,
+  type StoryTestModelOutput,
+} from '../schema'
 
 const DEFAULT_STORY_MODEL = 'gpt-5-mini'
 const DEFAULT_MAX_STEPS = 30
 const STORY_EVALUATION_AGENT_ID = 'story-evaluation'
-
-const evidenceItemSchema = z.object({
-  step: z
-    .string()
-    .min(3)
-    .describe('Describe the goal that is being evaluated.'),
-  filePath: z.string().min(1),
-  startLine: z.number().int().min(1),
-  endLine: z.number().int().min(1),
-  note: z.string().min(1),
-})
-
-const storyAnalysisSchema = z.object({
-  version: z.literal(1),
-  conclusion: z.enum(['pass', 'fail', 'error']),
-  explanation: z.string().min(1),
-  evidence: z.array(evidenceItemSchema).default([]),
-})
-
-const storyTestResultSchema = z.object({
-  status: z.enum(['pass', 'fail', 'running', 'error']).default('running'),
-  analysis: storyAnalysisSchema.nullable().default(null),
-})
-
-type StoryTestModelOutput = z.infer<typeof storyTestResultSchema>
-
-interface StoryEvaluationAgentOptions {
-  storyName: string
-  storyText: string
-  repoId: string
-  repoName: string
-  branchName: string
-  commitSha?: string | null
-  runId?: string | null
-  maxSteps?: number
-  modelId?: string
-  daytonaSandboxId: string
-}
-
-interface StoryEvaluationAgentMetrics {
-  stepCount: number
-  toolCallCount: number
-}
-
-export interface StoryEvaluationAgentResult {
-  output: StoryTestModelOutput
-  metrics: StoryEvaluationAgentMetrics
-  finishReason: FinishReason
-}
 
 export function normalizeStoryTestResult(
   raw: StoryTestModelOutput,
@@ -86,15 +40,7 @@ export function normalizeStoryTestResult(
     ? {
         conclusion: raw.analysis.conclusion,
         explanation: raw.analysis.explanation,
-        evidence: raw.analysis.evidence.map<StoryAnalysisEvidenceReference>(
-          (item) => ({
-            step: item.step ?? null,
-            filePath: item.filePath,
-            startLine: item.startLine ?? null,
-            endLine: item.endLine ?? null,
-            note: item.note ?? null,
-          }),
-        ),
+        evidence: raw.analysis.evidence,
       }
     : null
 

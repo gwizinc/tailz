@@ -9,6 +9,7 @@ alwaysApply: true
 - After you have executed the plan, run: `pnpm run ci` and fix any issues related to the changes
 - If there are any linting errors, run `pnpm fix` before attempting to fix the errors yourself.
 - Never try to start a dev server or curl a local endpoint.
+- 💋 KISS - I want to most simple solution
 
 ## Current dev status
 

@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { configure, tasks } from '@trigger.dev/sdk'
 
-import type { RunStory, StoryAnalysisV1 } from '@app/db'
 import { findRepoForUser, requireRepoForUser } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
 import { parseEnv } from '../helpers/env'
@@ -126,7 +125,6 @@ export const runRouter = router({
       }
 
       // Extract story IDs from the stories JSONB
-
       const storyIds = run.stories.map((s) => s.storyId)
 
       // Fetch stories if there are any
@@ -138,35 +136,6 @@ export const runRouter = router({
               .where('id', 'in', storyIds)
               .execute()
           : []
-
-      const stories = fetchedStories.map((s) => ({
-        id: s.id,
-        name: s.name,
-        story: s.story,
-        branchName: s.branchName,
-        commitSha: s.commitSha,
-        createdAt: s.createdAt ?? new Date(),
-        updatedAt: s.updatedAt ?? new Date(),
-      }))
-
-      // Create a map of story ID to story data
-      const storyMap = new Map(stories.map((s) => [s.id, s]))
-
-      // Type assertion needed until migration runs and types are regenerated
-      type RunRow = {
-        id: string
-        commitSha: string
-        branchName: string
-        commitMessage: string | null
-        prNumber: string | null
-        status: 'pass' | 'fail' | 'skipped' | 'running' | 'error'
-        summary: string | null
-        createdAt: Date
-        updatedAt: Date
-        stories: RunStory[]
-      }
-
-      const runRow = run as unknown as RunRow
 
       const storyResults = await ctx.db
         .selectFrom('storyTestResults')
@@ -182,125 +151,34 @@ export const runRouter = router({
           'storyTestResults.createdAt',
           'storyTestResults.updatedAt',
         ])
-        .where('storyTestResults.runId', '=', runRow.id)
+        .where('storyTestResults.runId', '=', run.id)
         .execute()
 
-      const storyResultMap = new Map<
-        string,
-        {
-          id: string
-          storyId: string
-          status: 'pass' | 'fail' | 'running' | 'error'
-          analysisVersion: number
-          analysis: StoryAnalysisV1 | null
-          startedAt: string | null
-          completedAt: string | null
-          durationMs: number | null
-          createdAt: string | null
-          updatedAt: string | null
-        }
-      >(
-        storyResults.map((result) => {
-          const startedAt =
-            result.startedAt instanceof Date
-              ? result.startedAt.toISOString()
-              : (result.startedAt ?? null)
-          const completedAt =
-            result.completedAt instanceof Date
-              ? result.completedAt.toISOString()
-              : (result.completedAt ?? null)
-          const createdAt =
-            result.createdAt instanceof Date
-              ? result.createdAt.toISOString()
-              : (result.createdAt ?? null)
-          const updatedAt =
-            result.updatedAt instanceof Date
-              ? result.updatedAt.toISOString()
-              : (result.updatedAt ?? null)
-
-          const status = ['pass', 'fail', 'running', 'error'].includes(
-            result.status,
-          )
-            ? (result.status as 'pass' | 'fail' | 'running' | 'error')
-            : 'error'
-
-          const analysis =
-            result.analysis && typeof result.analysis === 'object'
-              ? (result.analysis as StoryAnalysisV1)
-              : null
-
-          return [
-            result.id,
-            {
-              id: result.id,
-              storyId: result.storyId,
-              status,
-              analysisVersion: result.analysisVersion,
-              analysis,
-              startedAt,
-              completedAt,
-              durationMs: result.durationMs ?? null,
-              createdAt,
-              updatedAt,
-            },
-          ]
-        }),
-      )
-
-      // Combine run stories with actual story and evaluation data
-
-      const storiesWithStatus = run.stories.map((runStory) => {
-        const story = storyMap.get(runStory.storyId)
-        const result =
-          runStory.resultId !== undefined && runStory.resultId !== null
-            ? (storyResultMap.get(runStory.resultId) ?? null)
-            : null
-
-        return {
-          storyId: runStory.storyId,
-          status: runStory.status,
-          resultId: runStory.resultId ?? null,
-          summary: runStory.summary ?? null,
-          startedAt: runStory.startedAt ?? null,
-          completedAt: runStory.completedAt ?? null,
-          story: story
-            ? {
-                id: story.id,
-                name: story.name,
-                story: story.story,
-                branchName: story.branchName,
-                commitSha: story.commitSha,
-                createdAt: story.createdAt.toISOString(),
-                updatedAt: story.updatedAt.toISOString(),
-              }
-            : null,
-          result,
-        }
-      })
-
       return {
-        run: {
-          id: runRow.id,
-          commitSha: runRow.commitSha,
-          branchName: runRow.branchName,
-          commitMessage: runRow.commitMessage,
-          prNumber: runRow.prNumber,
-          status: runRow.status,
-          summary: runRow.summary,
-          createdAt: runRow.createdAt.toISOString(),
-          updatedAt: runRow.updatedAt.toISOString(),
-          stories: storiesWithStatus,
-        },
+        run,
+        stories: fetchedStories,
+        storyResults,
       }
     }),
 
+  /**
+   * Starts a new CI run for a given repo, optionally on a specific branch.
+   *
+   * This endpoint will:
+   * 1. Check user authentication (must be authorized for the repo).
+   * 2. Confirm the user has access to the given org/repo.
+   * 3. Configure the Trigger.dev client using environment secrets.
+   * 4. Enqueue a "run-ci" task with TRIGGER.dev, including the org slug, repo name,
+   *    branch name (if provided), and the requested agent version.
+   * 5. Return `{ success: true }` on success.
+   */
   create: protectedProcedure
     .input(
       z.object({
         orgSlug: z.string(),
         repoName: z.string(),
         branchName: z.string().optional(),
-        agentVersion: z.enum(['v1', 'v2']).default('v1'),
+        agentVersion: z.enum(['v1', 'v2']).default('v2'),
       }),
     )
     .mutation(async ({ ctx, input }) => {

@@ -41,16 +41,14 @@ export async function getRepoRecord(
   return repoRecord
 }
 
-export async function getStoriesForBranch(
+export async function getStories(
   db: DbClient,
   repoId: string,
-  branchName: string,
 ): Promise<StoryRow[]> {
   const storiesQuery = db
     .selectFrom('stories')
-    .select(['id', 'name', 'story', 'branchName'])
+    .select(['id', 'name', 'story'])
     .where('repoId', '=', repoId)
-    .where('branchName', '=', branchName)
 
   return (await storiesQuery.execute()) as StoryRow[]
 }
