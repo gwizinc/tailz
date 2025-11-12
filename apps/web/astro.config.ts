@@ -184,8 +184,8 @@ const config = defineConfig({
         optional: false,
       }),
       GITHUB_APP_SLUG: envField.string({
-        context: 'server',
-        access: 'secret',
+        context: 'client',
+        access: 'public',
         optional: false,
       }),
       OPENAI_API_KEY: envField.string({

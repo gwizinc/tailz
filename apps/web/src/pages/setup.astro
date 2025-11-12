@@ -1,7 +1,6 @@
 ---
 import Layout from '@/layouts/layout.astro'
 import { SetupInstallAppWrapper } from '@/components/apps/setup-install-app-wrapper'
-import { GITHUB_APP_SLUG } from 'astro:env/server'
 import { z } from 'zod'
 
 const setupQuerySchema = z.object({
@@ -12,6 +11,9 @@ const setupQuerySchema = z.object({
 const queryEntries = Object.fromEntries(Astro.url.searchParams.entries())
 const parsedQuery = setupQuerySchema.safeParse(queryEntries)
 
+/**
+ * Post Install, GitHub will redirect here.
+ */
 if (parsedQuery.success) {
   const { installation_id: installationId } = parsedQuery.data
 
@@ -24,9 +26,8 @@ if (parsedQuery.success) {
   }
 }
 
-const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
 ---
 
 <Layout title="Connect GitHub">
-  <SetupInstallAppWrapper client:load installUrl={installUrl} />
+  <SetupInstallAppWrapper client:load />
 </Layout>

@@ -8,6 +8,7 @@ import { featureRouter } from './routers/feature'
 
 export type { Context, Env, Session, SessionUser } from './context'
 
+// TODO maybe move these into a @app/utils package?
 export { getUser } from './helpers/users'
 
 export const appRouter = router({

@@ -37,7 +37,7 @@ export function LandingNavbar() {
         </nav>
         <div className="w-full sm:w-auto">
           <Button asChild size="sm" className="w-full sm:w-auto">
-            <a href="/auth?redirect=/app" className="gap-2">
+            <a href="/auth" className="gap-2">
               <Github className="size-4" aria-hidden="true" />
               Sign in with GitHub
             </a>

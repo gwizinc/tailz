@@ -14,6 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { GITHUB_APP_SLUG } from 'astro:env/client'
 
 interface OrgItem {
   slug: string
@@ -28,6 +29,8 @@ export function OrgListApp() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [orgs, setOrgs] = useState<OrgItem[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
 
   const queryOrganizations = useCallback(async () => {
     const data = await trpc.org.listInstalled.query()
@@ -107,7 +110,7 @@ export function OrgListApp() {
             description="Install the GitHub app to get started with your organizations."
             action={
               <Button asChild>
-                <a href="/setup">Add new organization</a>
+                <a href={installUrl}>Install our GitHub App</a>
               </Button>
             }
           />
@@ -139,7 +142,7 @@ export function OrgListApp() {
               <TooltipContent>Refresh teams and repos</TooltipContent>
             </Tooltip>
             <Button asChild>
-              <a href="/setup">Add new organization</a>
+              <a href={installUrl}>Add new organization</a>
             </Button>
           </div>
         </div>

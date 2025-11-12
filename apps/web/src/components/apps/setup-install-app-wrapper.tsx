@@ -2,16 +2,10 @@ import { AppProvider } from '@/components/providers/app-provider'
 
 import { SetupInstallApp } from './setup-install-app'
 
-interface SetupInstallAppWrapperProps {
-  installUrl: string
-}
-
-export function SetupInstallAppWrapper({
-  installUrl,
-}: SetupInstallAppWrapperProps) {
+export function SetupInstallAppWrapper() {
   return (
     <AppProvider>
-      <SetupInstallApp installUrl={installUrl} />
+      <SetupInstallApp />
     </AppProvider>
   )
 }

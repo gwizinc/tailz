@@ -67,38 +67,7 @@ export const orgRouter = router({
       })),
     }
   }),
-  getSetupStatus: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user?.id
 
-    if (!userId) {
-      throw new TRPCError({ code: 'UNAUTHORIZED' })
-    }
-
-    const installedOwners = await ctx.db
-      .selectFrom('owners')
-      .innerJoin('ownerMemberships', 'ownerMemberships.ownerId', 'owners.id')
-      .select(['owners.id as ownerId'])
-      .where('owners.installationId', 'is not', null)
-      .where('ownerMemberships.userId', '=', userId)
-      .execute()
-
-    if (installedOwners.length === 0) {
-      return { hasInstallation: false, hasEnabledRepos: false }
-    }
-
-    const ownerIds = installedOwners.map((owner) => owner.ownerId)
-
-    const enabledRepo = await ctx.db
-      .selectFrom('repos')
-      .innerJoin('repoMemberships', 'repoMemberships.repoId', 'repos.id')
-      .select(['repos.id'])
-      .where('repoMemberships.userId', '=', userId)
-      .where('repos.ownerId', 'in', ownerIds)
-      .where('repos.enabled', '=', true)
-      .executeTakeFirst()
-
-    return { hasInstallation: true, hasEnabledRepos: Boolean(enabledRepo) }
-  }),
   refreshInstallations: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.user?.id
 

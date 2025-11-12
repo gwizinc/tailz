@@ -7,12 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { GITHUB_APP_SLUG } from 'astro:env/client'
 
-interface SetupInstallAppProps {
-  installUrl: string
-}
-
-export function SetupInstallApp({ installUrl }: SetupInstallAppProps) {
+export function SetupInstallApp() {
+  const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
   return (
     <AppLayout>
       <div className="h-full w-full px-4 py-10 md:py-16 flex items-center justify-center">
