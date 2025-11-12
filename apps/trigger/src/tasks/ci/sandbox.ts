@@ -97,6 +97,7 @@ export async function runStoriesWithSandbox({
           },
         )
       },
+      // ! can only be 1 - trigger.dev requirement
       { concurrency: 1 },
     )
 
