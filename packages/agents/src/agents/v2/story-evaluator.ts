@@ -21,7 +21,7 @@ import {
 } from '../schema'
 import { logger } from '@trigger.dev/sdk'
 
-const DEFAULT_STORY_MODEL = 'gpt-5-nano'
+const DEFAULT_STORY_MODEL = 'gpt-5-mini'
 const DEFAULT_MAX_STEPS = 60
 const STORY_EVALUATION_AGENT_ID = 'story-evaluation-v2'
 
