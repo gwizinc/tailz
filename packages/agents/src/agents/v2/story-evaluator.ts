@@ -191,6 +191,19 @@ export async function runStoryEvaluationAgent(
   })
 
   const maxSteps = Math.max(1, options.maxSteps ?? DEFAULT_MAX_STEPS)
+  const telemetryMetadata: Record<string, string> = {
+    storyName: options.storyName,
+    repoId: options.repoId,
+    repoName: options.repoName,
+    daytonaSandboxId: options.daytonaSandboxId,
+    modelId: effectiveModelId,
+  }
+
+  if (options.runId) {
+    telemetryMetadata.runId = options.runId
+  }
+
+  const telemetryEnabled = options.telemetryTracer !== undefined
 
   const agent = new ToolLoopAgent({
     id: STORY_EVALUATION_AGENT_ID,
@@ -202,6 +215,14 @@ export async function runStoryEvaluationAgent(
       resolveLibrary: resolveLibraryTool,
       getLibraryDocs: getLibraryDocsTool,
     },
+    experimental_telemetry: telemetryEnabled
+      ? {
+          isEnabled: true,
+          functionId: STORY_EVALUATION_AGENT_ID,
+          metadata: telemetryMetadata,
+          tracer: options.telemetryTracer,
+        }
+      : undefined,
     stopWhen: stepCountIs(maxSteps),
     output: Output.object({ schema: storyTestResultSchema }),
   })

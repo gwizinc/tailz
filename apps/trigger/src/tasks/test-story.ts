@@ -10,6 +10,7 @@ import {
   runStoryEvaluationAgentV2,
   type StoryEvaluationAgentResult,
 } from '@app/agents'
+import { getTelemetryTracer } from '@/telemetry'
 
 interface TestStoryPayload {
   storyId: string
@@ -83,6 +84,7 @@ export const testStoryTask = task({
           runId: payload.runId,
           daytonaSandboxId: payload.daytonaSandboxId,
           maxSteps: 30,
+          telemetryTracer: getTelemetryTracer(),
         })
         evaluation = evaluationV2
         normalized = normalizeStoryTestResultV2(
@@ -96,6 +98,7 @@ export const testStoryTask = task({
           runId: payload.runId,
           daytonaSandboxId: payload.daytonaSandboxId,
           maxSteps: 30,
+          telemetryTracer: getTelemetryTracer(),
         })
         evaluation = evaluationV1
         normalized = normalizeStoryTestResult(

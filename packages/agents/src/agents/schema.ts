@@ -1,4 +1,5 @@
 import type { FinishReason } from 'ai'
+import type { Tracer } from '@opentelemetry/api'
 import z from 'zod'
 
 const evidenceItemSchema = z.object({
@@ -49,6 +50,7 @@ export type StoryEvaluationAgentOptions = {
   maxSteps?: number
   modelId?: string
   daytonaSandboxId: string
+  telemetryTracer?: Tracer
 }
 
 export type StoryEvaluationAgentMetrics = {

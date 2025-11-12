@@ -5,6 +5,7 @@ import {
 } from '@trigger.dev/build/extensions'
 import { sentryEsbuildPlugin } from '@sentry/esbuild-plugin'
 import * as Sentry from '@sentry/node'
+import { setupTelemetry } from './src/telemetry'
 
 export default defineConfig({
   // Your project ref (you can see it on the Project settings page in the dashboard)
@@ -24,19 +25,10 @@ export default defineConfig({
       ) as BuildExtension,
     ],
   },
-  // eslint-disable-next-line @typescript-eslint/require-await
   init: async () => {
-    Sentry.init({
-      defaultIntegrations: false,
-      // The Data Source Name (DSN) is a unique identifier for your Sentry project.
-      dsn: process.env.SENTRY_DSN,
-      // Update this to match the environment you want to track errors for
-      environment:
-        process.env.NODE_ENV === 'production' ? 'production' : 'development',
-    })
+    await setupTelemetry()
   },
-  // eslint-disable-next-line @typescript-eslint/require-await
-  onFailure: async ({ payload, error, ctx }) => {
+  onFailure: ({ payload, error, ctx }) => {
     Sentry.captureException(error, {
       extra: {
         payload,
