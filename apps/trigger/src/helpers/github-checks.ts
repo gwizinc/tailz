@@ -89,7 +89,7 @@ export function buildCheckRunContent(
     return {
       status: 'in_progress',
       output: {
-        title: `Intent Test #${params.runNumber} running...`,
+        title: `Intent Test running...`,
         summary: params.summary,
         text,
       },
@@ -115,7 +115,7 @@ export function buildCheckRunContent(
     status: 'completed',
     conclusion: mapOutcomeToConclusion(params.status),
     output: {
-      title: `Intent test #${params.runNumber}`,
+      title: `Intent test completed`,
       summary: params.summary,
       text: textLines.join('\n'),
     },
