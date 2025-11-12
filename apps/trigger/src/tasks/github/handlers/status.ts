@@ -17,11 +17,15 @@ export const statusHandler: WebhookHandler = ({
     return Promise.resolve()
   }
 
-  if (parsed.data.context === 'Versaille') {
-    const stagingUrl = parsed.data.target_url
-    logger.info('Versaille status check detected', {
+  const { context, target_url: targetUrl } = parsed.data
+  const isVercelContext = context.toLowerCase().includes('vercel')
+  const isVercelTarget =
+    typeof targetUrl === 'string' && targetUrl.toLowerCase().includes('vercel.app')
+
+  if (isVercelContext || isVercelTarget) {
+    logger.info('Vercel deployment status detected', {
       deliveryId,
-      stagingUrl,
+      targetUrl: targetUrl ?? null,
       state: parsed.data.state,
       sha: parsed.data.sha,
     })
