@@ -1,7 +1,5 @@
 import { ToolLoopAgent, Output, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
-import { logger } from '@trigger.dev/sdk'
-
 import type { StoryTestResultPayload } from '@app/db'
 
 import { parseEnv } from '../../helpers/env'

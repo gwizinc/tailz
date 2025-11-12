@@ -1,6 +1,5 @@
 import { ToolLoopAgent, Output, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
-import { logger } from '@trigger.dev/sdk'
 import { Daytona } from '@daytonaio/sdk'
 
 import type { StoryTestResultPayload } from '@app/db'
