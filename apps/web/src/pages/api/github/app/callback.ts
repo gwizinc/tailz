@@ -1,7 +1,7 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
 import type { APIRoute } from 'astro'
-import { configure, tasks } from '@trigger.dev/sdk'
+import { tasks } from '@trigger.dev/sdk'
 import { z } from 'zod'
 
 import { db } from '@/server/db'
@@ -133,10 +133,6 @@ export const GET: APIRoute = async ({ request, redirect }) => {
 
   try {
     await upsertInstallationOwner(installation_id)
-
-    configure({
-      secretKey: env.triggerSecretKey,
-    })
 
     await tasks.trigger(
       'sync-github-installation',

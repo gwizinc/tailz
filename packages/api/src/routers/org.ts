@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server'
-import { configure, tasks } from '@trigger.dev/sdk'
+import { tasks } from '@trigger.dev/sdk'
 
-import { parseEnv } from '../helpers/env'
 import { router, protectedProcedure } from '../trpc'
 
 export const orgRouter = router({
@@ -118,12 +117,6 @@ export const orgRouter = router({
         failed: 0,
       }
     }
-
-    const env = parseEnv(ctx.env)
-
-    configure({
-      secretKey: env.TRIGGER_SECRET_KEY,
-    })
 
     const results = await Promise.allSettled(
       installations.map((installation) =>

@@ -1,10 +1,9 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { configure, tasks } from '@trigger.dev/sdk'
+import { tasks } from '@trigger.dev/sdk'
 
 import { findRepoForUser, requireRepoForUser } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
-import { parseEnv } from '../helpers/env'
 
 export const runRouter = router({
   listByRepo: protectedProcedure
@@ -191,12 +190,6 @@ export const runRouter = router({
         orgSlug: input.orgSlug,
         repoName: input.repoName,
         userId,
-      })
-
-      const env = parseEnv(ctx.env)
-
-      configure({
-        secretKey: env.TRIGGER_SECRET_KEY,
       })
 
       await tasks.trigger(

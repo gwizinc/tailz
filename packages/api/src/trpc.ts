@@ -1,7 +1,9 @@
 import { initTRPC, TRPCError } from '@trpc/server'
+import { configure } from '@trigger.dev/sdk'
 import superjson from 'superjson'
 
 import type { Context } from './context'
+import { parseEnv } from './helpers/env'
 
 /**
  * Initialization of tRPC backend
@@ -9,6 +11,21 @@ import type { Context } from './context'
  */
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
+})
+
+// Ensure Trigger.dev is configured once per process
+let isTriggerConfigured = false
+
+// Middleware to ensure Trigger.dev is configured
+const triggerMiddleware = t.middleware(({ ctx, next }) => {
+  if (!isTriggerConfigured) {
+    const parsedEnv = parseEnv(ctx.env)
+    configure({
+      secretKey: parsedEnv.TRIGGER_SECRET_KEY,
+    })
+    isTriggerConfigured = true
+  }
+  return next()
 })
 
 // Middleware for logging
@@ -49,5 +66,7 @@ const authMiddleware = t.middleware(({ ctx, next }) => {
  * that can be used throughout the router
  */
 export const router = t.router
-const publicProcedure = t.procedure.use(loggingMiddleware)
+const publicProcedure = t.procedure
+  .use(triggerMiddleware)
+  .use(loggingMiddleware)
 export const protectedProcedure = publicProcedure.use(authMiddleware)

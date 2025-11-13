@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { configure, tasks } from '@trigger.dev/sdk'
+import { tasks } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import type { Updateable } from 'kysely'
 
@@ -10,7 +10,6 @@ import {
   requireRepoForUser,
 } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
-import { parseEnv } from '../helpers/env'
 
 type StoryTestStatus = 'pass' | 'fail' | 'error' | 'running'
 
@@ -366,12 +365,6 @@ export const storyRouter = router({
           message: 'Story not accessible',
         })
       }
-
-      const env = parseEnv(ctx.env)
-
-      configure({
-        secretKey: env.TRIGGER_SECRET_KEY,
-      })
 
       const runHandle = await tasks.trigger('test-story', {
         storyId: input.storyId,

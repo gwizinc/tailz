@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { configure, tasks } from '@trigger.dev/sdk'
+import { tasks } from '@trigger.dev/sdk'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { env } from '@/server/env'
 import z from 'zod'
@@ -87,11 +87,6 @@ export const POST: APIRoute = async ({ request }) => {
     const repoName = parsed.success
       ? parsed.data.repository.full_name.split('/')[1]
       : null
-
-    // Configure Trigger.dev
-    configure({
-      secretKey: env.triggerSecretKey,
-    })
 
     // Trigger the task to handle the webhook
     await tasks.trigger(
