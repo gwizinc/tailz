@@ -179,6 +179,7 @@ export const storyRouter = router({
           story: story.story,
           createdAt: story.createdAt?.toISOString() ?? null,
           updatedAt: story.updatedAt?.toISOString() ?? null,
+          decomposition: story.decomposition,
         },
         filesTouched: [],
       }

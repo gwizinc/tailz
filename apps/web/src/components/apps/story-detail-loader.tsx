@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { LoadingProgress } from '@/components/ui/loading-progress'
-import { CodeWalkthrough } from '@/components/code/CodeWalkthrough'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,14 +23,7 @@ interface Story {
   story: string
   createdAt: string | null
   updatedAt: string | null
-}
-
-interface FileTouched {
-  path: string
-  summary?: string
-  language?: string
-  content?: string
-  touchedLines?: number[]
+  decomposition: unknown | null
 }
 
 export function StoryDetailLoader({
@@ -46,7 +38,6 @@ export function StoryDetailLoader({
   const trpc = useTRPCClient()
   const [isLoading, setIsLoading] = useState(true)
   const [story, setStory] = useState<Story | null>(null)
-  const [filesTouched, setFilesTouched] = useState<FileTouched[]>([])
   const [error, setError] = useState<string | null>(null)
   const [storyName, setStoryName] = useState('')
   const [storyContent, setStoryContent] = useState('')
@@ -68,7 +59,6 @@ export function StoryDetailLoader({
           setStoryName(resp.story.name)
           setStoryContent(resp.story.story)
         }
-        setFilesTouched(resp.filesTouched ?? [])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load story')
       } finally {
@@ -196,46 +186,15 @@ export function StoryDetailLoader({
               />
             </div>
             <div className="w-1/2 p-6 overflow-auto">
-              <h2 className="text-sm font-medium text-foreground mb-4">
-                Associated Code
-              </h2>
+              <h2 className="mb-4">Decomposition</h2>
               <div className="mt-3">
-                {filesTouched.length > 0 ? (
-                  <CodeWalkthrough
-                    files={filesTouched.map((f) => {
-                      const lang = (():
-                        | 'typescript'
-                        | 'javascript'
-                        | 'tsx'
-                        | 'jsx'
-                        | 'astro'
-                        | 'html'
-                        | 'css' => {
-                        switch (f.language) {
-                          case 'typescript':
-                          case 'javascript':
-                          case 'tsx':
-                          case 'jsx':
-                          case 'astro':
-                          case 'html':
-                          case 'css':
-                            return f.language
-                          default:
-                            return 'typescript'
-                        }
-                      })()
-                      return {
-                        path: f.path,
-                        summary: f.summary,
-                        language: lang,
-                        content: f.content ?? '',
-                        touchedLines: f.touchedLines ?? [],
-                      }
-                    })}
-                  />
+                {story.decomposition ? (
+                  <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">
+                    {JSON.stringify(story.decomposition, null, 2)}
+                  </pre>
                 ) : (
                   <div className="text-sm text-muted-foreground">
-                    No associated code files found.
+                    No decomposition data available.
                   </div>
                 )}
               </div>
