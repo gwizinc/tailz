@@ -5,25 +5,22 @@ import { setupDb } from '@app/db'
 import { agents } from '@app/agents'
 import { parseEnv } from '@app/config'
 import { getTelemetryTracer } from '@/telemetry'
-import type { EvaluationAgentResult } from 'node_modules/@app/agents/src/agents/schema'
+import type { EvaluationAnalysisResult } from 'node_modules/@app/agents/src/agents/schema'
+import { createDaytonaSandbox } from '@/helpers/daytona'
 
 export type TestStoryTaskResult = {
-  resultId: string
-  evaluation: EvaluationAgentResult
+  evaluation: EvaluationAnalysisResult
 }
 
 export const testStoryTask = task({
   id: 'test-story',
   run: async (payload: {
     storyId: string
-    /** The CI Run UUID */
-    runId: string
     /** The Daytona Sandbox ID */
-    daytonaSandboxId: string
-    agentVersion?: string
+    daytonaSandboxId?: string
   }): Promise<TestStoryTaskResult> => {
-    const env = parseEnv()
-    const db = setupDb(env.DATABASE_URL)
+    const { DATABASE_URL } = parseEnv()
+    const db = setupDb(DATABASE_URL)
 
     // Look up the story and associated repository metadata needed for testing
     const storyRecord = await db
@@ -46,99 +43,44 @@ export const testStoryTask = task({
       throw new Error(`Story ${payload.storyId} not found`)
     }
 
-    const startedAt = new Date()
-
-    // Create an initial result row so downstream steps can stream updates
-    const inserted = await db
-      .insertInto('storyTestResults')
-      .values({
-        storyId: payload.storyId,
-        runId: payload.runId ?? null,
-        status: 'running',
-        startedAt,
-        analysisVersion: 1,
-        analysis: null,
+    // We can create a new sandbox if one is not provided
+    let daytonaSandboxId = payload.daytonaSandboxId
+    if (!payload.daytonaSandboxId) {
+      const sandbox = await createDaytonaSandbox({
+        repoId: storyRecord.repoId,
       })
-      .returning(['id'])
-      .executeTakeFirst()
-
-    const resultId = inserted?.id
-
-    if (!resultId) {
-      throw new Error('Failed to create story test result record')
+      daytonaSandboxId = sandbox.id
     }
 
-    try {
-      /**
-       * Agent to evaluate the story
-       */
-      const evaluation = await agents.evaluation.run({
-        repo: {
-          id: storyRecord.repoId,
-          slug: `${storyRecord.ownerName}/${storyRecord.repoName}`,
-        },
-        story: {
-          id: storyRecord.id,
-          name: storyRecord.name,
-          text: storyRecord.story,
-          decomposition: agents.decomposition.schema.parse(
-            storyRecord.decomposition,
-          ),
-        },
-        run: {
-          id: payload.runId,
-        },
-        options: {
-          daytonaSandboxId: payload.daytonaSandboxId,
-          telemetryTracer: getTelemetryTracer(),
-        },
-      })
+    console.log('🌸', { storyRecord, payload, daytonaSandboxId })
 
-      logger.info(
-        `Story evaluation ${evaluation.status === 'pass' ? '🟢' : '🔴'}`,
-        { evaluation },
-      )
+    /**
+     * Agent to evaluate the story
+     */
+    const evaluation = await agents.evaluation.run({
+      repo: {
+        id: storyRecord.repoId,
+        slug: `${storyRecord.ownerName}/${storyRecord.repoName}`,
+      },
+      story: {
+        id: storyRecord.id,
+        name: storyRecord.name,
+        text: storyRecord.story,
+        decomposition: agents.decomposition.schema.parse(
+          storyRecord.decomposition,
+        ),
+      },
+      options: {
+        daytonaSandboxId,
+        telemetryTracer: getTelemetryTracer(),
+      },
+    })
 
-      const completedAt = new Date()
+    logger.info(
+      `Story evaluation ${evaluation.status === 'pass' ? '🟢' : '🔴'}`,
+      { evaluation },
+    )
 
-      await db
-        .updateTable('storyTestResults')
-        .set(() => ({
-          status: evaluation.status,
-          analysisVersion: evaluation.version,
-          analysis: JSON.stringify(evaluation),
-          completedAt,
-          durationMs: completedAt.getTime() - startedAt.getTime(),
-        }))
-        .where('id', '=', resultId)
-        .execute()
-
-      return { resultId, evaluation }
-    } catch (error) {
-      const failureDescription =
-        error instanceof Error ? error.message : 'Unknown error occurred'
-
-      const failureAnalysis = agents.evaluation.schema.parse({
-        status: 'error',
-        explanation: failureDescription,
-        version: 3,
-        evidence: [],
-      })
-
-      const completedAt = new Date()
-
-      await db
-        .updateTable('storyTestResults')
-        .set(() => ({
-          status: 'error',
-          analysis: JSON.stringify(failureAnalysis),
-          completedAt,
-          durationMs: completedAt.getTime() - startedAt.getTime(),
-        }))
-        .where('id', '=', resultId)
-        .execute()
-
-      throw error
-    }
+    return { evaluation }
   },
 })

@@ -13,31 +13,31 @@ import { agents } from '../../index'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { logger } from '@trigger.dev/sdk'
 
-const stepSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('given'),
-    given: z.string().min(1),
-  }),
-  z.object({
-    type: z.literal('requirement'),
-    outcome: z
-      .string()
-      .min(1)
-      .describe('Eg., User can login using their email and password.'),
-    assertions: z.array(
-      z
-        .string()
-        .min(1)
-        .describe(
-          'Declarative, human-readable statements describing what becomes true in this step.',
-        ),
-    ),
-  }),
-])
-
 export const decompositionOutputSchema = z.object({
   steps: z
-    .array(stepSchema)
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('given'),
+          given: z.string().min(1),
+        }),
+        z.object({
+          type: z.literal('requirement'),
+          outcome: z
+            .string()
+            .min(1)
+            .describe('Eg., User can login using their email and password.'),
+          assertions: z.array(
+            z
+              .string()
+              .min(1)
+              .describe(
+                'Declarative, human-readable statements describing what becomes true in this step.',
+              ),
+          ),
+        }),
+      ]),
+    )
     .describe(
       'A sequential list of steps, each either a given precondition or a requirement with assertions.',
     ),
@@ -75,9 +75,9 @@ Each step:
 - Updates the shared environment for subsequent steps.
 
 # Evaluation Mindset
-Think like a QA engineer reasoning through both behavior and domain state.  
-Model the system as evolving objects with properties and relationships.
-You may introduce **domain objects** such as \`user\`, \`thread\`, \`product\`, \`message\`, or \`session\` when useful to maintain clarity,
+Think like a QA engineer reasoning through both behavior and domain state.
+Stay within the bounds of the user story itself.
+DO NOT add additional requirements or assertions unless they are explicitly stated in the original user story.
 
 # Resources Available
 You have read-only tools to:
@@ -140,11 +140,6 @@ export async function runDecompositionAgent({
 
   const sandbox = await getDaytonaSandbox(options.daytonaSandboxId)
 
-  const maxSteps = Math.max(
-    1,
-    options.maxSteps ?? agents.decomposition.options.maxSteps,
-  )
-
   const agent = new ToolLoopAgent({
     id: 'story-decomposition-v3',
     model: openAiProvider(effectiveModelId),
@@ -167,7 +162,9 @@ export async function runDecompositionAgent({
       },
       tracer: options.telemetryTracer,
     },
-    stopWhen: stepCountIs(maxSteps),
+    stopWhen: stepCountIs(
+      options.maxSteps ?? agents.decomposition.options.maxSteps,
+    ),
     output: Output.object({ schema: decompositionOutputSchema }),
   })
 

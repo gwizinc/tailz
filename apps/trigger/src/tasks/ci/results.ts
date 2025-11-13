@@ -3,24 +3,27 @@ import type { RunStory } from '@app/db'
 import type { AggregatedCounts } from '../../helpers/github-checks'
 import type { DbClient, StoryRow } from './types'
 import type { TestStoryTaskResult } from '../test-story'
+import type { Status } from '@app/agents'
 
 export interface AggregatedRunOutcome {
   aggregated: AggregatedCounts
   updatedRunStories: RunStory[]
-  finalStatus: 'pass' | 'fail' | 'skipped' | 'error'
+  finalStatus: Status
   summaryText: string
   summaryParts: string[]
 }
 
-export type TestStoryTaskTriggerResult =
+type TestStoryTaskTriggerResult =
   | {
       ok: true
+      resultId: string
       taskIdentifier: string
       /** From the Trigger.dev task */
       output: TestStoryTaskResult
     }
   | {
       ok: false
+      resultId: string
       taskIdentifier: string
       error: unknown
     }
@@ -62,7 +65,7 @@ export function aggregateBatchResults({
       updatedRunStories.push({
         storyId: story.id,
         status: output.status,
-        resultId: result.output.resultId,
+        resultId: result.resultId,
         summary: null,
         startedAt: initialRunStories[index]?.startedAt ?? null,
         completedAt: new Date().toISOString(),
@@ -106,7 +109,7 @@ export function aggregateBatchResults({
 function determineFinalStatus(
   aggregated: AggregatedCounts,
   totalStories: number,
-): 'pass' | 'fail' | 'skipped' | 'error' {
+): Status {
   if (aggregated.error > 0) {
     return 'error'
   }
@@ -139,7 +142,7 @@ export async function updateRunResults({
 }: {
   db: DbClient
   runId: string
-  finalStatus: 'pass' | 'fail' | 'skipped' | 'error'
+  finalStatus: Status
   summaryText: string
   updatedRunStories: RunStory[]
 }): Promise<void> {

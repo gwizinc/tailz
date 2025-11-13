@@ -56,7 +56,7 @@ export const runRouter = router({
         const durationMs = updatedAt.getTime() - createdAt.getTime()
 
         return {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           id: run.id,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           runId: String(run.number),
@@ -67,11 +67,11 @@ export const runRouter = router({
 
           updatedAt: updatedAt.toISOString(),
           durationMs,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           commitSha: run.commitSha ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           commitMessage: run.commitMessage ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           branchName: run.branchName,
         }
       })

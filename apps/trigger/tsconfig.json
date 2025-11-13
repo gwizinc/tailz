@@ -14,10 +14,13 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     {
-      "path": "../../packages/db/tsconfig.json"
+      "path": "../../packages/agents/tsconfig.json"
     },
     {
-      "path": "../../packages/agents/tsconfig.json"
+      "path": "../../packages/config/tsconfig.json"
+    },
+    {
+      "path": "../../packages/db/tsconfig.json"
     }
   ]
 }

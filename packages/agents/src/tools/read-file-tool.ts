@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { resolveWorkspacePath } from '../helpers/daytona'
 
-export const readFileInputSchema = z.object({
+const readFileInputSchema = z.object({
   path: z
     .string()
     .min(1)

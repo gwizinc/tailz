@@ -383,4 +383,60 @@ export const storyRouter = router({
         runId: runHandle.id,
       }
     }),
+
+  decompose: protectedProcedure
+    .input(
+      z.object({
+        storyId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id
+
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' })
+      }
+
+      const storyWithRepo = await findStoryForUser(ctx.db, {
+        storyId: input.storyId,
+        userId,
+      })
+
+      if (!storyWithRepo) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Story not accessible',
+        })
+      }
+
+      // Get owner info for repo slug
+      const owner = await ctx.db
+        .selectFrom('owners')
+        .selectAll()
+        .where('id', '=', storyWithRepo.repo.ownerId)
+        .executeTakeFirst()
+
+      if (!owner) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Owner not found',
+        })
+      }
+
+      const runHandle = await tasks.trigger('story-decomposition', {
+        story: {
+          id: storyWithRepo.story.id,
+          text: storyWithRepo.story.story,
+        },
+        repo: {
+          id: storyWithRepo.repo.id,
+          slug: `${owner.login}/${storyWithRepo.repo.name}`,
+        },
+      })
+
+      return {
+        queued: true,
+        runId: runHandle.id,
+      }
+    }),
 })

@@ -2,27 +2,42 @@ import type { Tracer } from '@opentelemetry/api'
 import z from 'zod'
 import type { DecompositionAgentResult } from './v3/story-decomposition'
 
-const evidenceItemSchema = z.object({
-  conclusion: z.enum(['pass', 'fail']),
-  filePath: z.string().min(1),
-  startLine: z.number().int().min(1),
-  endLine: z.number().int().min(1),
-  note: z
-    .string()
-    .min(1)
-    .describe(
-      'Markdown explanation that elaborates briefly on this discovery.',
-    ),
-})
+export const statusSchema = z.enum([
+  'pass',
+  'fail',
+  'running',
+  // 'uncertain', // TODO add to database to enable
+  // CI build was cancelled because another commit came in
+  'skipped',
+  // An error occurred while evaluating the story
+  'error',
+])
 
+export type Status = z.infer<typeof statusSchema>
+
+/**
+ * Schema for the evaluation agent output
+ */
 export const analysisSchema = z.object({
   version: z.literal(3),
-  status: z.enum(['pass', 'fail', 'skipped', 'error']),
+  status: statusSchema,
   explanation: z.string().min(1),
-  evidence: z.array(evidenceItemSchema).default([]),
+  steps: z.array(
+    z.object({
+      type: z.enum(['given', 'requirement']),
+      conclusion: statusSchema,
+      outcome: z.string().min(1),
+      assertions: z.array(
+        z.object({
+          fact: z.string().min(1),
+          evidence: z.array(z.string().min(1)),
+        }),
+      ),
+    }),
+  ),
 })
 
-export type EvaluationAgentResult = z.infer<typeof analysisSchema>
+export type EvaluationAnalysisResult = z.infer<typeof analysisSchema>
 
 export type evaluationAgentOptions = {
   repo: {
@@ -35,9 +50,6 @@ export type evaluationAgentOptions = {
     text: string
     decomposition: DecompositionAgentResult
   }
-  run: {
-    id: string
-  }
   options?: {
     /** Maximum number of steps to take */
     maxSteps?: number
@@ -47,9 +59,4 @@ export type evaluationAgentOptions = {
     daytonaSandboxId?: string
     telemetryTracer?: Tracer
   }
-}
-
-export type StoryEvaluationAgentMetrics = {
-  stepCount: number
-  toolCallCount: number
 }

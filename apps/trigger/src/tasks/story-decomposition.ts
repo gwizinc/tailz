@@ -48,7 +48,7 @@ export const storyDecompositionTask = task({
         await db
           .updateTable('stories')
           .set({
-            decomposition: JSON.stringify(decompositionResult.steps),
+            decomposition: JSON.stringify(decompositionResult),
           })
           .where('id', '=', story.id)
           .execute()

@@ -46,6 +46,8 @@ export function StoryDetailLoader({
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDecomposing, setIsDecomposing] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -147,6 +149,57 @@ export function StoryDetailLoader({
                 </>
               ) : (
                 <>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setIsDecomposing(true)
+                      setError(null)
+                      try {
+                        await trpc.story.decompose.mutate({ storyId })
+                        // Reload story to get updated decomposition
+                        const resp = await trpc.story.get.query({
+                          orgName,
+                          repoName,
+                          storyId,
+                        })
+                        if (resp.story) {
+                          setStory(resp.story)
+                        }
+                      } catch (e) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : 'Failed to start decomposition',
+                        )
+                      } finally {
+                        setIsDecomposing(false)
+                      }
+                    }}
+                    disabled={isDecomposing}
+                  >
+                    {isDecomposing ? 'Decomposing...' : 'Decompose'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setIsTesting(true)
+                      setError(null)
+                      try {
+                        await trpc.story.test.mutate({ storyId })
+                      } catch (e) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : 'Failed to start test',
+                        )
+                      } finally {
+                        setIsTesting(false)
+                      }
+                    }}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? 'Testing...' : 'Test'}
+                  </Button>
                   <Button variant="outline" onClick={() => setIsEditing(true)}>
                     Edit
                   </Button>
@@ -168,6 +221,12 @@ export function StoryDetailLoader({
           )}
           <div className="flex flex-1 overflow-hidden">
             <div className="w-1/2 p-6 overflow-auto border-r flex flex-col">
+              <p
+                className="text-sm font-semibold tracking-[0.3em] text-primary"
+                title="Riyōsha no sutōrī - story of the user."
+              >
+                利用者のストーリー
+              </p>
               <Label htmlFor="storyContent" className="mb-2">
                 Story Content
               </Label>
@@ -187,6 +246,12 @@ export function StoryDetailLoader({
               />
             </div>
             <div className="w-1/2 p-6 overflow-auto">
+              <p
+                className="text-sm font-semibold tracking-[0.3em] text-primary"
+                title="Bunkai - to break down."
+              >
+                ぶんかい
+              </p>
               <h2 className="mb-4">Decomposition</h2>
               <div className="mt-3">
                 {story.decomposition ? (

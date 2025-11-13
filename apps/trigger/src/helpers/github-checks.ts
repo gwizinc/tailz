@@ -1,3 +1,4 @@
+import type { Status } from '@app/agents'
 import type { Octokit } from '@octokit/rest'
 import { logger } from '@trigger.dev/sdk'
 
@@ -6,8 +7,6 @@ export type AggregatedCounts = {
   fail: number
   error: number
 }
-
-type RunOutcome = 'pass' | 'fail' | 'skipped' | 'error'
 
 type BuildCheckRunContentParams =
   | {
@@ -23,7 +22,7 @@ type BuildCheckRunContentParams =
       runNumber: number
       runId: string
       branchName: string
-      status: RunOutcome
+      status: Status
       summary: string
       counts?: AggregatedCounts
     }
@@ -60,7 +59,7 @@ export function formatStoryCount(count: number): string {
 }
 
 function mapOutcomeToConclusion(
-  status: RunOutcome,
+  status: Status,
 ): 'success' | 'failure' | 'neutral' {
   switch (status) {
     case 'pass':

@@ -1,7 +1,9 @@
 import { analysisSchema } from './agents/schema'
 import { decompositionOutputSchema } from './agents/v3/story-decomposition'
 import { runDecompositionAgent } from './agents/v3/story-decomposition'
-import { runEvaluationAgent } from './agents/v3/story-evaluator'
+import { main } from './agents/v3/story-evaluator'
+
+export { type Status } from './agents/schema'
 
 export const agents = {
   decomposition: {
@@ -18,7 +20,7 @@ export const agents = {
     id: 'story-evaluation-v3',
     version: 'v3',
     schema: analysisSchema,
-    run: runEvaluationAgent,
+    run: main,
     options: {
       maxSteps: 30,
       model: 'gpt-5-mini',

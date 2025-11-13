@@ -1,5 +1,6 @@
-import { ToolLoopAgent, Output, stepCountIs } from 'ai'
+import { ToolLoopAgent, Output, stepCountIs, generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
+import type { DecompositionAgentResult } from './story-decomposition'
 
 import { parseEnv } from '@app/config'
 import { getDaytonaSandbox } from '../../helpers/daytona'
@@ -11,38 +12,73 @@ import {
 } from '../../tools/context7-tool'
 import { createLspTool } from '../../tools/lsp-tool'
 import {
-  analysisSchema,
+  statusSchema,
+  type Status,
   type evaluationAgentOptions,
-  type EvaluationAgentResult,
+  type EvaluationAnalysisResult,
+  analysisSchema,
 } from '../schema'
 import { logger } from '@trigger.dev/sdk'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { agents } from '../..'
+import { z } from 'zod'
 
+/**
+ * Schema for agent output (step evaluation result)
+ */
+const stepAgentOutputSchema = z.object({
+  conclusion: statusSchema,
+  outcome: z.string().min(1),
+  assertions: z.array(
+    z.object({
+      fact: z.string().min(1),
+      evidence: z.array(
+        z
+          .string()
+          .min(1)
+          .describe('file:line-range only eg., src/auth/session.ts:12-28'),
+      ),
+    }),
+  ),
+})
+
+type StepAgentOutput = z.infer<typeof stepAgentOutputSchema>
+
+// Type definitions
+type StepContext = {
+  stepIndex: number
+  step: DecompositionAgentResult['steps'][number]
+  previousResults: StepAgentOutput[]
+  storyName: string
+  storyText: string
+  repoOutline: string
+}
+
+// Functions
 function buildEvaluationInstructions(repoOutline: string): string {
   return `
-You are an expert software QA engineer evaluating whether a user story is achievable given the current repository state.
+You are an expert software QA engineer evaluating whether a specific step from a user story is properly implemented given the current repository state.
 
 # Role & Objective
-Start off with no assumptions the provided user story is achievable, you must discover that for yourself by 
-gathering, searching, and evaluating source code to make an well-educated conclusion if the user story is properly and fully implemented.
+You are evaluating a SINGLE step from a decomposed user story. Start with no assumptions that this step is implemented correctly. 
+You must discover evidence by gathering, searching, and evaluating source code to make a well-educated conclusion about whether this specific step is properly and fully implemented.
 
 # How to Perform Your Evaluation
-1. Break apart the story into meaningful, testable steps.
-2. For each step, use the available tools to search for supporting code evidence.
+1. Focus ONLY on the current step provided in the prompt.
+2. Use the available tools to search for supporting code evidence for THIS step's assertions.
 3. When you find relevant code, verify it by reading the file contents and understanding the context.
 4. Record each piece of evidence with precise file paths and line ranges.
-5. Continue until you have evaluated every step and can make a definitive conclusion.
+5. Consider context from previous steps if provided, but focus your evaluation on the current step.
+6. Stop once you have enough verified evidence to reach a confident conclusion about each of THIS step's assertions.
 
 # Mindset
 - False-positives are worse than false-negatives.
 - Treat the repository as the single source of truth.
-- Only mark a story as "passed" when code evidence confirms that each step is implemented and functionally connected.
-- When supporting code is missing, incomplete, or ambiguous, mark the story as "failed" and explain what is missing.
-- If some steps succeed while others fail, the overall story must still be marked as "failed" and you must document both the successes and the gaps.
+- Only mark this step as "passed" when code evidence confirms it is implemented and functionally correct.
+- When supporting code is missing, incomplete, or ambiguous, mark the step as "failed" and explain what is missing.
 - Evidence must be **executable code**, not just type definitions, comments, or unused utilities.
-- Maintain a mental map of dependencies between steps (e.g., "create user" must precede "log in user").
-- When a step depends on another, cross-reference evidence from earlier steps rather than duplicating it.
+- If previous step results are provided, you may reference their evidence but must verify the current step independently.
+- When a step depends on another, you may reference previous step evidence but must still verify the current step's implementation.
 
 # Tools
 - **terminalCommand**: Execute read-only shell commands (e.g., \`rg\`, \`fd\`, \`tree\`, \`git\`, \`grep\`, etc.) to search for code patterns, files, and symbols.
@@ -63,9 +99,9 @@ gathering, searching, and evaluating source code to make an well-educated conclu
 - Output summaries in Markdown format, embedded in the JSON object, so they render cleanly for humans.
 - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
 
-# Schema
+# Output Schema
 \`\`\`
-${JSON.stringify(zodToJsonSchema(analysisSchema), null, 2)}
+${JSON.stringify(zodToJsonSchema(stepAgentOutputSchema), null, 2)}
 \`\`\`
 
 # Repository Overview
@@ -75,61 +111,191 @@ ${repoOutline}
 `
 }
 
-function buildEvaluationPrompt({
-  story,
-  run,
+function buildStepPrompt({
+  stepContext,
 }: {
-  story: evaluationAgentOptions['story']
-  run: evaluationAgentOptions['run']
+  stepContext: StepContext
 }): string {
-  const lines: string[] = [
-    `Story Name: ${story.name}`,
-    'Story Definition:',
-    story.text,
-  ]
+  const lines: string[] = []
 
-  if (run.id) {
-    lines.push(`Run Identifier: ${run.id}`)
+  // Collect givens from previous steps that passed
+  const givens: string[] = []
+  if (stepContext.previousResults.length > 0) {
+    stepContext.previousResults.forEach((prevResult) => {
+      if (prevResult.conclusion === 'pass') {
+        // Format the outcome as a given fact
+        // Split multi-line outcomes and format them nicely
+        const factLines = prevResult.outcome
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+
+        if (factLines.length > 0) {
+          // If single line, add as bullet point
+          if (factLines.length === 1) {
+            givens.push(`- ${factLines[0]}`)
+          } else {
+            // If multi-line, format with indentation
+            givens.push(`- ${factLines[0]}`)
+            factLines.slice(1).forEach((line) => {
+              givens.push(`  ${line}`)
+            })
+          }
+        }
+      }
+    })
+  }
+
+  // Build the prompt in the new format
+  if (givens.length > 0) {
+    lines.push(
+      '# Givens',
+      '',
+      'Below is a list of proven facts that are already validated in earlier steps.',
+      '',
+      'These do NOT need to be re-evaluated. Treat them as true:',
+      '',
+      ...givens,
+      '',
+      '(Use these givens as context when evaluating the requirement below.)',
+      '',
+      '---',
+      '',
+    )
+  }
+
+  // Add requirement section (only for requirement steps, not given steps)
+  if (stepContext.step.type === 'requirement') {
+    const requirementSection = [
+      '# Requirement to Verify',
+      '',
+      `**${stepContext.step.outcome}**`,
+      '',
+      ...(stepContext.step.assertions.length > 0
+        ? [
+            '# Assertions',
+            '',
+            'You must verify whether the repository satisfies ALL of the following:',
+            '',
+            ...stepContext.step.assertions.map(
+              (assertion, idx) => `${idx + 1}. ${assertion}`,
+            ),
+            '',
+          ]
+        : []),
+    ]
+
+    lines.push(...requirementSection)
   }
 
   lines.push(
-    'When your analysis is complete, respond only with the JSON object that matches the schema.',
+    'Respond only with the required JSON schema once evaluation is complete.',
   )
 
-  return lines.join('\n\n')
+  return lines.join('\n')
 }
 
-export async function runEvaluationAgent({
-  story,
-  repo,
-  run,
-  options,
-}: evaluationAgentOptions): Promise<EvaluationAgentResult> {
+async function combineStepResults(args: {
+  decompositionSteps: DecompositionAgentResult
+  analysisStepResults: StepAgentOutput[]
+  modelId?: string
+}): Promise<EvaluationAnalysisResult> {
+  const { decompositionSteps, analysisStepResults, modelId } = args
+
+  // Map decomposition steps with their corresponding analysis results
+  const steps = decompositionSteps.steps.map((decompStep, index) => {
+    const analysisResult = analysisStepResults[index]
+
+    // Use the original outcome from the decomposition step
+    const outcome =
+      decompStep.type === 'given' ? decompStep.given : decompStep.outcome
+
+    return {
+      type: decompStep.type,
+      conclusion: analysisResult.conclusion,
+      outcome,
+      assertions: analysisResult.assertions,
+    }
+  })
+
+  // Determine overall status based on step conclusions (priority order)
+  const statusPriority: Status[] = [
+    'error',
+    'running',
+    'skipped',
+    'fail',
+    'pass',
+  ]
+  const status =
+    statusPriority.find((s) =>
+      s === 'pass'
+        ? steps.every((step) => step.conclusion === s)
+        : steps.some((step) => step.conclusion === s),
+    ) ?? 'error'
+
+  // Generate concise explanation using OpenAI
+  const env = parseEnv()
+  const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
+  const effectiveModelId = modelId ?? agents.evaluation.options.model
+
+  const stepSummary = steps
+    .map((step, idx) => {
+      const icon =
+        step.conclusion === 'pass'
+          ? '✅'
+          : step.conclusion === 'fail'
+            ? '❌'
+            : step.conclusion === 'error'
+              ? '⚠️'
+              : step.conclusion === 'running'
+                ? '⏳'
+                : '⏭️'
+      return `${icon} Step ${idx + 1} (${step.conclusion}): ${step.outcome}`
+    })
+    .join('\n')
+
+  const { text: explanation } = await generateText({
+    model: openAiProvider(effectiveModelId),
+    prompt: `You are summarizing the results of a story evaluation. Provide a very concise (2-3 sentences max) summary of the evaluation state.
+
+Overall Status: ${status}
+
+Step Results:
+${stepSummary}
+
+Provide a brief, user-friendly explanation of what this evaluation found. Focus on the key outcomes and any issues.`,
+  })
+
+  return analysisSchema.parse({
+    version: 3,
+    status,
+    explanation,
+    steps,
+  })
+}
+
+/**
+ * AI Agent that evaluates a single step from a user story
+ */
+async function agent(args: {
+  stepContext: StepContext
+  evaluationAgentOptions: evaluationAgentOptions
+  sandbox: Awaited<ReturnType<typeof getDaytonaSandbox>>
+}): Promise<StepAgentOutput> {
+  const {
+    stepContext,
+    evaluationAgentOptions: { repo, options },
+    sandbox,
+  } = args
   const env = parseEnv()
 
   const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
   const effectiveModelId = options?.modelId ?? agents.evaluation.options.model
 
-  const sandbox = await getDaytonaSandbox(options?.daytonaSandboxId ?? '')
-
-  const repoOutline = await sandbox.process.executeCommand(
-    'tree -L 3',
-    `workspace/repo`,
-  )
-  if (repoOutline.exitCode !== 0) {
-    throw new Error(`Failed to get repo outline: ${repoOutline.result}`)
-  }
-  const outline = repoOutline.result ?? ''
-
-  const maxSteps = Math.max(
-    1,
-    options?.maxSteps ?? agents.evaluation.options.maxSteps,
-  )
-
   const agent = new ToolLoopAgent({
-    id: 'story-evaluation-v3',
+    id: 'story-step-evaluation-v3',
     model: openAiProvider(effectiveModelId),
-    instructions: buildEvaluationInstructions(outline),
+    instructions: buildEvaluationInstructions(stepContext.repoOutline),
     tools: {
       terminalCommand: createTerminalCommandTool({ sandbox }),
       readFile: createReadFileTool({ sandbox }),
@@ -139,27 +305,115 @@ export async function runEvaluationAgent({
     },
     experimental_telemetry: {
       isEnabled: true,
-      functionId: 'story-evaluation-v3',
+      functionId: 'story-step-evaluation-v3',
       metadata: {
-        storyId: story.id,
-        storyName: story.name,
+        storyName: stepContext.storyName,
         repoId: repo.id,
         repoSlug: repo.slug,
-        runId: run.id,
         daytonaSandboxId: options?.daytonaSandboxId ?? '',
         modelId: effectiveModelId,
+        stepIndex: stepContext.stepIndex,
       },
       tracer: options?.telemetryTracer,
     },
-    stopWhen: stepCountIs(maxSteps),
-    output: Output.object({ schema: analysisSchema }),
+    stopWhen: stepCountIs(
+      options?.maxSteps ?? agents.evaluation.options.maxSteps,
+    ),
+    output: Output.object({ schema: stepAgentOutputSchema }),
   })
 
-  const prompt = buildEvaluationPrompt({ story, run })
+  const prompt = buildStepPrompt({ stepContext })
+
+  console.log('🌸 Step Prompt', { prompt })
 
   const result = await agent.generate({ prompt })
 
-  logger.debug('🤖 Evaluation Agent Result', { result })
+  logger.debug(`🤖 Step ${stepContext.stepIndex + 1} Evaluation Result`, {
+    result,
+  })
 
   return result.output
+}
+
+export async function main(
+  payload: evaluationAgentOptions,
+): Promise<EvaluationAnalysisResult> {
+  const { story, options } = payload
+  const sandbox = await getDaytonaSandbox(options?.daytonaSandboxId ?? '')
+
+  // Get repository outline once for all steps
+  const repoOutline = await sandbox.process.executeCommand(
+    'tree -L 3',
+    `workspace/repo`,
+  )
+  if (repoOutline.exitCode !== 0) {
+    throw new Error(`Failed to get repo outline: ${repoOutline.result}`)
+  }
+  const outline = repoOutline.result ?? ''
+
+  // Process each step sequentially
+  const stepResults: StepAgentOutput[] = []
+  const steps = story.decomposition.steps
+
+  for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
+    const step = steps[stepIndex]
+
+    // Skip agent evaluation for 'given' steps - they are preconditions assumed to be true
+    if (step.type === 'given') {
+      const stepResult: StepAgentOutput = {
+        conclusion: 'pass',
+        outcome: `Given precondition: ${step.given}`,
+        assertions: [],
+      }
+      stepResults.push(stepResult)
+      logger.info(
+        `Skipping agent evaluation for given step ${stepIndex + 1} of ${steps.length}`,
+        {
+          step: step.given,
+        },
+      )
+      continue
+    }
+
+    const stepContext: StepContext = {
+      stepIndex,
+      step,
+      previousResults: [...stepResults],
+      storyName: story.name,
+      storyText: story.text,
+      repoOutline: outline,
+    }
+
+    logger.info(`Evaluating step ${stepIndex + 1} of ${steps.length}`, {
+      stepContext,
+    })
+
+    const stepResult = await agent({
+      stepContext,
+      evaluationAgentOptions: payload,
+      sandbox,
+    })
+
+    stepResults.push(stepResult)
+
+    // Early exit if a critical step fails
+    // TODO: Determine if we should continue or stop on failure
+    if (stepResult.conclusion === 'error') {
+      logger.warn(`Step ${stepIndex + 1} encountered an error, continuing...`)
+    }
+  }
+
+  // Combine all step results into final evaluation
+  const finalResult = await combineStepResults({
+    decompositionSteps: story.decomposition,
+    analysisStepResults: stepResults,
+    modelId: options?.modelId,
+  })
+
+  logger.debug('🤖 Evaluation Agent Final Result', {
+    stepCount: stepResults.length,
+    finalResult,
+  })
+
+  return finalResult
 }

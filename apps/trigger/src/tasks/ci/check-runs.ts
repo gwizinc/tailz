@@ -8,6 +8,7 @@ import {
   type CheckRunBaseParams,
 } from '../../helpers/github-checks'
 import type { RepoRecord } from './types'
+import type { Status } from '@app/agents'
 
 export function buildCheckRunBase({
   commitSha,
@@ -105,7 +106,7 @@ export async function completeCheckRunSuccess({
   checkRunId?: number
   runId: string
   branchName: string
-  status: 'pass' | 'fail' | 'skipped' | 'error'
+  status: Status
   summary: string
   counts: AggregatedCounts
 }): Promise<void> {

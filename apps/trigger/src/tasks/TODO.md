@@ -1,25 +1,4 @@
 ```js
-Okay, now walk me through how it may look like from the perspective of the AI where we have the first step running and then it's given the assertions of the next step as givens proceed all the way through this exmaple story below
-
-{
-  "steps": [
-    "The user is authenticated and has an active logged-in session.",
-    "The user can access an interface control to create a new thread.",
-    "The user creates a new AI thread using the thread-creation flow.",
-    "The newly created thread appears in the user's thread list and/or opens in the thread view.",
-    "The thread is presented as an AI thread (visually identifiable as an AI-created or AI-type thread).",
-    "The thread view does not display any AI moderation controls, moderation toggle, or any UI indicating messages will be reviewed before insertion.",
-    "The user can compose and send a message in the AI thread while it is active.",
-    "When the user sends a message in the AI thread, the message appears in the thread immediately (no pending/review indicator is shown).",
-    "Messages sent in the AI thread are visible in the thread without any intermediate moderation step or visible moderation status.",
-    "The user archives the AI thread using the archive action available in the thread view or thread list.",
-    "After archiving, the thread is shown in an archived state (archived badge, label, or moved to archived list) so its archived status is visible.",
-    "While the thread is archived, the message composition or send function for that thread is disabled or blocked (the user cannot successfully send new messages).",
-    "Attempts to send a new message in the archived thread do not add the message to the thread and provide a clear indication that sending is not allowed (disabled control, error, or informational message)."
-  ]
-}
-
-
 
 {
   "story": "Given I'm a logged-in user, I can create a new AI thread that has no moderation controls. Messages sent are inserted without AI review, and once the thread is archived, I can no longer send messages.",
@@ -46,53 +25,6 @@ Okay, now walk me through how it may look like from the perspective of the AI wh
 }
 
 import { z } from "zod";
-
-// 🌸 Story Decomposition Agent 🌸
-// Given: user provided a story
-
-// INPUT
-export const StorySchema = z.object({
-  story: z.string().describe("The full user story for context."),
-});
-
-// OUTPUT
-export const StepSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("given"),
-    given: z.string().min(1)
-  }),
-  z.object({
-    type: z.literal("requirement"),
-    outcome: z.string().min(1).describe("Eg., User can login using their email and password."),
-    assertions: z.array(z.string().min(1).describe("Declarative statements describing what becomes true in this step."))
-  })
-]);
-
-// EXAMPLE
-
-const outputExample = {
-  "steps": [
-    {
-      "given": "User is logged in",
-    },
-    {
-      "outcome": "user can create new ai thread", // because it's a given already
-      "assertions": [
-       "The user can access an interface control to create a new thread.", // can view
-       "The user can create a new AI thread using the thread-creation flow.", // can choose
-       "thread appears in the user's thread list and/or opens in the thread view", // can see result
-       "the thread is presented as an AI thread (visually identifiable as an AI-created or AI-type thread).",
-      ]
-    },
-    {
-      "outcome": "AI threads have no AI moderation controls",
-      "assertions": [
-        "The thread view does not display any AI moderation controls, moderation toggle, or any UI indicating messages will be reviewed before insertion.",
-      ]
-    }
-  ]
-}
-
 
 // 🌸 Step Evaluation Agent 🌸
 
@@ -131,3 +63,115 @@ const nextStepToWorkon = {
 
 // OUTPUT
 ```
+
+need your help with a system prompt and agent flow
+
+we get user stories and run a decomposition step to extract steps that we save in the database to test during out ci. Here is breakdown of that flow
+
+1. user writes a story
+2. kyoto decomposition task runs
+3. story + decomposition stored in database
+4. ...wait for github push webhook...
+5. webhook for push triggers ci
+6. we start a vm in the cloud and clone repo
+7. we retrieve the story + decomposition
+8. we desire to evaluate the decomposition by seeking evidence in the code base if the step is possible or not provided evidence
+
+# Decomposition Schema
+
+```ts
+const stepSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('given'),
+    given: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal('requirement'),
+    outcome: z
+      .string()
+      .min(1)
+      .describe('Eg., User can login using their email and password.'),
+    assertions: z.array(
+      z
+        .string()
+        .min(1)
+        .describe(
+          'Declarative, human-readable statements describing what becomes true in this step.',
+        ),
+    ),
+  }),
+])
+
+export const decompositionOutputSchema = z.object({
+  steps: z
+    .array(stepSchema)
+    .describe(
+      'A sequential list of steps, each either a given precondition or a requirement with assertions.',
+    ),
+})
+```
+
+We will likely spawn an agent for each step for an isolated evaluation.
+This way the agent has a more specific objective.
+Each assertion will need evidence to verify it's true
+
+# Desired Evaluation Agent
+
+## Inital Input
+
+Example step the agent will evaluate
+
+```json
+{
+  "type": "requirement",
+  "outcome": "User can create a new team.",
+  "assertions": [
+    "The user can create a new team.",
+    "The new team is created and appears in the user's team list."
+  ]
+}
+```
+
+Remap of data before agent works
+
+```json
+{
+"givens": [
+    {
+    "fact": "The user has logged in",
+    "evidence": [
+        "src/auth/session.ts:12-28"
+    ]
+    },
+    ...
+],
+"verify": {
+  "outcome": "User can create a new team.",
+  "assertions": [
+    "The user can create a new team.",
+    "The new team is created and appears in the user's team list.",
+  ]
+}
+}
+```
+
+Now the agent has to work on the object above resulting in
+
+```json
+{
+  "conclusion": "pass | fail | uncertain",
+  "outcome": "User can create a new team.",
+  "assertions": [
+    {
+      "fact": "The user can create a new team.",
+      "evidence": ["src/components/ThreadList/CreateThreadButton.tsx:3-19"]
+    },
+    {
+      "fact": "The new team is created and appears in the user's team list.",
+      "evidence": ["src/components/ThreadList/CreateThreadButton.tsx:3-19"]
+    }
+  ]
+}
+```
+
+We are building the Evaluation Agent, please outline the high level steps back to me so we are on the same page.
