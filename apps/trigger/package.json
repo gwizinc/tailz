@@ -31,6 +31,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@babel/preset-typescript": "^7.28.5",
     "@sentry/esbuild-plugin": "^4.6.0",
     "@trigger.dev/build": "4.0.7",
     "@types/node": "^22.18.10",

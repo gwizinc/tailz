@@ -1,4 +1,4 @@
-import { parseEnv } from '@app/agents'
+import { parseEnv, AGENT_CONFIG, type AgentVersion } from '@app/agents'
 import { setupDb } from '@app/db'
 import { logger } from '@trigger.dev/sdk'
 
@@ -113,12 +113,13 @@ export const pullRequestHandler: WebhookHandler = async ({
       return
     }
 
+    const agentVersion: AgentVersion = AGENT_CONFIG.version
     await runCiTask.trigger({
       orgSlug: ownerLogin,
       repoName,
       branchName,
       prNumber,
-      agentVersion: 'v2',
+      agentVersion,
     })
 
     logger.info('Queued CI run from pull_request event', {

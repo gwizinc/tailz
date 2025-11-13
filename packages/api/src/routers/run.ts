@@ -178,7 +178,6 @@ export const runRouter = router({
         orgSlug: z.string(),
         repoName: z.string(),
         branchName: z.string().optional(),
-        agentVersion: z.enum(['v1', 'v2']).default('v2'),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -206,7 +205,6 @@ export const runRouter = router({
           orgSlug: input.orgSlug,
           repoName: input.repoName,
           branchName: input.branchName,
-          agentVersion: input.agentVersion,
         },
         { tags: [`org_${input.orgSlug}`, `repo_${input.repoName}`] },
       )

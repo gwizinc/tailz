@@ -4,7 +4,6 @@ import type { AppRouter } from '@app/api'
 
 import { useTRPCClient } from '@/client/trpc'
 import { LoadingProgress } from '@/components/ui/loading-progress'
-import { AppProvider } from '@/components/providers/app-provider'
 
 import { RepoOverview } from './repo-overview'
 
@@ -66,22 +65,22 @@ export function RepoOverviewLoader({
     setRefreshKey((prev) => prev + 1)
   }
 
+  if (isLoading) {
+    return <LoadingProgress label="Loading repository..." />
+  }
+
+  if (error) {
+    return <div className="p-6 text-sm text-red-500">{error}</div>
+  }
+
   return (
-    <AppProvider>
-      {isLoading ? (
-        <LoadingProgress label="Loading repository..." />
-      ) : error ? (
-        <div className="p-6 text-sm text-red-500">{error}</div>
-      ) : (
-        <RepoOverview
-          orgSlug={orgSlug}
-          repoName={repoName}
-          defaultBranch={repo?.defaultBranch ?? null}
-          runs={runs}
-          stories={stories}
-          onRefreshRuns={handleRefreshRuns}
-        />
-      )}
-    </AppProvider>
+    <RepoOverview
+      orgSlug={orgSlug}
+      repoName={repoName}
+      defaultBranch={repo?.defaultBranch ?? null}
+      runs={runs}
+      stories={stories}
+      onRefreshRuns={handleRefreshRuns}
+    />
   )
 }

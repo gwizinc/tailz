@@ -36,15 +36,27 @@ export const storyTestResultSchema = z.object({
 export type StoryTestModelOutput = z.infer<typeof storyTestResultSchema>
 
 export type StoryEvaluationAgentOptions = {
-  storyName: string
-  storyText: string
-  repoId: string
-  repoName: string
-  runId?: string | null
-  maxSteps?: number
-  modelId?: string
-  daytonaSandboxId: string
-  telemetryTracer?: Tracer
+  repo: {
+    id: string
+    slug: string
+  }
+  story: {
+    id: string
+    name: string
+    text: string
+  }
+  run: {
+    id: string
+  }
+  options?: {
+    /** Maximum number of steps to take */
+    maxSteps?: number
+    /** Model ID to use like "gpt-5-mini" */
+    modelId?: string
+    /** Daytona Sandbox ID to use */
+    daytonaSandboxId?: string
+    telemetryTracer?: Tracer
+  }
 }
 
 export type StoryEvaluationAgentMetrics = {

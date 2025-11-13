@@ -26,6 +26,7 @@ const config: KnipConfig = {
       entry: ['trigger.config.ts'],
       project: ['src/**/*.ts'],
       ignore: ['**/node_modules/**', '**/dist/**', '**/*.d.ts'],
+      ignoreDependencies: ['@babel/preset-typescript'],
     },
     'packages/api': {
       project: ['src/**/*.ts'],

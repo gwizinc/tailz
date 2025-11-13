@@ -37,7 +37,6 @@ export function RepoOverview({
   const [createError, setCreateError] = useState<string | null>(null)
 
   const handleStartRun = async () => {
-    const agentVersion: 'v1' | 'v2' = 'v2'
     if (!defaultBranch) {
       return
     }
@@ -47,7 +46,6 @@ export function RepoOverview({
       await trpc.run.create.mutate({
         orgSlug,
         repoName,
-        agentVersion,
       })
       // Refresh runs list after successful creation
       if (onRefreshRuns) {

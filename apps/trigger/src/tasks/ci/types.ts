@@ -1,11 +1,12 @@
 import type { setupDb } from '@app/db'
+import type { AgentVersion } from '@app/agents'
 
 export interface RunCiPayload {
   orgSlug: string
   repoName: string
   branchName?: string | null
   prNumber?: string | null
-  agentVersion?: 'v1' | 'v2'
+  agentVersion?: AgentVersion
 }
 
 export type StoryRow = {

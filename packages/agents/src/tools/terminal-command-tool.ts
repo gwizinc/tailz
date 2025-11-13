@@ -12,10 +12,7 @@ const terminalCommandInputSchema = z.object({
     ),
 })
 
-export function createTerminalCommandTool(ctx: {
-  sandbox: Sandbox
-  repoName: string
-}) {
+export function createTerminalCommandTool(ctx: { sandbox: Sandbox }) {
   return tool({
     name: 'terminalCommand',
     description:
@@ -24,7 +21,7 @@ export function createTerminalCommandTool(ctx: {
     execute: async (input) => {
       const result = await ctx.sandbox.process.executeCommand(
         input.command,
-        `workspace/${ctx.repoName}`,
+        `workspace/repo`,
       )
 
       const output = result.result ?? ''

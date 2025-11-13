@@ -41,11 +41,7 @@ export const runCiTask = task({
     const initialRunStories = buildInitialRunStories(stories)
     const { runStatus, runSummary } = getInitialRunMeta(stories)
 
-    const {
-      repo,
-      octokit,
-      token: githubToken,
-    } = await getOctokitClient(repoRecord.repoId)
+    const { repo, octokit } = await getOctokitClient(repoRecord.repoId)
 
     const { commitSha, commitMessage } = await fetchBranchDetails(
       octokit,
@@ -117,11 +113,9 @@ export const runCiTask = task({
         summaryText,
         summaryParts,
       } = await runStoriesWithSandbox({
-        daytonaApiKey: env.DAYTONA_API_KEY,
         repoRecord,
         repo,
         branchName,
-        githubToken,
         stories,
         initialRunStories,
         runId,

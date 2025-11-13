@@ -1,10 +1,10 @@
 import { ToolLoopAgent, Output, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
-import { Daytona } from '@daytonaio/sdk'
 
 import type { StoryTestResultPayload } from '@app/db'
 
 import { parseEnv } from '../../helpers/env'
+import { getDaytonaSandbox } from '../../helpers/daytona'
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
 import { createReadFileTool } from '../../tools/read-file-tool'
 import {
@@ -20,10 +20,8 @@ import {
   type StoryTestModelOutput,
 } from '../schema'
 import { logger } from '@trigger.dev/sdk'
-
-const DEFAULT_STORY_MODEL = 'gpt-5-mini'
-const DEFAULT_MAX_STEPS = 40
-const STORY_EVALUATION_AGENT_ID = 'story-evaluation-v2'
+import zodToJsonSchema from 'zod-to-json-schema'
+import { AGENT_CONFIG } from '../..'
 
 export function normalizeStoryTestResult(
   raw: StoryTestModelOutput,
@@ -102,7 +100,7 @@ gathering, searching, and evaluating source code to make an well-educated conclu
 
 # Schema
 \`\`\`
-${JSON.stringify(storyTestResultSchema.shape, null, 2)}
+${JSON.stringify(zodToJsonSchema(storyTestResultSchema), null, 2)}
 \`\`\`
 
 # Repository Overview
@@ -112,17 +110,21 @@ ${repoOutline}
 `
 }
 
-function buildStoryEvaluationPrompt(
-  options: StoryEvaluationAgentOptions,
-): string {
+function buildStoryEvaluationPrompt({
+  story,
+  run,
+}: {
+  story: StoryEvaluationAgentOptions['story']
+  run: StoryEvaluationAgentOptions['run']
+}): string {
   const lines: string[] = [
-    `Story Name: ${options.storyName}`,
+    `Story Name: ${story.name}`,
     'Story Definition:',
-    options.storyText,
+    story.text,
   ]
 
-  if (options.runId) {
-    lines.push(`Run Identifier: ${options.runId}`)
+  if (run.id) {
+    lines.push(`Run Identifier: ${run.id}`)
   }
 
   lines.push(
@@ -132,83 +134,58 @@ function buildStoryEvaluationPrompt(
   return lines.join('\n\n')
 }
 
-export async function runStoryEvaluationAgent(
-  options: StoryEvaluationAgentOptions,
-): Promise<StoryEvaluationAgentResult> {
+export async function runStoryEvaluationAgent({
+  story,
+  repo,
+  run,
+  options,
+}: StoryEvaluationAgentOptions): Promise<StoryEvaluationAgentResult> {
   const env = parseEnv()
 
   const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
-  const effectiveModelId = DEFAULT_STORY_MODEL
+  const effectiveModelId = options?.modelId ?? AGENT_CONFIG.evaluation.model
 
-  const daytona = new Daytona({ apiKey: env.DAYTONA_API_KEY })
-  const sandbox = await daytona.get(options.daytonaSandboxId)
+  const sandbox = await getDaytonaSandbox(options?.daytonaSandboxId ?? '')
 
   const repoOutline = await sandbox.process.executeCommand(
     'tree -L 3',
-    `workspace/${options.repoName}`,
+    `workspace/repo`,
   )
   if (repoOutline.exitCode !== 0) {
     throw new Error(`Failed to get repo outline: ${repoOutline.result}`)
   }
   const outline = repoOutline.result ?? ''
 
-  const terminalCommandTool = createTerminalCommandTool({
-    sandbox,
-    repoName: options.repoName,
-  })
-
-  const readFileTool = createReadFileTool({
-    sandbox,
-    repoName: options.repoName,
-  })
-
-  const resolveLibraryTool = createResolveLibraryTool({
-    apiKey: env.CONTEXT7_API_KEY,
-  })
-
-  const getLibraryDocsTool = createGetLibraryDocsTool({
-    apiKey: env.CONTEXT7_API_KEY,
-  })
-
-  const lspTool = createLspTool({
-    sandbox,
-    repoName: options.repoName,
-  })
-
-  const maxSteps = Math.max(1, options.maxSteps ?? DEFAULT_MAX_STEPS)
-  const telemetryMetadata: Record<string, string> = {
-    storyName: options.storyName,
-    repoId: options.repoId,
-    repoName: options.repoName,
-    daytonaSandboxId: options.daytonaSandboxId,
-    modelId: effectiveModelId,
-  }
-
-  if (options.runId) {
-    telemetryMetadata.runId = options.runId
-  }
-
-  const telemetryEnabled = options.telemetryTracer !== undefined
+  const maxSteps = Math.max(
+    1,
+    options?.maxSteps ?? AGENT_CONFIG.evaluation.maxSteps,
+  )
 
   const agent = new ToolLoopAgent({
-    id: STORY_EVALUATION_AGENT_ID,
+    id: 'story-evaluation-v3',
     model: openAiProvider(effectiveModelId),
     instructions: buildStoryEvaluationInstructions(outline),
     tools: {
-      terminalCommand: terminalCommandTool,
-      readFile: readFileTool,
-      resolveLibrary: resolveLibraryTool,
-      getLibraryDocs: getLibraryDocsTool,
-      lsp: lspTool,
+      terminalCommand: createTerminalCommandTool({ sandbox }),
+      readFile: createReadFileTool({ sandbox }),
+      resolveLibrary: createResolveLibraryTool(),
+      getLibraryDocs: createGetLibraryDocsTool(),
+      lsp: createLspTool({ sandbox }),
     },
-    experimental_telemetry: telemetryEnabled
-      ? {
-          isEnabled: true,
-          functionId: STORY_EVALUATION_AGENT_ID,
-          metadata: telemetryMetadata,
-          tracer: options.telemetryTracer,
-        }
-      : undefined,
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: 'story-evaluation-v3',
+      metadata: {
+        storyId: story.id,
+        storyName: story.name,
+        repoId: repo.id,
+        repoSlug: repo.slug,
+        runId: run.id,
+        daytonaSandboxId: options?.daytonaSandboxId ?? '',
+        modelId: effectiveModelId,
+      },
+      tracer: options?.telemetryTracer,
+    },
     stopWhen: stepCountIs(maxSteps),
     onFinish: (result) => {
       logger.debug('🌸 Agent Result', { result })
@@ -216,7 +193,7 @@ export async function runStoryEvaluationAgent(
     output: Output.object({ schema: storyTestResultSchema }),
   })
 
-  const prompt = buildStoryEvaluationPrompt(options)
+  const prompt = buildStoryEvaluationPrompt({ story, run })
 
   const result = await agent.generate({ prompt })
 

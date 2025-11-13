@@ -6,9 +6,7 @@ import {
   parseEnv,
   normalizeStoryTestResult,
   runStoryEvaluationAgent,
-  normalizeStoryTestResultV2,
-  runStoryEvaluationAgentV2,
-  type StoryEvaluationAgentResult,
+  type AgentVersion,
 } from '@app/agents'
 import { getTelemetryTracer } from '@/telemetry'
 
@@ -18,8 +16,7 @@ interface TestStoryPayload {
   runId: string
   /** The Daytona Sandbox ID */
   daytonaSandboxId: string
-  /** The agent version to use (v1 or v2) */
-  agentVersion?: 'v1' | 'v2'
+  agentVersion?: AgentVersion
   // TODO support if daytonaSandboxId is null so we can create a new sandbox for this single story execution
 }
 
@@ -54,12 +51,14 @@ export const testStoryTask = task({
     // Look up the story and associated repository metadata needed for testing
     const storyRecord = await db
       .selectFrom('stories')
-      .innerJoin('repos', 'stories.repoId', 'repos.id')
+      .innerJoin('repos', 'repos.id', 'stories.repoId')
+      .innerJoin('owners', 'owners.id', 'repos.ownerId')
       .select([
-        'stories.id as storyId',
-        'stories.name as storyName',
-        'stories.story as storyText',
+        'stories.id as id',
+        'stories.story as story',
         'stories.repoId as repoId',
+        'stories.name as name',
+        'owners.login as ownerName',
         'repos.name as repoName',
       ])
       .where('stories.id', '=', payload.storyId)
@@ -92,47 +91,34 @@ export const testStoryTask = task({
     }
 
     try {
-      const agentVersion = payload.agentVersion ?? 'v2'
-
       /**
        * 💎 Run Story Evaluation Agent
        */
-      let evaluation: StoryEvaluationAgentResult
-      let normalized: StoryTestResultPayload
-
-      if (agentVersion === 'v2') {
-        const evaluationV2 = await runStoryEvaluationAgentV2({
-          ...storyRecord,
-          runId: payload.runId,
+      const evaluation = await runStoryEvaluationAgent({
+        repo: {
+          id: storyRecord.repoId,
+          slug: `${storyRecord.ownerName}/${storyRecord.repoName}`,
+        },
+        story: {
+          id: storyRecord.id,
+          name: storyRecord.name,
+          text: storyRecord.story,
+        },
+        run: {
+          id: payload.runId,
+        },
+        options: {
           daytonaSandboxId: payload.daytonaSandboxId,
-          maxSteps: 30,
           telemetryTracer: getTelemetryTracer(),
-        })
-        evaluation = evaluationV2
-        normalized = normalizeStoryTestResultV2(
-          evaluationV2.output,
-          startedAt,
-          new Date(),
-        )
-      } else {
-        const evaluationV1 = await runStoryEvaluationAgent({
-          ...storyRecord,
-          runId: payload.runId,
-          daytonaSandboxId: payload.daytonaSandboxId,
-          maxSteps: 30,
-          telemetryTracer: getTelemetryTracer(),
-        })
-        evaluation = evaluationV1
-        normalized = normalizeStoryTestResult(
-          evaluationV1.output,
-          startedAt,
-          new Date(),
-        )
-      }
+        },
+      })
 
-      const completedAt = normalized.completedAt
-        ? new Date(normalized.completedAt)
-        : null
+      // TODO do we need this??? Post processing
+      const normalized = normalizeStoryTestResult(
+        evaluation.output,
+        startedAt,
+        new Date(),
+      )
 
       await db
         .updateTable('storyTestResults')
@@ -143,7 +129,7 @@ export const testStoryTask = task({
             normalized.analysis !== null
               ? eb.cast(eb.val(JSON.stringify(normalized.analysis)), 'jsonb')
               : eb.val(null),
-          completedAt,
+          completedAt: new Date(),
           durationMs: normalized.durationMs,
         }))
         .where('id', '=', resultId)

@@ -1,6 +1,7 @@
 import { logger } from '@trigger.dev/sdk'
 import { tool } from 'ai'
 import { z } from 'zod'
+import { parseEnv } from '../helpers/env'
 
 const resolveLibraryInputSchema = z.object({
   libraryName: z
@@ -38,13 +39,9 @@ const getLibraryDocsInputSchema = z.object({
     .optional(),
 })
 
-interface Context7ToolContext {
-  apiKey?: string
-}
-
 const CONTEXT7_API_BASE = 'https://api.context7.com'
 
-export function createResolveLibraryTool(context: Context7ToolContext = {}) {
+export function createResolveLibraryTool() {
   return tool({
     name: 'resolveLibrary',
     description:
@@ -52,12 +49,13 @@ export function createResolveLibraryTool(context: Context7ToolContext = {}) {
     inputSchema: resolveLibraryInputSchema,
     execute: async (input) => {
       try {
+        const env = parseEnv()
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
         }
 
-        if (context.apiKey) {
-          headers['Authorization'] = `Bearer ${context.apiKey}`
+        if (env.CONTEXT7_API_KEY) {
+          headers['Authorization'] = `Bearer ${env.CONTEXT7_API_KEY}`
         }
 
         const response = await fetch(
@@ -101,7 +99,7 @@ export function createResolveLibraryTool(context: Context7ToolContext = {}) {
   })
 }
 
-export function createGetLibraryDocsTool(context: Context7ToolContext = {}) {
+export function createGetLibraryDocsTool() {
   return tool({
     name: 'getLibraryDocs',
     description:
@@ -109,12 +107,13 @@ export function createGetLibraryDocsTool(context: Context7ToolContext = {}) {
     inputSchema: getLibraryDocsInputSchema,
     execute: async (input) => {
       try {
+        const env = parseEnv()
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
         }
 
-        if (context.apiKey) {
-          headers['Authorization'] = `Bearer ${context.apiKey}`
+        if (env.CONTEXT7_API_KEY) {
+          headers['Authorization'] = `Bearer ${env.CONTEXT7_API_KEY}`
         }
 
         const params = new URLSearchParams({

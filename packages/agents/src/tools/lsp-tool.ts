@@ -1,9 +1,9 @@
-import path from 'node:path'
-
 import type { Sandbox } from '@daytonaio/sdk'
 import { LspLanguageId } from '@daytonaio/sdk'
 import { tool } from 'ai'
 import { z } from 'zod'
+
+import { resolveWorkspacePath } from '../helpers/daytona'
 
 const lspLanguageSchema = z.enum(['typescript', 'python'])
 
@@ -42,39 +42,12 @@ const lspToolInputSchema = z
     },
   )
 
-function resolveWorkspacePath(
-  inputPath: string,
-  repoName: string,
-): string | null {
-  const workspaceRoot = `workspace/${repoName}`
-  const normalized = inputPath.replace(/\\/g, '/')
-
-  if (normalized.startsWith(workspaceRoot)) {
-    return normalized
-  }
-
-  const repoSegment = `/${repoName}/`
-  if (normalized.startsWith('/')) {
-    const repoIndex = normalized.indexOf(repoSegment)
-    if (repoIndex >= 0) {
-      const relativeToRepo =
-        normalized.slice(repoIndex + repoSegment.length) || '.'
-      const resolved = path.posix.join(workspaceRoot, relativeToRepo)
-      return resolved.startsWith(workspaceRoot) ? resolved : null
-    }
-    return null
-  }
-
-  const resolved = path.posix.join(workspaceRoot, normalized)
-  return resolved.startsWith(workspaceRoot) ? resolved : null
-}
-
 const languageMap: Record<z.infer<typeof lspLanguageSchema>, LspLanguageId> = {
   typescript: LspLanguageId.TYPESCRIPT,
   python: LspLanguageId.PYTHON,
 }
 
-export function createLspTool(ctx: { sandbox: Sandbox; repoName: string }) {
+export function createLspTool(ctx: { sandbox: Sandbox }) {
   return tool({
     name: 'lsp',
     description:
@@ -82,7 +55,7 @@ export function createLspTool(ctx: { sandbox: Sandbox; repoName: string }) {
     inputSchema: lspToolInputSchema,
     execute: async (input) => {
       console.log('🌵 LSP used', { input })
-      const projectRoot = `workspace/${ctx.repoName}`
+      const projectRoot = `workspace/repo`
       const lspServer = await ctx.sandbox.createLspServer(
         languageMap[input.language],
         projectRoot,
@@ -92,7 +65,7 @@ export function createLspTool(ctx: { sandbox: Sandbox; repoName: string }) {
 
       try {
         if (input.command === 'documentSymbols') {
-          const targetPath = resolveWorkspacePath(input.path!, ctx.repoName)
+          const targetPath = resolveWorkspacePath(input.path!)
 
           if (!targetPath) {
             return 'File path must be within the current repository workspace.'
