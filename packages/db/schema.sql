@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5uJnCiBGn8dYqyzWxHJvSMsG1v54YbzT69Qq5DJxaXL0guAWb4gMJ3GXfg5dspC
+\restrict ZJ99JE4Gt8Lf60XlRHA3c23zz0mxaMg39mDUrDfpoQTFFL3M1gYi7gRth2NvY2E
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
@@ -20,6 +20,20 @@
 --
 
 COMMENT ON SCHEMA public IS '';
+
+
+--
+-- Name: citext; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION citext; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION citext IS 'data type for case-insensitive character strings';
 
 
 --
@@ -86,6 +100,37 @@ BEGIN
   WHERE repo_id = p_repo_id;
   
   RETURN v_next_number;
+END;
+$$;
+
+
+--
+-- Name: normalize_owner_login(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.normalize_owner_login() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.login = LOWER(NEW.login);
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: normalize_repo_fields(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.normalize_repo_fields() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.name = LOWER(NEW.name);
+  IF NEW.full_name IS NOT NULL THEN
+    NEW.full_name = LOWER(NEW.full_name);
+  END IF;
+  RETURN NEW;
 END;
 $$;
 
@@ -395,7 +440,7 @@ CREATE TABLE public.owners (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     external_id bigint,
-    login text NOT NULL,
+    login public.citext NOT NULL,
     name text,
     type text,
     avatar_url text,
@@ -571,8 +616,8 @@ CREATE TABLE public.repos (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     external_id bigint,
-    name text NOT NULL,
-    full_name text,
+    name public.citext NOT NULL,
+    full_name public.citext,
     private boolean DEFAULT false NOT NULL,
     description text,
     default_branch text,
@@ -1429,6 +1474,20 @@ CREATE INDEX story_test_results_story_id_idx ON public.story_test_results USING 
 
 
 --
+-- Name: owners normalize_owner_login_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER normalize_owner_login_trigger BEFORE INSERT OR UPDATE ON public.owners FOR EACH ROW EXECUTE FUNCTION public.normalize_owner_login();
+
+
+--
+-- Name: repos normalize_repo_fields_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER normalize_repo_fields_trigger BEFORE INSERT OR UPDATE ON public.repos FOR EACH ROW EXECUTE FUNCTION public.normalize_repo_fields();
+
+
+--
 -- Name: runs set_run_number_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1619,5 +1678,5 @@ ALTER TABLE ONLY public.story_test_results
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5uJnCiBGn8dYqyzWxHJvSMsG1v54YbzT69Qq5DJxaXL0guAWb4gMJ3GXfg5dspC
+\unrestrict ZJ99JE4Gt8Lf60XlRHA3c23zz0mxaMg39mDUrDfpoQTFFL3M1gYi7gRth2NvY2E
 
