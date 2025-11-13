@@ -5,10 +5,7 @@
   },
   "references": [
     {
-        "path": "../agents/tsconfig.json"
-    },
-    {
-        "path": "../db/tsconfig.json"
+      "path": "../db/tsconfig.json"
     }
-]
+  ]
 }
