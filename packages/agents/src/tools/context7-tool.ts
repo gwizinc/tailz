@@ -1,7 +1,7 @@
 import { logger } from '@trigger.dev/sdk'
 import { tool } from 'ai'
 import { z } from 'zod'
-import { parseEnv } from '../helpers/env'
+import { parseEnv } from '@app/config'
 
 const resolveLibraryInputSchema = z.object({
   libraryName: z

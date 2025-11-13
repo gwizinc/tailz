@@ -1,50 +1,27 @@
 import { task, logger } from '@trigger.dev/sdk'
 
-import { setupDb, type StoryTestResultPayload } from '@app/db'
+import { setupDb } from '@app/db'
 
-import {
-  parseEnv,
-  normalizeStoryTestResult,
-  runStoryEvaluationAgent,
-  type AgentVersion,
-} from '@app/agents'
+import { agents } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { getTelemetryTracer } from '@/telemetry'
+import type { EvaluationAgentResult } from 'node_modules/@app/agents/src/agents/schema'
 
-interface TestStoryPayload {
-  storyId: string
-  /** The CI Run UUID */
-  runId: string
-  /** The Daytona Sandbox ID */
-  daytonaSandboxId: string
-  agentVersion?: AgentVersion
-  // TODO support if daytonaSandboxId is null so we can create a new sandbox for this single story execution
-}
-
-interface TestStoryResult {
-  success: boolean
-  storyId: string
-  runId: string | null
+export type TestStoryTaskResult = {
   resultId: string
-  status: StoryTestResultPayload['status']
-  analysisVersion: StoryTestResultPayload['analysisVersion']
-  analysis: StoryTestResultPayload['analysis']
+  evaluation: EvaluationAgentResult
 }
-
-export type TestStoryTaskTriggerResult =
-  | {
-      ok: true
-      output: TestStoryResult
-      error?: undefined
-    }
-  | {
-      ok: false
-      error: unknown
-      output?: undefined
-    }
 
 export const testStoryTask = task({
   id: 'test-story',
-  run: async (payload: TestStoryPayload) => {
+  run: async (payload: {
+    storyId: string
+    /** The CI Run UUID */
+    runId: string
+    /** The Daytona Sandbox ID */
+    daytonaSandboxId: string
+    agentVersion?: string
+  }): Promise<TestStoryTaskResult> => {
     const env = parseEnv()
     const db = setupDb(env.DATABASE_URL)
 
@@ -58,6 +35,7 @@ export const testStoryTask = task({
         'stories.story as story',
         'stories.repoId as repoId',
         'stories.name as name',
+        'stories.decomposition as decomposition',
         'owners.login as ownerName',
         'repos.name as repoName',
       ])
@@ -92,9 +70,9 @@ export const testStoryTask = task({
 
     try {
       /**
-       * 💎 Run Story Evaluation Agent
+       * Agent to evaluate the story
        */
-      const evaluation = await runStoryEvaluationAgent({
+      const evaluation = await agents.evaluation.run({
         repo: {
           id: storyRecord.repoId,
           slug: `${storyRecord.ownerName}/${storyRecord.repoName}`,
@@ -103,6 +81,9 @@ export const testStoryTask = task({
           id: storyRecord.id,
           name: storyRecord.name,
           text: storyRecord.story,
+          decomposition: agents.decomposition.schema.parse(
+            storyRecord.decomposition,
+          ),
         },
         run: {
           id: payload.runId,
@@ -113,75 +94,46 @@ export const testStoryTask = task({
         },
       })
 
-      // TODO do we need this??? Post processing
-      const normalized = normalizeStoryTestResult(
-        evaluation.output,
-        startedAt,
-        new Date(),
+      logger.info(
+        `Story evaluation ${evaluation.status === 'pass' ? '🟢' : '🔴'}`,
+        { evaluation },
       )
+
+      const completedAt = new Date()
 
       await db
         .updateTable('storyTestResults')
-        .set((eb) => ({
-          status: normalized.status,
-          analysisVersion: normalized.analysisVersion,
-          analysis:
-            normalized.analysis !== null
-              ? eb.cast(eb.val(JSON.stringify(normalized.analysis)), 'jsonb')
-              : eb.val(null),
-          completedAt: new Date(),
-          durationMs: normalized.durationMs,
+        .set(() => ({
+          status: evaluation.status,
+          analysisVersion: evaluation.version,
+          analysis: JSON.stringify(evaluation),
+          completedAt,
+          durationMs: completedAt.getTime() - startedAt.getTime(),
         }))
         .where('id', '=', resultId)
         .execute()
 
-      logger.info(
-        `Story evaluation ${evaluation.output.status === 'pass' ? '🟢' : '🔴'}`,
-        {
-          storyId: payload.storyId,
-          runId: payload.runId,
-          evaluation,
-          status: normalized.status,
-          resultId,
-        },
-      )
-
-      const result: TestStoryResult = {
-        // Provide a succinct summary for orchestration tasks and UI consumption
-        success: true,
-        storyId: payload.storyId,
-        runId: payload.runId ?? null,
-        resultId,
-        status: normalized.status,
-        analysisVersion: normalized.analysisVersion,
-        analysis: normalized.analysis,
-      }
-      return result
+      return { resultId, evaluation }
     } catch (error) {
-      // Ensure the DB row reflects failure details before bubbling the error upward
-      logger.error('Story evaluation failed', {
-        storyId: payload.storyId,
-        runId: payload.runId,
-        resultId,
-        error,
-      })
-
       const failureDescription =
         error instanceof Error ? error.message : 'Unknown error occurred'
 
-      const failureAnalysis = {
-        conclusion: 'error' as const,
+      const failureAnalysis = agents.evaluation.schema.parse({
+        status: 'error',
         explanation: failureDescription,
+        version: 3,
         evidence: [],
-      }
+      })
+
+      const completedAt = new Date()
 
       await db
         .updateTable('storyTestResults')
-        .set((eb) => ({
+        .set(() => ({
           status: 'error',
-          analysisVersion: 1,
-          analysis: eb.cast(eb.val(JSON.stringify(failureAnalysis)), 'jsonb'),
-          completedAt: new Date(),
+          analysis: JSON.stringify(failureAnalysis),
+          completedAt,
+          durationMs: completedAt.getTime() - startedAt.getTime(),
         }))
         .where('id', '=', resultId)
         .execute()

@@ -4,16 +4,10 @@
     "composite": true,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    {
-      "path": "../db/tsconfig.json"
-    },
-    {
-      "path": "../config/tsconfig.json"
-    }
-  ]
+  "exclude": ["dist", "node_modules"]
 }
+

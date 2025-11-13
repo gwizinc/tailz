@@ -1,11 +1,13 @@
 import { task, logger } from '@trigger.dev/sdk'
 
 import { setupDb } from '@app/db'
-import { parseEnv, runStoryDecompositionAgent } from '@app/agents'
+import { agents } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { createDaytonaSandbox } from '../helpers/daytona'
 import { getTelemetryTracer } from '@/telemetry'
+import type { DecompositionAgentResult } from 'node_modules/@app/agents/src/agents/v3/story-decomposition'
 
-interface StoryDecompositionPayload {
+interface DecompositionPayload {
   /** A raw user story written in Gherkin or natural language */
   story: {
     id?: string
@@ -20,7 +22,10 @@ interface StoryDecompositionPayload {
 
 export const storyDecompositionTask = task({
   id: 'story-decomposition',
-  run: async ({ story, repo }: StoryDecompositionPayload) => {
+  run: async ({
+    story,
+    repo,
+  }: DecompositionPayload): Promise<DecompositionAgentResult> => {
     const env = parseEnv()
     const db = setupDb(env.DATABASE_URL)
 
@@ -29,20 +34,13 @@ export const storyDecompositionTask = task({
 
     try {
       // Run the story decomposition agent
-      const decompositionResult = await runStoryDecompositionAgent({
+      const decompositionResult = await agents.decomposition.run({
         story,
         repo,
         options: {
           daytonaSandboxId: sandbox.id,
           telemetryTracer: getTelemetryTracer(),
         },
-      })
-
-      logger.info('Story decomposition completed', {
-        slug: repo.slug,
-        stepCount: decompositionResult.stepCount,
-        toolCallCount: decompositionResult.toolCallCount,
-        stepsCount: decompositionResult.steps.length,
       })
 
       // Save decomposition results to the story record if story.id exists
@@ -57,9 +55,7 @@ export const storyDecompositionTask = task({
       }
 
       // Return the structured output
-      return {
-        steps: decompositionResult.steps,
-      }
+      return decompositionResult
     } catch (error) {
       logger.error('Story decomposition failed', {
         story,

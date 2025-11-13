@@ -1,43 +1,27 @@
-export { parseEnv } from './helpers/env'
+import { analysisSchema } from './agents/schema'
+import { decompositionOutputSchema } from './agents/v3/story-decomposition'
+import { runDecompositionAgent } from './agents/v3/story-decomposition'
+import { runEvaluationAgent } from './agents/v3/story-evaluator'
 
-export type AgentVersion = 'v3'
-
-export const AGENT_CONFIG = {
-  version: 'v3' as AgentVersion,
+export const agents = {
   decomposition: {
-    maxSteps: 30,
-    model: 'gpt-5-mini',
+    id: 'story-decomposition-v3',
+    version: 'v3',
+    schema: decompositionOutputSchema,
+    run: runDecompositionAgent,
+    options: {
+      maxSteps: 30,
+      model: 'gpt-5-mini',
+    },
   },
   evaluation: {
-    maxSteps: 30,
-    model: 'gpt-5-mini',
+    id: 'story-evaluation-v3',
+    version: 'v3',
+    schema: analysisSchema,
+    run: runEvaluationAgent,
+    options: {
+      maxSteps: 30,
+      model: 'gpt-5-mini',
+    },
   },
 } as const
-
-export {
-  runStoryEvaluationAgent,
-  normalizeStoryTestResult,
-} from './agents/v3/story-evaluator'
-
-export { runStoryDecompositionAgent } from './agents/v3/story-decomposition'
-
-export type { StoryEvaluationAgentResult } from './agents/schema'
-
-export type {
-  StoryDecompositionAgentResult,
-  StoryDecompositionAgentOptions,
-} from './agents/v3/story-decomposition'
-
-export {
-  createShareThoughtTool,
-  shareThoughtInputSchema,
-} from './tools/share-thought-tool'
-
-export { createReadFileTool, readFileInputSchema } from './tools/read-file-tool'
-
-export { createLspTool } from './tools/lsp-tool'
-
-export {
-  createResolveLibraryTool,
-  createGetLibraryDocsTool,
-} from './tools/context7-tool'

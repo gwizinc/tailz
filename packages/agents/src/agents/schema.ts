@@ -1,14 +1,8 @@
-import type { FinishReason } from 'ai'
 import type { Tracer } from '@opentelemetry/api'
 import z from 'zod'
+import type { DecompositionAgentResult } from './v3/story-decomposition'
 
 const evidenceItemSchema = z.object({
-  step: z
-    .string()
-    .min(3)
-    .describe(
-      'Gherkin-style goal that is being evaluated. e.g. "Given a user is logged in" or "When a user clicks the button" or "Then the user should see the result".',
-    ),
   conclusion: z.enum(['pass', 'fail']),
   filePath: z.string().min(1),
   startLine: z.number().int().min(1),
@@ -21,21 +15,16 @@ const evidenceItemSchema = z.object({
     ),
 })
 
-const storyAnalysisSchema = z.object({
-  version: z.literal(1),
-  conclusion: z.enum(['pass', 'fail', 'error']),
+export const analysisSchema = z.object({
+  version: z.literal(3),
+  status: z.enum(['pass', 'fail', 'skipped', 'error']),
   explanation: z.string().min(1),
   evidence: z.array(evidenceItemSchema).default([]),
 })
 
-export const storyTestResultSchema = z.object({
-  status: z.enum(['pass', 'fail', 'running', 'error']).default('running'),
-  analysis: storyAnalysisSchema.nullable().default(null),
-})
+export type EvaluationAgentResult = z.infer<typeof analysisSchema>
 
-export type StoryTestModelOutput = z.infer<typeof storyTestResultSchema>
-
-export type StoryEvaluationAgentOptions = {
+export type evaluationAgentOptions = {
   repo: {
     id: string
     slug: string
@@ -44,6 +33,7 @@ export type StoryEvaluationAgentOptions = {
     id: string
     name: string
     text: string
+    decomposition: DecompositionAgentResult
   }
   run: {
     id: string
@@ -62,10 +52,4 @@ export type StoryEvaluationAgentOptions = {
 export type StoryEvaluationAgentMetrics = {
   stepCount: number
   toolCallCount: number
-}
-
-export type StoryEvaluationAgentResult = {
-  output: StoryTestModelOutput
-  metrics: StoryEvaluationAgentMetrics
-  finishReason: FinishReason
 }

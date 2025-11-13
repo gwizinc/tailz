@@ -1,7 +1,7 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
 import { setupDb } from '@app/db'
-import { parseEnv } from '@app/agents'
+import { parseEnv } from '@app/config'
 
 export function createOctokit(installationId: number): Octokit {
   const env = parseEnv()

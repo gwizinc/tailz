@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { setupDb } from '@app/db'
-import { parseEnv } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { getOctokitClient } from '../../helpers/github'
 import {
   buildCheckRunBase,

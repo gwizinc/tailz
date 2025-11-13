@@ -1,5 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { parseEnv } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { setupDb } from '@app/db'
 
 import { createOctokit } from '../helpers/github'

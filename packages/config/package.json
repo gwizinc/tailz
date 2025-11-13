@@ -1,0 +1,22 @@
+{
+  "name": "@app/config",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Configuration parsing and validation",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -b",
+    "lint": "eslint . --max-warnings=0 --cache --concurrency=2",
+    "lint:fix": "eslint . --fix --cache --concurrency=2"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.10",
+    "typescript": "^5.9.3"
+  }
+}

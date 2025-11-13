@@ -1,4 +1,4 @@
-import { parseEnv } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { setupDb } from '@app/db'
 import { logger } from '@trigger.dev/sdk'
 

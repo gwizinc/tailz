@@ -1,6 +1,6 @@
 import pMap from 'p-map'
 import type { RunStory } from '@app/db'
-import { AGENT_CONFIG, type AgentVersion } from '@app/agents'
+import { agents } from '@app/agents'
 import type { RepoRecord, StoryRow } from './types'
 import { aggregateBatchResults, type AggregatedRunOutcome } from './results'
 import { testStoryTask } from '../test-story'
@@ -16,7 +16,7 @@ interface RunStoriesWithSandboxParams {
   stories: StoryRow[]
   initialRunStories: RunStory[]
   runId: string
-  agentVersion?: AgentVersion
+  agentVersion?: string
 }
 
 export async function runStoriesWithSandbox({
@@ -26,7 +26,7 @@ export async function runStoriesWithSandbox({
   stories,
   initialRunStories,
   runId,
-  agentVersion = AGENT_CONFIG.version,
+  agentVersion = agents.decomposition.version,
 }: RunStoriesWithSandboxParams): Promise<AggregatedRunOutcome> {
   const sandbox = await createDaytonaSandbox({
     repoId: repoRecord.repoId,

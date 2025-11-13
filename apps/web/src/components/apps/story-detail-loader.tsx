@@ -21,9 +21,10 @@ interface Story {
   id: string
   name: string
   story: string
-  createdAt: string | null
-  updatedAt: string | null
-  decomposition: unknown | null
+  createdAt: Date | string | null
+  updatedAt: Date | string | null
+  // TODO we cannot import from agents :(
+  decomposition: any
 }
 
 export function StoryDetailLoader({

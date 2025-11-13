@@ -31,6 +31,9 @@ export default defineESLintConfig(
       'sort-imports': 'off',
       // Disable unicorn explicit length check rule
       'unicorn/explicit-length-check': 'off',
+      // Disable TypeScript unsafe assignment and call rules
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
   {

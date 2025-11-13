@@ -1,5 +1,5 @@
 import { Daytona } from '@daytonaio/sdk'
-import { parseEnv } from '@app/agents'
+import { parseEnv } from '@app/config'
 import { getOctokitClient } from './github'
 
 type DaytonaClient = InstanceType<typeof Daytona>

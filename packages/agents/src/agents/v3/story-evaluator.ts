@@ -1,9 +1,7 @@
 import { ToolLoopAgent, Output, stepCountIs } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 
-import type { StoryTestResultPayload } from '@app/db'
-
-import { parseEnv } from '../../helpers/env'
+import { parseEnv } from '@app/config'
 import { getDaytonaSandbox } from '../../helpers/daytona'
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
 import { createReadFileTool } from '../../tools/read-file-tool'
@@ -13,48 +11,15 @@ import {
 } from '../../tools/context7-tool'
 import { createLspTool } from '../../tools/lsp-tool'
 import {
-  storyTestResultSchema,
-  type StoryEvaluationAgentMetrics,
-  type StoryEvaluationAgentOptions,
-  type StoryEvaluationAgentResult,
-  type StoryTestModelOutput,
+  analysisSchema,
+  type evaluationAgentOptions,
+  type EvaluationAgentResult,
 } from '../schema'
 import { logger } from '@trigger.dev/sdk'
 import zodToJsonSchema from 'zod-to-json-schema'
-import { AGENT_CONFIG } from '../..'
+import { agents } from '../..'
 
-export function normalizeStoryTestResult(
-  raw: StoryTestModelOutput,
-  startedAt: Date,
-  completedAt?: Date,
-): StoryTestResultPayload {
-  const completed = completedAt ?? new Date()
-  const durationMs = completed.getTime() - startedAt.getTime()
-
-  const analysisVersion = raw.analysis?.version ?? 1
-
-  const normalizedStatus: StoryTestResultPayload['status'] =
-    raw.status === 'running' ? 'error' : raw.status
-
-  const analysis = raw.analysis
-    ? {
-        conclusion: raw.analysis.conclusion,
-        explanation: raw.analysis.explanation,
-        evidence: raw.analysis.evidence,
-      }
-    : null
-
-  return {
-    status: normalizedStatus,
-    analysisVersion,
-    analysis,
-    startedAt: startedAt.toISOString(),
-    completedAt: completed.toISOString(),
-    durationMs,
-  }
-}
-
-function buildStoryEvaluationInstructions(repoOutline: string): string {
+function buildEvaluationInstructions(repoOutline: string): string {
   return `
 You are an expert software QA engineer evaluating whether a user story is achievable given the current repository state.
 
@@ -100,7 +65,7 @@ gathering, searching, and evaluating source code to make an well-educated conclu
 
 # Schema
 \`\`\`
-${JSON.stringify(zodToJsonSchema(storyTestResultSchema), null, 2)}
+${JSON.stringify(zodToJsonSchema(analysisSchema), null, 2)}
 \`\`\`
 
 # Repository Overview
@@ -110,12 +75,12 @@ ${repoOutline}
 `
 }
 
-function buildStoryEvaluationPrompt({
+function buildEvaluationPrompt({
   story,
   run,
 }: {
-  story: StoryEvaluationAgentOptions['story']
-  run: StoryEvaluationAgentOptions['run']
+  story: evaluationAgentOptions['story']
+  run: evaluationAgentOptions['run']
 }): string {
   const lines: string[] = [
     `Story Name: ${story.name}`,
@@ -134,16 +99,16 @@ function buildStoryEvaluationPrompt({
   return lines.join('\n\n')
 }
 
-export async function runStoryEvaluationAgent({
+export async function runEvaluationAgent({
   story,
   repo,
   run,
   options,
-}: StoryEvaluationAgentOptions): Promise<StoryEvaluationAgentResult> {
+}: evaluationAgentOptions): Promise<EvaluationAgentResult> {
   const env = parseEnv()
 
   const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
-  const effectiveModelId = options?.modelId ?? AGENT_CONFIG.evaluation.model
+  const effectiveModelId = options?.modelId ?? agents.evaluation.options.model
 
   const sandbox = await getDaytonaSandbox(options?.daytonaSandboxId ?? '')
 
@@ -158,13 +123,13 @@ export async function runStoryEvaluationAgent({
 
   const maxSteps = Math.max(
     1,
-    options?.maxSteps ?? AGENT_CONFIG.evaluation.maxSteps,
+    options?.maxSteps ?? agents.evaluation.options.maxSteps,
   )
 
   const agent = new ToolLoopAgent({
     id: 'story-evaluation-v3',
     model: openAiProvider(effectiveModelId),
-    instructions: buildStoryEvaluationInstructions(outline),
+    instructions: buildEvaluationInstructions(outline),
     tools: {
       terminalCommand: createTerminalCommandTool({ sandbox }),
       readFile: createReadFileTool({ sandbox }),
@@ -187,49 +152,14 @@ export async function runStoryEvaluationAgent({
       tracer: options?.telemetryTracer,
     },
     stopWhen: stepCountIs(maxSteps),
-    onFinish: (result) => {
-      logger.debug('🌸 Agent Result', { result })
-    },
-    output: Output.object({ schema: storyTestResultSchema }),
+    output: Output.object({ schema: analysisSchema }),
   })
 
-  const prompt = buildStoryEvaluationPrompt({ story, run })
+  const prompt = buildEvaluationPrompt({ story, run })
 
   const result = await agent.generate({ prompt })
 
-  const parsedOutput = storyTestResultSchema.parse(result.output)
-  const toolCallCount = result.steps.reduce(
-    (count, step) => count + step.toolCalls.length,
-    0,
-  )
+  logger.debug('🤖 Evaluation Agent Result', { result })
 
-  const metrics: StoryEvaluationAgentMetrics = {
-    stepCount: result.steps.length,
-    toolCallCount,
-  }
-
-  const normalizedStatus: StoryTestModelOutput['status'] =
-    parsedOutput.status === 'running' ? 'error' : parsedOutput.status
-
-  const outputWithAnalysis: StoryTestModelOutput = {
-    ...parsedOutput,
-    status: normalizedStatus,
-    analysis:
-      parsedOutput.status === 'running'
-        ? null
-        : (parsedOutput.analysis ?? {
-            version: 1,
-            conclusion:
-              normalizedStatus === 'error' ? 'error' : normalizedStatus,
-            explanation:
-              '**Summary unavailable.** Model did not supply analysis; TODO: summarize complete findings later.',
-            evidence: [],
-          }),
-  }
-
-  return {
-    output: outputWithAnalysis,
-    metrics,
-    finishReason: result.finishReason,
-  }
+  return result.output
 }

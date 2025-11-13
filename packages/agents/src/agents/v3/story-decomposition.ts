@@ -3,14 +3,15 @@ import { createOpenAI } from '@ai-sdk/openai'
 import type { Tracer } from '@opentelemetry/api'
 import { z } from 'zod'
 
-import { parseEnv } from '../../helpers/env'
+import { parseEnv } from '@app/config'
 import { getDaytonaSandbox } from '../../helpers/daytona'
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
 import { createReadFileTool } from '../../tools/read-file-tool'
 import { createResolveLibraryTool } from '../../tools/context7-tool'
 import { createLspTool } from '../../tools/lsp-tool'
-import { AGENT_CONFIG } from '../../index'
+import { agents } from '../../index'
 import zodToJsonSchema from 'zod-to-json-schema'
+import { logger } from '@trigger.dev/sdk'
 
 const stepSchema = z.discriminatedUnion('type', [
   z.object({
@@ -28,13 +29,13 @@ const stepSchema = z.discriminatedUnion('type', [
         .string()
         .min(1)
         .describe(
-          'Declarative statements describing what becomes true in this step.',
+          'Declarative, human-readable statements describing what becomes true in this step.',
         ),
     ),
   }),
 ])
 
-const storyDecompositionOutputSchema = z.object({
+export const decompositionOutputSchema = z.object({
   steps: z
     .array(stepSchema)
     .describe(
@@ -42,7 +43,9 @@ const storyDecompositionOutputSchema = z.object({
     ),
 })
 
-export type StoryDecompositionAgentOptions = {
+export type DecompositionAgentResult = z.infer<typeof decompositionOutputSchema>
+
+type DecompositionAgentOptions = {
   story: {
     /** Optional because we can test decomposition with just the text alone */
     id?: string
@@ -60,16 +63,7 @@ export type StoryDecompositionAgentOptions = {
   }
 }
 
-export type StoryDecompositionAgentResult = {
-  steps: Array<
-    | { type: 'given'; given: string }
-    | { type: 'requirement'; outcome: string; assertions: string[] }
-  >
-  stepCount: number
-  toolCallCount: number
-}
-
-function buildStoryDecompositionInstructions(): string {
+function buildDecompositionInstructions(): string {
   return `You are an expert software QA analyst tasked with interpreting a plain-language user story into a **context-aware, stateful sequence of verifiable behavioral steps**.
 
 # 🎯 Objective
@@ -98,26 +92,23 @@ You have read-only tools to:
 - Assertions should be declarative statements that can be verified.
 - Avoid redundancy: once a fact is established, reference it rather than restate it.
 - Maintain causal flow — every step transitions from one valid state to the next.
-- **Never** include source code nor pseudocode
+- **Never** include source code nor pseudocode.
 
-# Example of Style
-
-**Good:**
+**Good Example Assertions:**
 - A user is signed in with an active session.
 - The user can create a new discussion thread.
 - The new thread is labeled as an AI thread.
 - New messages appear in the thread, to the user immediately.
 - The thread owner references the signed-in user.
 
-**Bad (don't do this):**
-- \`U\` = authenticated user
-- \`T.state = active\`
-- \`M.thread = T\`
-- \`Thread.owner references the signed-in User.active = true.\`
+**Bad Example Assertions (don't do this):**
+- Using jargon or syntax like \`U\` for authenticated user
+- Using syntax like \`T.state = active && M.thread = T\`
+- Using property names like \`Thread.owner\`
 
 # Output Schema
 \`\`\`json
-${JSON.stringify(zodToJsonSchema(storyDecompositionOutputSchema), null, 2)}
+${JSON.stringify(zodToJsonSchema(decompositionOutputSchema), null, 2)}
 \`\`\`
 
 # Goal
@@ -126,7 +117,7 @@ This output can be executed by a reasoning agent to simulate the logical progres
 `
 }
 
-function buildStoryDecompositionPrompt(story: string): string {
+function buildDecompositionPrompt(story: string): string {
   return `User Story:
 ${story}
 
@@ -137,27 +128,27 @@ Decompose this story and break it down into a sequential list of steps. Each ste
 When your decomposition is complete, respond only with the JSON object that matches the schema.`
 }
 
-export async function runStoryDecompositionAgent({
+export async function runDecompositionAgent({
   story,
   repo,
   options,
-}: StoryDecompositionAgentOptions): Promise<StoryDecompositionAgentResult> {
+}: DecompositionAgentOptions): Promise<DecompositionAgentResult> {
   const { OPENAI_API_KEY } = parseEnv()
 
   const openAiProvider = createOpenAI({ apiKey: OPENAI_API_KEY })
-  const effectiveModelId = options.modelId ?? AGENT_CONFIG.decomposition.model
+  const effectiveModelId = options.modelId ?? agents.decomposition.options.model
 
   const sandbox = await getDaytonaSandbox(options.daytonaSandboxId)
 
   const maxSteps = Math.max(
     1,
-    options.maxSteps ?? AGENT_CONFIG.decomposition.maxSteps,
+    options.maxSteps ?? agents.decomposition.options.maxSteps,
   )
 
   const agent = new ToolLoopAgent({
     id: 'story-decomposition-v3',
     model: openAiProvider(effectiveModelId),
-    instructions: buildStoryDecompositionInstructions(),
+    instructions: buildDecompositionInstructions(),
     tools: {
       terminalCommand: createTerminalCommandTool({ sandbox }),
       readFile: createReadFileTool({ sandbox }),
@@ -177,22 +168,14 @@ export async function runStoryDecompositionAgent({
       tracer: options.telemetryTracer,
     },
     stopWhen: stepCountIs(maxSteps),
-    output: Output.object({ schema: storyDecompositionOutputSchema }),
+    output: Output.object({ schema: decompositionOutputSchema }),
   })
 
-  const prompt = buildStoryDecompositionPrompt(story.text)
+  const prompt = buildDecompositionPrompt(story.text)
 
   const result = await agent.generate({ prompt })
 
-  const parsedOutput = storyDecompositionOutputSchema.parse(result.output)
-  const toolCallCount = result.steps.reduce(
-    (count, step) => count + step.toolCalls.length,
-    0,
-  )
+  logger.debug('🤖 Story Decomposition Agent Result', { result })
 
-  return {
-    steps: parsedOutput.steps,
-    stepCount: result.steps.length,
-    toolCallCount,
-  }
+  return result.output
 }

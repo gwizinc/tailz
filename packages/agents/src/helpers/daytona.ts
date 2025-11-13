@@ -1,7 +1,7 @@
 import path from 'node:path'
 
 import { Daytona } from '@daytonaio/sdk'
-import { parseEnv } from './env'
+import { parseEnv } from '@app/config'
 
 type DaytonaClient = InstanceType<typeof Daytona>
 type DaytonaSandbox = Awaited<ReturnType<DaytonaClient['get']>>

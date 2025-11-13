@@ -156,7 +156,7 @@ export const storyRouter = router({
       })
 
       if (!repo) {
-        return { story: null, filesTouched: [] }
+        return { story: null }
       }
 
       // Query story
@@ -168,21 +168,10 @@ export const storyRouter = router({
         .executeTakeFirst()
 
       if (!story) {
-        return { story: null, filesTouched: [] }
+        return { story: null }
       }
 
-      // TODO: Implement file fetching based on files array
-      return {
-        story: {
-          id: story.id,
-          name: story.name,
-          story: story.story,
-          createdAt: story.createdAt?.toISOString() ?? null,
-          updatedAt: story.updatedAt?.toISOString() ?? null,
-          decomposition: story.decomposition,
-        },
-        filesTouched: [],
-      }
+      return { story }
     }),
 
   create: protectedProcedure
@@ -234,13 +223,7 @@ export const storyRouter = router({
       })
 
       return {
-        story: {
-          id: newStory.id,
-          name: newStory.name,
-          story: newStory.story,
-          createdAt: newStory.createdAt?.toISOString() ?? null,
-          updatedAt: newStory.updatedAt?.toISOString() ?? null,
-        },
+        story: newStory,
       }
     }),
 
@@ -289,6 +272,7 @@ export const storyRouter = router({
       }
       if (input.story !== undefined) {
         updateData.story = input.story
+        updateData.decomposition = null
       }
 
       // Update story
@@ -315,13 +299,7 @@ export const storyRouter = router({
       }
 
       return {
-        story: {
-          id: updatedStory.id,
-          name: updatedStory.name,
-          story: updatedStory.story,
-          createdAt: updatedStory.createdAt?.toISOString() ?? null,
-          updatedAt: updatedStory.updatedAt?.toISOString() ?? null,
-        },
+        story: updatedStory,
       }
     }),
 

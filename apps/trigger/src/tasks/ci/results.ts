@@ -2,7 +2,7 @@ import { json } from '@app/db'
 import type { RunStory } from '@app/db'
 import type { AggregatedCounts } from '../../helpers/github-checks'
 import type { DbClient, StoryRow } from './types'
-import type { TestStoryTaskTriggerResult } from '../test-story'
+import type { TestStoryTaskResult } from '../test-story'
 
 export interface AggregatedRunOutcome {
   aggregated: AggregatedCounts
@@ -11,6 +11,19 @@ export interface AggregatedRunOutcome {
   summaryText: string
   summaryParts: string[]
 }
+
+export type TestStoryTaskTriggerResult =
+  | {
+      ok: true
+      taskIdentifier: string
+      /** From the Trigger.dev task */
+      output: TestStoryTaskResult
+    }
+  | {
+      ok: false
+      taskIdentifier: string
+      error: unknown
+    }
 
 export function aggregateBatchResults({
   batchResult,
@@ -36,7 +49,7 @@ export function aggregateBatchResults({
     }
 
     if (result.ok) {
-      const output = result.output
+      const output = result.output.evaluation
 
       if (output.status === 'pass') {
         aggregated.pass += 1
@@ -49,7 +62,7 @@ export function aggregateBatchResults({
       updatedRunStories.push({
         storyId: story.id,
         status: output.status,
-        resultId: output.resultId,
+        resultId: result.output.resultId,
         summary: null,
         startedAt: initialRunStories[index]?.startedAt ?? null,
         completedAt: new Date().toISOString(),

@@ -44,6 +44,9 @@ importers:
       '@app/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@app/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@app/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -256,6 +259,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^2.0.64
         version: 2.0.64(zod@3.25.76)
+      '@app/config':
+        specifier: workspace:*
+        version: link:../config
       '@app/db':
         specifier: workspace:*
         version: link:../db
@@ -311,6 +317,19 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.0)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9))(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.7.1)
+
+  packages/config:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.18.10
+        version: 22.19.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/db:
     dependencies:
@@ -11242,7 +11261,7 @@ snapshots:
 
   '@types/fontkit@2.0.8':
     dependencies:
-      '@types/node': 24.10.0
+      '@types/node': 22.19.0
 
   '@types/hast@3.0.4':
     dependencies:
@@ -11312,7 +11331,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 22.19.0
 
   '@typescript-eslint/eslint-plugin@8.46.3(@typescript-eslint/parser@8.46.3(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
@@ -12740,8 +12759,8 @@ snapshots:
       '@babel/parser': 7.28.5
       eslint: 9.39.1(jiti@2.6.1)
       hermes-parser: 0.25.1
-      zod: 4.1.12
-      zod-validation-error: 4.0.2(zod@4.1.12)
+      zod: 3.25.76
+      zod-validation-error: 4.0.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -16286,9 +16305,9 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  zod-validation-error@4.0.2(zod@4.1.12):
+  zod-validation-error@4.0.2(zod@3.25.76):
     dependencies:
-      zod: 4.1.12
+      zod: 3.25.76
 
   zod@3.25.76: {}
 
