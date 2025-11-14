@@ -46,17 +46,18 @@ export function StoryList({ stories, orgName, repoName }: StoryListProps) {
             さくせい
           </p>
           <h2 className="text-2xl font-display text-foreground mb-3">
-            Craft Your First Story
+            Craft your first story
           </h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-md">
-            Start by creating a user story that describes the functionality you
-            want to test. Stories help define the expected behavior of your
-            application.
+            Stories encapsulate the intent of a user behavior or technical
+            workflow within your product. Articulate your story in natural
+            language, then Kyoto will evaluate the intent to ensure the code
+            aligns with your requirements.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Button asChild size="lg">
               <a href={`/org/${orgName}/repo/${repoName}/stories/new`}>
-                Write a story
+                Craft new story
               </a>
             </Button>
             <span className="text-xs text-muted">— or —</span>

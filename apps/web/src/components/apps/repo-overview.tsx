@@ -102,16 +102,18 @@ export function RepoOverview({
                     Stories
                   </h2>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {stories.length} total
-                  </span>
-                  <Button asChild variant="outline" size="sm">
-                    <a href={`/org/${orgName}/repo/${repoName}/stories/new`}>
-                      Craft new story
-                    </a>
-                  </Button>
-                </div>
+                {stories.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {stories.length} total
+                    </span>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={`/org/${orgName}/repo/${repoName}/stories/new`}>
+                        Craft new story
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="max-h-[600px] overflow-auto">
                 <StoryList
