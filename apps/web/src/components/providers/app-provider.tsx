@@ -1,3 +1,5 @@
+'use client'
+
 import { Toaster } from '../ui/sonner'
 
 import { AuthProvider } from './auth-provider'

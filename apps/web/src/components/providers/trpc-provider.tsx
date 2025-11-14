@@ -1,3 +1,5 @@
+'use client'
+
 import type { AppRouter } from '@app/api'
 import { is } from '@app/utils'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
