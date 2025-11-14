@@ -102,9 +102,7 @@ interface StoryTemplatesPanelProps {
 export function StoryTemplatesPanel({
   onSelectTemplate,
 }: StoryTemplatesPanelProps) {
-  const [openTemplateId, setOpenTemplateId] = useState<string | null>(
-    STORY_TEMPLATES[0]?.id ?? null,
-  )
+  const [openTemplateId, setOpenTemplateId] = useState<string | null>(null)
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden border rounded-md min-h-0">
