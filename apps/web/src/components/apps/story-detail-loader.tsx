@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { Trash2 } from 'lucide-react'
 
@@ -219,52 +220,86 @@ export function StoryDetailLoader({
               {error}
             </div>
           )}
-          <div className="flex flex-1 overflow-hidden">
-            <div className="w-1/2 p-6 overflow-auto border-r flex flex-col">
-              <p
-                className="text-sm font-semibold tracking-[0.3em] text-primary"
-                title="Riyōsha no sutōrī - story of the user."
-              >
-                利用者のストーリー
-              </p>
-              <Label htmlFor="storyContent" className="mb-2">
-                Story Content
-              </Label>
-              <textarea
-                id="storyContent"
-                value={storyContent}
-                onChange={(e) => setStoryContent(e.target.value)}
-                readOnly={!isEditing}
-                placeholder={isEditing ? 'Write your story here...' : ''}
-                className={cn(
-                  'flex-1 w-full resize-none rounded-md border border-input bg-card p-4 text-sm text-card-foreground shadow-sm',
-                  'placeholder:text-muted-foreground',
-                  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  !isEditing && 'bg-muted/50',
-                )}
-              />
-            </div>
-            <div className="w-1/2 p-6 overflow-auto">
-              <p
-                className="text-sm font-semibold tracking-[0.3em] text-primary"
-                title="Bunkai - to break down."
-              >
-                ぶんかい
-              </p>
-              <h2 className="mb-4">Decomposition</h2>
-              <div className="mt-3">
-                {story.decomposition ? (
-                  <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">
-                    {JSON.stringify(story.decomposition, null, 2)}
-                  </pre>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    No decomposition data available.
-                  </div>
-                )}
+          <div className="flex flex-1 overflow-hidden flex-col">
+            <Tabs
+              defaultValue="story"
+              className="flex flex-1 flex-col overflow-hidden"
+            >
+              <div className="px-6 pt-4">
+                <TabsList>
+                  <TabsTrigger value="story">Story</TabsTrigger>
+                  <TabsTrigger value="decomposition">Decomposition</TabsTrigger>
+                  <TabsTrigger value="runs">Recent Runs</TabsTrigger>
+                </TabsList>
               </div>
-            </div>
+              <TabsContent value="story" className="flex-1 overflow-auto mt-0">
+                <div className="flex items-center justify-center min-h-full p-12">
+                  <div className="w-full max-w-3xl">
+                    <p
+                      className="text-sm font-semibold tracking-[0.3em] text-primary mb-2"
+                      title="Riyōsha no sutōrī - story of the user."
+                    >
+                      利用者のストーリー
+                    </p>
+                    <Label htmlFor="storyContent" className="mb-2">
+                      Story Content
+                    </Label>
+                    <textarea
+                      id="storyContent"
+                      value={storyContent}
+                      onChange={(e) => setStoryContent(e.target.value)}
+                      readOnly={!isEditing}
+                      placeholder={isEditing ? 'Write your story here...' : ''}
+                      className={cn(
+                        'w-full h-96 resize-none rounded-md border border-input bg-card p-4 text-sm text-card-foreground shadow-sm',
+                        'placeholder:text-muted-foreground',
+                        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                        'disabled:cursor-not-allowed disabled:opacity-50',
+                        !isEditing && 'bg-muted/50',
+                      )}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent
+                value="decomposition"
+                className="flex-1 overflow-hidden mt-0"
+              >
+                <div className="flex h-full">
+                  <div className="w-1/2 p-6 overflow-auto border-r">
+                    <p
+                      className="text-sm font-semibold tracking-[0.3em] text-primary mb-2"
+                      title="Bunkai - to break down."
+                    >
+                      ぶんかい
+                    </p>
+                    <h2 className="mb-4">Decomposition</h2>
+                    <div className="mt-3">
+                      {story.decomposition ? (
+                        <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">
+                          {JSON.stringify(story.decomposition, null, 2)}
+                        </pre>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          No decomposition data available.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-1/2 p-6 overflow-auto">
+                    {/* Placeholder for code section - to be implemented later */}
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="runs" className="flex-1 overflow-auto mt-0">
+                <div className="p-6">
+                  {/* Placeholder for recent runs - to be implemented later */}
+                  <div className="text-sm text-muted-foreground">
+                    Recent runs will be displayed here.
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       ) : null}
