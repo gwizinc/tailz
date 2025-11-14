@@ -4,8 +4,10 @@ import {
   Clock,
   Loader2,
   MinusCircle,
+  Play,
   XCircle,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface RunItem {
   id: string
@@ -88,9 +90,35 @@ export function GitHubStyleRunList({
 }: GitHubStyleRunListProps) {
   if (runs.length === 0) {
     return (
-      <div className="py-6 text-sm text-muted-foreground text-center">
-        No runs found.
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <p
+            className="text-sm font-semibold tracking-[0.3em] text-primary mb-4"
+            title="Ito-kenshō - intent testing."
+          >
+            いとかんしょう
+          </p>
+          <h2 className="text-2xl font-display text-foreground mb-3">
+            What is intent testing?
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-md">
+            Your commits and pull requests will soon be tested with Kyoto&apos;s
+            intent testing, an AI powered QA platform with the goal of
+            preventing regressions and shipping code that works according to the
+            intent behind your stories.
+          </p>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => {
+              window.alert('Coming soon')
+            }}
+          >
+            <Play className="h-4 w-4" />
+            Watch demo
+          </Button>
+        </div>
+      </>
     )
   }
 
