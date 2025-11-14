@@ -138,10 +138,10 @@ export async function runStoriesWithSandbox({
             error instanceof Error ? error.message : 'Unknown error occurred'
 
           const failureAnalysis = agents.evaluation.schema.parse({
+            version: 3,
             status: 'error',
             explanation: failureDescription,
-            version: 3,
-            evidence: [],
+            steps: [],
           })
 
           const completedAt = new Date()
