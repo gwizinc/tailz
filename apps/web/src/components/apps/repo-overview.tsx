@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { inferRouterOutputs } from '@trpc/server'
 import type { AppRouter } from '@app/api'
 import { SiGithub } from 'react-icons/si'
@@ -33,6 +33,23 @@ export function RepoOverview({
   const trpc = useTRPCClient()
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.includes('Mac')
+      const modifierKey = isMac ? event.metaKey : event.ctrlKey
+
+      if (modifierKey && event.key === 'Enter') {
+        event.preventDefault()
+        window.location.href = `/org/${orgName}/repo/${repoName}/stories/new`
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [orgName, repoName])
 
   const handleStartRun = async () => {
     if (!defaultBranch) {

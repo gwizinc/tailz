@@ -54,6 +54,7 @@ export function StoryCreateForm({
           value={storyContent}
           onChange={onContentChange}
           className="min-h-96 max-h-[600px]"
+          autoFocus={true}
         />
         <div className="mt-4 flex items-center justify-between pt-4">
           <div className="flex items-center gap-4">

@@ -26,6 +26,7 @@ interface TiptapEditorProps {
   readOnly?: boolean
   placeholder?: string
   className?: string
+  autoFocus?: boolean
 }
 
 export function TiptapEditor({
@@ -34,6 +35,7 @@ export function TiptapEditor({
   readOnly = false,
   placeholder,
   className,
+  autoFocus = false,
 }: TiptapEditorProps) {
   const extensions = useMemo(() => {
     const baseExtensions: Array<any> = [
@@ -108,6 +110,17 @@ export function TiptapEditor({
       editor.setEditable(!readOnly)
     }
   }, [editor, readOnly])
+
+  // Auto-focus the editor when autoFocus is true
+  useEffect(() => {
+    if (editor && autoFocus && !readOnly) {
+      // Use setTimeout to ensure the editor is fully rendered
+      const timeoutId = setTimeout(() => {
+        editor.commands.focus()
+      }, 100)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [editor, autoFocus, readOnly])
 
   if (!editor) {
     return (

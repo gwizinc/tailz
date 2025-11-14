@@ -58,6 +58,9 @@ export function StoryList({ stories, orgName, repoName }: StoryListProps) {
             <Button asChild size="lg">
               <a href={`/org/${orgName}/repo/${repoName}/stories/new`}>
                 Craft new story
+                <span className="ml-2 text-xs opacity-60">
+                  {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+Enter
+                </span>
               </a>
             </Button>
             <span className="text-xs text-muted">— or —</span>
