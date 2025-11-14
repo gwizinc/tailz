@@ -1,6 +1,7 @@
 import { ToolLoopAgent, Output, stepCountIs, generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { DecompositionAgentResult } from './story-decomposition'
+import dedent from 'dedent'
 
 import { parseEnv } from '@app/config'
 import { getDaytonaSandbox } from '../../helpers/daytona'
@@ -111,88 +112,47 @@ ${repoOutline}
 `
 }
 
+function bulletList(items: string[]): string {
+  return items.map((item) => `- ${item}`).join('\n')
+}
+
 function buildStepPrompt({
   stepContext,
 }: {
   stepContext: StepContext
 }): string {
-  const lines: string[] = []
-
-  // Collect givens from previous steps that passed
-  const givens: string[] = []
-  if (stepContext.previousResults.length > 0) {
-    stepContext.previousResults.forEach((prevResult) => {
-      if (prevResult.conclusion === 'pass') {
-        // Format the outcome as a given fact
-        // Split multi-line outcomes and format them nicely
-        const factLines = prevResult.outcome
-          .split('\n')
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0)
-
-        if (factLines.length > 0) {
-          // If single line, add as bullet point
-          if (factLines.length === 1) {
-            givens.push(`- ${factLines[0]}`)
-          } else {
-            // If multi-line, format with indentation
-            givens.push(`- ${factLines[0]}`)
-            factLines.slice(1).forEach((line) => {
-              givens.push(`  ${line}`)
-            })
-          }
-        }
-      }
-    })
-  }
-
-  // Build the prompt in the new format
-  if (givens.length > 0) {
-    lines.push(
-      '# Givens',
-      '',
-      'Below is a list of proven facts that are already validated in earlier steps.',
-      '',
-      'These do NOT need to be re-evaluated. Treat them as true:',
-      '',
-      ...givens,
-      '',
-      '(Use these givens as context when evaluating the requirement below.)',
-      '',
-      '---',
-      '',
-    )
-  }
-
-  // Add requirement section (only for requirement steps, not given steps)
-  if (stepContext.step.type === 'requirement') {
-    const requirementSection = [
-      '# Requirement to Verify',
-      '',
-      `**${stepContext.step.goal}**`,
-      '',
-      ...(stepContext.step.assertions.length > 0
-        ? [
-            '# Assertions',
-            '',
-            'You must verify whether the repository satisfies ALL of the following:',
-            '',
-            ...stepContext.step.assertions.map(
-              (assertion, idx) => `${idx + 1}. ${assertion}`,
-            ),
-            '',
-          ]
-        : []),
-    ]
-
-    lines.push(...requirementSection)
-  }
-
-  lines.push(
-    'Respond only with the required JSON schema once evaluation is complete.',
+  // Collect facts (steps[].assertions[].fact)
+  const facts = stepContext.previousResults.flatMap((prevResult) =>
+    prevResult.assertions.map((assertion) => assertion.fact),
   )
 
-  return lines.join('\n')
+  const givensSection =
+    facts.length > 0
+      ? dedent`
+          # Verified Facts
+          Use these already validated facts as givens in when evaluating the requirement below.
+          ${bulletList(facts)}
+        `
+      : ''
+
+  const requirementSection =
+    stepContext.step.type === 'requirement'
+      ? dedent`
+          # Goal to Verify
+          **${stepContext.step.goal}**
+
+          You must verify whether the repository satisfies ALL of the following assertions:
+          ${bulletList(stepContext.step.assertions)}
+        `
+      : ''
+
+  return dedent`
+    ${givensSection}
+
+    ${requirementSection}
+
+    Respond only with the required JSON schema once evaluation is complete.
+  `
 }
 
 async function combineStepResults(args: {
@@ -316,6 +276,10 @@ async function agent(args: {
       },
       tracer: options?.telemetryTracer,
     },
+    onStepFinish: (step) => {
+      logger.info(`🤖 ai.onStepFinish`, step)
+    },
+    maxRetries: 1, // @default 2
     stopWhen: stepCountIs(
       options?.maxSteps ?? agents.evaluation.options.maxSteps,
     ),

@@ -13,7 +13,7 @@ export const agents = {
     schema: decompositionOutputSchema,
     run: runDecompositionAgent,
     options: {
-      maxSteps: 30,
+      maxSteps: 15, // typically ends in 3-5 steps
       model: 'gpt-5-mini',
     },
   },
@@ -23,7 +23,7 @@ export const agents = {
     schema: analysisSchema,
     run: main,
     options: {
-      maxSteps: 30,
+      maxSteps: 50,
       model: 'gpt-5-mini',
     },
   },
