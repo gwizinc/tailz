@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { FileText, Layers, History } from 'lucide-react'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { LoadingProgress } from '@/components/ui/loading-progress'
@@ -335,11 +336,31 @@ export function StoryLoader({ orgName, repoName, storyId }: StoryLoaderProps) {
                 defaultValue="story"
                 className="flex flex-1 flex-col overflow-hidden"
               >
-                <div className="px-6 pt-4 flex items-center justify-center">
-                  <TabsList>
-                    <TabsTrigger value="story">Story</TabsTrigger>
-                    <TabsTrigger value="decomposition">Composition</TabsTrigger>
-                    <TabsTrigger value="runs">Recent Runs</TabsTrigger>
+                <div className="px-6 pt-6 pb-4 flex items-center justify-center">
+                  <TabsList className="h-auto p-2 w-full max-w-2xl">
+                    <TabsTrigger
+                      value="story"
+                      className="flex flex-col items-center gap-2 h-auto px-6 py-4 flex-1 data-[state=active]:bg-background"
+                    >
+                      <FileText className="h-6 w-6" />
+                      <span className="text-base font-medium">Story</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="decomposition"
+                      className="flex flex-col items-center gap-2 h-auto px-6 py-4 flex-1 data-[state=active]:bg-background"
+                    >
+                      <Layers className="h-6 w-6" />
+                      <span className="text-base font-medium">
+                        Intent Composition
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="runs"
+                      className="flex flex-col items-center gap-2 h-auto px-6 py-4 flex-1 data-[state=active]:bg-background"
+                    >
+                      <History className="h-6 w-6" />
+                      <span className="text-base font-medium">Recent Runs</span>
+                    </TabsTrigger>
                   </TabsList>
                 </div>
                 <TabsContent
