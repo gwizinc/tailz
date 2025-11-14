@@ -1,7 +1,5 @@
 import { cn } from '@/lib/utils'
-import { ChevronDown, ClipboardCheck, FileText } from 'lucide-react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { TiptapEditor } from '@/components/ui/tiptap-editor'
+import { ChevronDown } from 'lucide-react'
 import {
   getConclusionStyles,
   getDisplayStatus,
@@ -14,15 +12,48 @@ import { z } from 'zod'
 interface RunStoryCardContentProps {
   story: RunStory
   testResult: StoryTestResult | null
+  orgName: string
+  repoName: string
+  commitSha: string | null
+}
+
+/**
+ * Parses an evidence string in the format "path/to/file.tsx:128-133"
+ * and converts it to a GitHub blob URL
+ */
+function parseEvidenceToGitHubLink(
+  evidence: string,
+  orgName: string,
+  repoName: string,
+  commitSha: string | null,
+): { text: string; url: string | null } {
+  // Match pattern: filepath:startLine-endLine
+  const match = evidence.match(/^(.+):(\d+)-(\d+)$/)
+  
+  if (!match) {
+    return { text: evidence, url: null }
+  }
+
+  const [, filePath, startLine, endLine] = match
+
+  if (!commitSha) {
+    return { text: evidence, url: null }
+  }
+
+  const url = `https://github.com/${orgName}/${repoName}/blob/${commitSha}/${filePath}#L${startLine}-L${endLine}`
+  
+  return { text: evidence, url }
 }
 
 export function RunStoryCardContent({
   story,
   testResult,
+  orgName,
+  repoName,
+  commitSha,
 }: RunStoryCardContentProps) {
   const storyResult = testResult
   const analysis = storyResult?.analysis ?? null
-  const scenarioText = story.story?.story ?? null
   const displayStatus = getDisplayStatus(story)
   const isRunning = displayStatus === 'running'
 
@@ -247,9 +278,31 @@ export function RunStoryCardContent({
                                           </div>
                                           <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
                                             {assertion.evidence.map(
-                                              (ev, evIndex) => (
-                                                <li key={evIndex}>{ev}</li>
-                                              ),
+                                              (ev, evIndex) => {
+                                                const { text, url } =
+                                                  parseEvidenceToGitHubLink(
+                                                    ev,
+                                                    orgName,
+                                                    repoName,
+                                                    commitSha,
+                                                  )
+                                                return (
+                                                  <li key={evIndex}>
+                                                    {url ? (
+                                                      <a
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline"
+                                                      >
+                                                        {text}
+                                                      </a>
+                                                    ) : (
+                                                      text
+                                                    )}
+                                                  </li>
+                                                )
+                                              },
                                             )}
                                           </ul>
                                         </div>
@@ -273,47 +326,6 @@ export function RunStoryCardContent({
     )
   })()
 
-  return (
-    <Tabs defaultValue="story" className="w-full">
-      <div className="flex items-center justify-center mb-4">
-        <TabsList className="h-auto p-1">
-          <TabsTrigger
-            value="story"
-            className="flex flex-row items-center gap-1.5 h-auto px-3 py-2 data-[state=active]:bg-background"
-          >
-            <FileText className="h-4 w-4" />
-            <span className="text-sm font-medium">Story</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="analysis"
-            className="flex flex-row items-center gap-1.5 h-auto px-3 py-2 data-[state=active]:bg-background"
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            <span className="text-sm font-medium">Composition</span>
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value="story" className="mt-0 space-y-2" tabIndex={-1}>
-        {scenarioText ? (
-          <TiptapEditor
-            value={scenarioText}
-            onChange={() => {}}
-            readOnly={true}
-          />
-        ) : (
-          <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
-            No story content available.
-          </div>
-        )}
-      </TabsContent>
-      <TabsContent
-        value="analysis"
-        className="mt-0 space-y-4"
-        tabIndex={-1}
-      >
-        {conclusionContent}
-      </TabsContent>
-    </Tabs>
-  )
+  return <div className="w-full space-y-4">{conclusionContent}</div>
 }
 

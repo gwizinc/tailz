@@ -6,16 +6,34 @@ import type { RunStory, StoryTestResult } from '../types'
 interface RunStoryCardProps {
   story: RunStory
   testResult: StoryTestResult | null
+  orgName: string
+  repoName: string
+  commitSha: string | null
 }
 
-export function RunStoryCard({ story, testResult }: RunStoryCardProps) {
+export function RunStoryCard({
+  story,
+  testResult,
+  orgName,
+  repoName,
+  commitSha,
+}: RunStoryCardProps) {
   return (
-    <Card className="border">
+    <Card className="border bg-background">
       <CardContent>
-        <RunStoryCardHeader story={story} />
-        <RunStoryCardContent story={story} testResult={testResult} />
+        <RunStoryCardHeader
+          story={story}
+          orgName={orgName}
+          repoName={repoName}
+        />
+        <RunStoryCardContent
+          story={story}
+          testResult={testResult}
+          orgName={orgName}
+          repoName={repoName}
+          commitSha={commitSha}
+        />
       </CardContent>
     </Card>
   )
 }
-

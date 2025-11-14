@@ -146,6 +146,9 @@ export function RunDetailView({ run, orgName, repoName }: RunDetailViewProps) {
                   <RunStoryCard
                     story={selectedStory}
                     testResult={selectedStory.testResult}
+                    orgName={orgName}
+                    repoName={repoName}
+                    commitSha={run.commitSha}
                   />
                 ) : (
                   <div className="rounded-md border border-dashed bg-muted/40 p-6 text-sm text-muted-foreground">
