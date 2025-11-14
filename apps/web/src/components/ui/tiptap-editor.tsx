@@ -78,6 +78,14 @@ export function TiptapEditor({
           'prose-a:text-primary prose-a:underline',
         ),
       },
+      handleKeyDown: (view, event) => {
+        // Prevent Cmd+Enter or Ctrl+Enter from inserting a newline
+        // Let the parent component handle the save action
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          return true // Return true to prevent default behavior
+        }
+        return false // Let other keys work normally
+      },
     },
     onUpdate: ({ editor }) => {
       // Get HTML content to preserve formatting

@@ -1,3 +1,5 @@
+import { Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { StoryCard } from './StoryCard'
 
 type StoryStatus = 'pass' | 'fail' | 'error' | 'running' | null
@@ -22,10 +24,57 @@ interface StoryListProps {
 export function StoryList({ stories, orgName, repoName }: StoryListProps) {
   if (stories.length === 0) {
     return (
-      <div className="px-4 py-6 text-sm text-muted-foreground">
-        No stories yet. Create one to get started. (Soon we will generate some
-        for you automatically.)
-      </div>
+      <>
+        <style>{`
+          @keyframes shimmer {
+            0% {
+              transform: translateX(-100%);
+            }
+            100% {
+              transform: translateX(100%);
+            }
+          }
+          .shimmer-effect {
+            animation: shimmer 3s infinite;
+          }
+        `}</style>
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <p
+            className="text-sm font-semibold tracking-[0.3em] text-primary mb-4"
+            title="Sakusei - to create."
+          >
+            さくせい
+          </p>
+          <h2 className="text-2xl font-display text-foreground mb-3">
+            Craft Your First Story
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-md">
+            Start by creating a user story that describes the functionality you
+            want to test. Stories help define the expected behavior of your
+            application.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <Button asChild size="lg">
+              <a href={`/org/${orgName}/repo/${repoName}/stories/new`}>
+                Write a story
+              </a>
+            </Button>
+            <span className="text-xs text-muted">— or —</span>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                // TODO: Implement story generation
+              }}
+              className="gap-2 border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 hover:border-primary/50 transition-all shadow-sm hover:shadow-md backdrop-blur-sm relative overflow-hidden group"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent shimmer-effect"></span>
+              <Sparkles className="h-4 w-4 text-primary relative z-10" />
+              <span className="relative z-10">AI Generate Story</span>
+            </Button>
+          </div>
+        </div>
+      </>
     )
   }
 
