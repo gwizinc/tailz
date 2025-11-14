@@ -176,7 +176,7 @@ export function OrgRepoDashboard({ org, repos }: Props) {
       })
       window.location.reload()
     } catch (error) {
-      console.error('Failed to enable repository:', error)
+      console.error('Failed to connect repository:', error)
     } finally {
       setEnabling(false)
     }
@@ -259,7 +259,7 @@ export function OrgRepoDashboard({ org, repos }: Props) {
             </div>
             <Button onClick={handleOpenDialog} className="gap-2">
               <Plus className="h-5 w-5" />
-              <span>Add new repository</span>
+              <span>Add Repository</span>
             </Button>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -307,7 +307,7 @@ export function OrgRepoDashboard({ org, repos }: Props) {
               action={
                 <Button onClick={handleOpenDialog} className="gap-2">
                   <Plus className="h-5 w-5" />
-                  <span>Add new repository</span>
+                  <span>Connect Repository</span>
                 </Button>
               }
             />
@@ -386,9 +386,9 @@ export function OrgRepoDashboard({ org, repos }: Props) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add new repository</DialogTitle>
+            <DialogTitle>Connect Repository</DialogTitle>
             <DialogDescription>
-              Search and select a repository to enable for{' '}
+              Search and select a repository to connect for{' '}
               {org?.slug ? `${org.slug}` : 'this organization'}.
             </DialogDescription>
           </DialogHeader>
@@ -483,7 +483,7 @@ export function OrgRepoDashboard({ org, repos }: Props) {
               }}
               disabled={!selectedRepoName || enabling}
             >
-              {enabling ? 'Enabling...' : 'Enable repository'}
+              {enabling ? 'Connecting...' : 'Connect repository'}
             </Button>
           </DialogFooter>
         </DialogContent>

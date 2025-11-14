@@ -125,7 +125,7 @@ export function SetupApp() {
       setSearchQuery('')
       setSelectedRepoName(null)
     } catch (error) {
-      console.error('Failed to enable repository:', error)
+      console.error('Failed to connect repository:', error)
     } finally {
       setEnabling(false)
     }
@@ -199,7 +199,7 @@ export function SetupApp() {
                           setIsDialogOpen(true)
                         }}
                       >
-                        Add new repo
+                        Connect Repository
                       </Button>
                     </div>
                     {enabledRepos.length === 0 ? (
@@ -241,7 +241,7 @@ export function SetupApp() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add new repository</DialogTitle>
+            <DialogTitle>Connect Repository</DialogTitle>
             <DialogDescription>
               Search and select a repository to enable for{' '}
               {selectedOrg ? `${selectedOrg}` : 'this organization'}.
@@ -312,7 +312,7 @@ export function SetupApp() {
               }}
               disabled={!selectedRepoName || enabling}
             >
-              {enabling ? 'Enabling...' : 'Enable repository'}
+              {enabling ? 'Connecting...' : 'Connect Repository'}
             </Button>
           </DialogFooter>
         </DialogContent>
