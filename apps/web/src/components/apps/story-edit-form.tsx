@@ -72,9 +72,11 @@ export function StoryEditForm({
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel} disabled={isSaving}>
-              Cancel
-            </Button>
+            {hasChanges && (
+              <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+                Revert changes
+              </Button>
+            )}
             <Button
               onClick={onSave}
               disabled={isSaving || !hasChanges}

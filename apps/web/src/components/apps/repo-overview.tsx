@@ -6,7 +6,7 @@ import { SiGithub } from 'react-icons/si'
 import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import { GitHubStyleRunList } from '@/components/runs/GitHubStyleRunList'
+import { RunList } from '@/components/runs/RunList'
 import { StoryList } from '@/components/stories/StoryList'
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
@@ -155,11 +155,7 @@ export function RepoOverview({
                   </Button>
                 )}
               </div>
-              <GitHubStyleRunList
-                runs={runs}
-                orgName={orgName}
-                repoName={repoName}
-              />
+              <RunList runs={runs} orgName={orgName} repoName={repoName} />
             </div>
           </div>
         </div>
