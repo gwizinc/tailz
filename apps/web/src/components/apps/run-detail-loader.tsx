@@ -59,6 +59,7 @@ interface RunStory {
     commitSha: string | null
     createdAt: string
     updatedAt: string
+    decomposition: unknown
   } | null
 }
 
@@ -279,6 +280,7 @@ function transformRunResponse(data: RunQueryOutput): Run | null {
             commitSha: story.commitSha ?? null,
             createdAt: toIsoString(story.createdAt) ?? new Date().toISOString(),
             updatedAt: toIsoString(story.updatedAt) ?? new Date().toISOString(),
+            decomposition: story.decomposition ?? null,
           }
         : null,
     }
