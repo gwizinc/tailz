@@ -91,7 +91,6 @@ export function StoryList({ stories, orgName, repoName }: StoryListProps) {
             name={story.name}
             href={`/org/${orgName}/repo/${repoName}/stories/${story.id}`}
             groups={story.groups}
-            latestStatus={story.latestStatus}
           />
         </li>
       ))}
