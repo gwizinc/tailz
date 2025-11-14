@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/common/EmptyState'
 
 interface StoryDecompositionTabProps {
   decomposition: any
@@ -48,33 +49,24 @@ export function StoryDecompositionTab({
         </div>
       </div>
       <div className="w-1/2 p-6 overflow-auto">
-        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-          <p
-            className="text-sm font-semibold tracking-[0.3em] text-primary mb-4"
-            title="Genpon - original source."
-          >
-            げんぽん
-          </p>
-          <h2 className="text-2xl font-display text-foreground mb-3">
-            Backed by source
-          </h2>
-          <p className="text-sm text-muted-foreground mb-8 max-w-md">
-            View the source code and implementation details that back this
-            intent composition. See how your stories are translated into actual
-            code changes and understand the connection between intent and
-            implementation.
-          </p>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => {
-              window.alert('Coming soon')
-            }}
-          >
-            <Play className="h-4 w-4" />
-            Run intent test
-          </Button>
-        </div>
+        <EmptyState
+          kanji="げんぽん"
+          kanjiTitle="Genpon - original source."
+          title="Backed by source"
+          description="View the source code and implementation details that back this intent composition. See how your stories are translated into actual code changes and understand the connection between intent and implementation."
+          action={
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                window.alert('Coming soon')
+              }}
+            >
+              <Play className="h-4 w-4" />
+              Run intent test
+            </Button>
+          }
+        />
       </div>
     </div>
   )

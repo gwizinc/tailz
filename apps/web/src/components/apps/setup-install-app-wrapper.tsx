@@ -2,10 +2,16 @@ import { AppProvider } from '@/components/providers/app-provider'
 
 import { SetupInstallApp } from './setup-install-app'
 
-export function SetupInstallAppWrapper() {
+interface SetupInstallAppWrapperProps {
+  installationId: number
+}
+
+export function SetupInstallAppWrapper({
+  installationId,
+}: SetupInstallAppWrapperProps) {
   return (
     <AppProvider>
-      <SetupInstallApp />
+      <SetupInstallApp installationId={installationId} />
     </AppProvider>
   )
 }

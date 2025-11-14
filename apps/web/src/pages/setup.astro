@@ -2,31 +2,50 @@
 import Layout from '@/layouts/layout.astro'
 import { SetupInstallAppWrapper } from '@/components/apps/setup-install-app-wrapper'
 import { z } from 'zod'
+import { GITHUB_APP_SLUG } from 'astro:env/client'
+import { db } from '@/server/db'
 
 const setupQuerySchema = z.object({
-  installation_id: z.string().optional(),
   setup_action: z.enum(['install', 'update']).optional(),
+  installation_id: z.coerce.number().optional(),
+  owner: z.string().optional(),
 })
 
 const queryEntries = Object.fromEntries(Astro.url.searchParams.entries())
 const parsedQuery = setupQuerySchema.safeParse(queryEntries)
 
-/**
- * Post Install, GitHub will redirect here.
- */
-if (parsedQuery.success) {
-  const { installation_id: installationId } = parsedQuery.data
+// If update action, redirect immediately to /app
+if (parsedQuery.success && parsedQuery.data.setup_action === 'update') {
+  return Astro.redirect('/app', 307)
+}
 
-  if (installationId) {
-    const queryString = Astro.url.searchParams.toString()
-    const callbackUrl = `/api/github/app/callback${
-      queryString ? `?${queryString}` : ''
-    }`
-    return Astro.redirect(callbackUrl)
+// If owner is provided, fetch installation and redirect to GitHub settings
+if (parsedQuery.success && parsedQuery.data.owner) {
+  const owner = await db
+    .selectFrom('owners')
+    .select(['login', 'installationId'])
+    .where('login', '=', parsedQuery.data.owner)
+    .where('installationId', 'is not', null)
+    .executeTakeFirst()
+
+  if (owner && owner.installationId) {
+    const installationId = Number.parseInt(String(owner.installationId), 10)
+    if (Number.isFinite(installationId)) {
+      return Astro.redirect(
+        `https://github.com/organizations/${owner.login}/settings/installations/${installationId}`,
+        307,
+      )
+    }
   }
+
+  // If owner not found or no installation, redirect to app installation
+  return Astro.redirect(
+    `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`,
+    307,
+  )
 }
 ---
 
 <Layout title="Connect GitHub">
-  <SetupInstallAppWrapper client:load />
+  <SetupInstallAppWrapper client:load installationId={installationId} />
 </Layout>
