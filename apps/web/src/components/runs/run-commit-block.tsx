@@ -20,20 +20,12 @@ export function RunCommitBlock({
   commitUrl,
   pullRequestUrl,
 }: RunCommitBlockProps) {
-  const actorHandle = '@unknown'
-  const actorInitial =
-    actorHandle.length > 1 ? (actorHandle[1]?.toUpperCase() ?? '?') : '?'
-
   return (
     <div className="space-y-4">
       <Card className="w-full">
-        <CardContent className="grid gap-4 px-6 py-0 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <CardContent className="grid gap-4 px-6 py-0 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold text-muted-foreground">
-              {actorInitial}
-            </div>
             <div className="space-y-0.5 text-sm">
-              <div className="font-medium text-foreground">{actorHandle}</div>
               <div className="text-xs text-muted-foreground">
                 Committed{' '}
                 <time dateTime={run.createdAt} title={absoluteStarted}>
@@ -47,9 +39,7 @@ export function RunCommitBlock({
             <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-mono font-medium text-blue-800">
               {run.branchName}
             </span>
-          </div>
-          <div className="flex items-center gap-2 lg:justify-end">
-            <GitCommit className="size-4 text-muted-foreground underline" />
+            <GitCommit className="size-4 text-muted-foreground" />
             {commitUrl ? (
               <a
                 href={commitUrl}

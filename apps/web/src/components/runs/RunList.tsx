@@ -1,13 +1,12 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  MinusCircle,
-  Play,
-  XCircle,
-} from 'lucide-react'
+import { Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  formatDurationMs,
+  formatRelativeTime,
+  getCommitTitle,
+  getShortSha,
+  getStatusDisplay,
+} from './run-detail-view-utils'
 
 interface RunItem {
   id: string
@@ -27,59 +26,22 @@ interface RunListProps {
   repoName: string
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) {
-    return `${ms}ms`
-  }
-  if (ms < 60000) {
-    return `${Math.round(ms / 1000)}s`
-  }
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.round((ms % 60000) / 1000)
-  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) {
-    return 'just now'
-  }
-  if (diffMins < 60) {
-    return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
-  }
-  if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
-  }
-  if (diffDays < 7) {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
-  }
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  })
-}
-
-function getStatusIcon(status: RunItem['status']) {
+function mapRunStatusToDetailStatus(
+  status: RunItem['status'],
+): 'pass' | 'fail' | 'skipped' | 'running' | 'error' {
   switch (status) {
     case 'success':
-      return <CheckCircle2 className="size-4 text-chart-1" />
+      return 'pass'
     case 'failed':
-      return <XCircle className="size-4 text-destructive" />
-    case 'error':
-      return <AlertTriangle className="size-4 text-orange-600" />
+      return 'fail'
     case 'skipped':
-      return <MinusCircle className="size-4 text-muted-foreground" />
+      return 'skipped'
     case 'running':
-      return <Loader2 className="size-4 text-primary animate-spin" />
+      return 'running'
+    case 'error':
+      return 'error'
     case 'queued':
-      return <Clock className="size-4 text-chart-4" />
+      return 'running'
   }
 }
 
@@ -121,10 +83,13 @@ export function RunList({ runs, orgName, repoName }: RunListProps) {
   return (
     <ul className="divide-y">
       {runs.map((run) => {
-        const statusIcon = getStatusIcon(run.status)
-        const commitTitle =
-          run.commitMessage?.split('\n')[0]?.trim() || 'No commit message'
-        const shortSha = run.commitSha ? run.commitSha.slice(0, 7) : '—'
+        const detailStatus = mapRunStatusToDetailStatus(run.status)
+        const statusDisplay = getStatusDisplay(detailStatus)
+        const StatusIcon = statusDisplay.Icon
+        const commitTitle = getCommitTitle(run.commitMessage)
+        const shortSha = getShortSha(run.commitSha, '—')
+        const relativeTime = formatRelativeTime(run.createdAt)
+        const durationDisplay = formatDurationMs(run.durationMs)
 
         return (
           <li key={run.id}>
@@ -132,7 +97,13 @@ export function RunList({ runs, orgName, repoName }: RunListProps) {
               href={`/org/${orgName}/repo/${repoName}/runs/${run.runId}`}
               className="flex items-start gap-3 py-3 px-4 hover:bg-accent/50 transition-colors"
             >
-              <div className="mt-0.5">{statusIcon}</div>
+              <div className="mt-0.5">
+                <StatusIcon
+                  className={`size-4 ${statusDisplay.chipIconClassName} ${
+                    statusDisplay.shouldSpin ? 'animate-spin' : ''
+                  }`}
+                />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">
@@ -144,9 +115,9 @@ export function RunList({ runs, orgName, repoName }: RunListProps) {
                     CI #{run.runId}: Commit {shortSha}
                   </span>
                   {' • '}
-                  <span>{formatDate(run.createdAt)}</span>
+                  <span>{relativeTime}</span>
                   {' • '}
-                  <span>{formatDuration(run.durationMs)}</span>
+                  <span>{durationDisplay}</span>
                 </div>
               </div>
             </a>

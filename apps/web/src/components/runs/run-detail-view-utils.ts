@@ -258,3 +258,23 @@ export function getStoryTimestamps(story: RunStory) {
           : null),
   }
 }
+
+/**
+ * Extracts the first line of a commit message, with optional fallback.
+ */
+export function getCommitTitle(
+  commitMessage: string | null,
+  fallback = 'No commit message',
+): string {
+  return commitMessage?.split('\n')[0]?.trim() || fallback
+}
+
+/**
+ * Formats a commit SHA to short format (first 7 characters).
+ */
+export function getShortSha(
+  commitSha: string | null,
+  fallback: string | null = null,
+): string | null {
+  return commitSha ? commitSha.slice(0, 7) : fallback
+}

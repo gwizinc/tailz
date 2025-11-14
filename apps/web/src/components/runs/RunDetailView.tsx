@@ -3,8 +3,10 @@ import {
   formatDate,
   formatDurationMs,
   formatRelativeTime,
+  getCommitTitle,
   getDisplayStatus,
   getRunStatusDescriptor,
+  getShortSha,
   getStatusDisplay,
 } from './run-detail-view-utils'
 import type {
@@ -20,9 +22,8 @@ import { RunStoryDetails } from './run-story-details'
 export function RunDetailView({ run, orgName, repoName }: RunDetailViewProps) {
   const statusDisplay = getStatusDisplay(run.status)
   const runStatusDescriptor = getRunStatusDescriptor(run.status)
-  const commitTitle =
-    run.commitMessage?.split('\n')[0]?.trim() || 'Workflow run'
-  const shortSha = run.commitSha ? run.commitSha.slice(0, 7) : null
+  const commitTitle = getCommitTitle(run.commitMessage, 'Workflow run')
+  const shortSha = getShortSha(run.commitSha)
   const relativeStarted = formatRelativeTime(run.createdAt)
   const absoluteStarted = formatDate(run.createdAt)
   const durationMs =
