@@ -1,6 +1,11 @@
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import {
+  useEditor,
+  EditorContent,
+  type Extensions,
+  type Content,
+} from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
@@ -21,8 +26,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface TiptapEditorProps {
-  value: string
-  onChange: (value: string) => void
+  value: string // JSON string (ProseMirror JSON format)
+  onChange: (value: string) => void // Returns JSON string
   readOnly?: boolean
   placeholder?: string
   className?: string
@@ -37,8 +42,8 @@ export function TiptapEditor({
   className,
   autoFocus = false,
 }: TiptapEditorProps) {
-  const extensions = useMemo(() => {
-    const baseExtensions: Array<any> = [
+  const extensions = useMemo<Extensions>(() => {
+    const baseExtensions: Extensions = [
       StarterKit,
       Link.configure({
         openOnClick: false,
@@ -62,7 +67,18 @@ export function TiptapEditor({
 
   const editor = useEditor({
     extensions,
-    content: value,
+    content: (() => {
+      if (!value) {
+        return ''
+      }
+      try {
+        // Try to parse as JSON (ProseMirror format)
+        return JSON.parse(value) as Content
+      } catch {
+        // Fallback: treat as HTML for backward compatibility
+        return value
+      }
+    })(),
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -90,17 +106,32 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      // Get HTML content to preserve formatting
-      const html = editor.getHTML()
-      onChange(html)
+      // Save as JSON (ProseMirror format) to preserve all structure and metadata
+      const json = editor.getJSON()
+      onChange(JSON.stringify(json))
     },
   })
 
   // Update editor content when value prop changes (e.g., when loading from server)
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      // setContent can handle HTML strings or plain text (for backward compatibility)
-      editor.commands.setContent(value || '')
+    if (!editor) {
+      return
+    }
+
+    try {
+      // Try to parse as JSON first
+      const parsedValue = value ? (JSON.parse(value) as Content) : ''
+      const currentJson = editor.getJSON()
+
+      // Only update if content actually changed
+      if (JSON.stringify(currentJson) !== JSON.stringify(parsedValue)) {
+        editor.commands.setContent(parsedValue)
+      }
+    } catch {
+      // Fallback: treat as HTML for backward compatibility
+      if (value !== editor.getHTML()) {
+        editor.commands.setContent(value || '')
+      }
     }
   }, [value, editor])
 
