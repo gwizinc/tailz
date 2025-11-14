@@ -57,7 +57,7 @@ export function StoryEditForm({
             onKeyDown={handleTitleKeyDown}
             placeholder="Untitled Story"
             disabled={isSaving}
-            className="text-2xl font-display h-auto py-2 px-0 border-0 border-none rounded-none focus-visible:ring-0 focus-visible:border-0 focus:border-0 focus:ring-0 bg-transparent shadow-none"
+            className="text-2xl md:text-2xl font-display text-foreground h-auto py-2 px-0 border-0 border-none rounded-none focus-visible:ring-0 focus-visible:border-0 focus:border-0 focus:ring-0 bg-transparent shadow-none"
           />
         </div>
         <TiptapEditor
