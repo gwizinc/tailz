@@ -56,6 +56,7 @@ export function createAuth(options: {
       SITE_DEPLOYMENT_URL,
       SITE_PREVIEW_BRANCH_URL,
       SITE_PRODUCTION_URL,
+      'https://www.usekyoto.com',
     ].filter((x) => x != null),
 
     socialProviders: {
