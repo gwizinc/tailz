@@ -1,14 +1,10 @@
 'use client'
 
-import {
-  useEditor,
-  EditorContent,
-  type Extensions,
-  type Content,
-} from '@tiptap/react'
+import { useEditor, EditorContent, type Extensions } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
+import { Markdown } from '@tiptap/markdown'
 import { useEffect, useMemo } from 'react'
 import {
   Bold,
@@ -26,8 +22,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface TiptapEditorProps {
-  value: string // JSON string (ProseMirror JSON format)
-  onChange: (value: string) => void // Returns JSON string
+  value: string // Markdown string
+  onChange: (value: string) => void // Returns markdown string
   readOnly?: boolean
   placeholder?: string
   className?: string
@@ -45,6 +41,7 @@ export function TiptapEditor({
   const extensions = useMemo<Extensions>(() => {
     const baseExtensions: Extensions = [
       StarterKit,
+      Markdown,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -67,18 +64,8 @@ export function TiptapEditor({
 
   const editor = useEditor({
     extensions,
-    content: (() => {
-      if (!value) {
-        return ''
-      }
-      try {
-        // Try to parse as JSON (ProseMirror format)
-        return JSON.parse(value) as Content
-      } catch {
-        // Fallback: treat as HTML for backward compatibility
-        return value
-      }
-    })(),
+    content: value || '',
+    contentType: 'markdown',
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -106,9 +93,9 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      // Save as JSON (ProseMirror format) to preserve all structure and metadata
-      const json = editor.getJSON()
-      onChange(JSON.stringify(json))
+      // Save as markdown
+      const markdown = editor.getMarkdown()
+      onChange(markdown)
     },
   })
 
@@ -118,20 +105,11 @@ export function TiptapEditor({
       return
     }
 
-    try {
-      // Try to parse as JSON first
-      const parsedValue = value ? (JSON.parse(value) as Content) : ''
-      const currentJson = editor.getJSON()
+    const currentMarkdown = editor.getMarkdown()
 
-      // Only update if content actually changed
-      if (JSON.stringify(currentJson) !== JSON.stringify(parsedValue)) {
-        editor.commands.setContent(parsedValue)
-      }
-    } catch {
-      // Fallback: treat as HTML for backward compatibility
-      if (value !== editor.getHTML()) {
-        editor.commands.setContent(value || '')
-      }
+    // Only update if content actually changed
+    if (value !== currentMarkdown) {
+      editor.commands.setContent(value || '', { contentType: 'markdown' })
     }
   }, [value, editor])
 
