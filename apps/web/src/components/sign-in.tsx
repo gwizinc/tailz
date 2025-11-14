@@ -21,7 +21,7 @@ export function SignIn() {
     setLoading(true)
     await signIn.social({
       provider: 'github',
-      callbackURL: '/setup',
+      callbackURL: '/install',
     })
   }
 

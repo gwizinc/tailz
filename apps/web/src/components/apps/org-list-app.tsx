@@ -4,7 +4,6 @@ import { useTRPCClient } from '@/client/trpc'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { LoadingProgress } from '@/components/ui/loading-progress'
-import { EmptyState } from '@/components/common/EmptyState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SiGithub } from 'react-icons/si'
 import { RefreshCw } from 'lucide-react'
@@ -104,16 +103,22 @@ export function OrgListApp() {
   if (orgs.length === 0) {
     return (
       <AppLayout>
-        <div className="p-6">
-          <EmptyState
-            title="No organizations found"
-            description="Install the GitHub app to get started with your organizations."
-            action={
-              <Button asChild>
-                <a href={installUrl}>Install our GitHub App</a>
-              </Button>
-            }
-          />
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <p
+            className="text-sm font-semibold tracking-[0.3em] text-primary mb-4"
+            title="Sakusei - to create."
+          >
+            さくせい
+          </p>
+          <h2 className="text-2xl font-display text-foreground mb-3">
+            Connect your team
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-md">
+            Install the GitHub app to get started with your organizations.
+          </p>
+          <Button asChild size="lg">
+            <a href={installUrl}>Install our GitHub App</a>
+          </Button>
         </div>
       </AppLayout>
     )

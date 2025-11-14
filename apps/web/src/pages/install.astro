@@ -1,0 +1,36 @@
+---
+import { auth } from '@/server/auth'
+import { db } from '@/server/db'
+import { GITHUB_APP_SLUG } from 'astro:env/client'
+
+const session = await auth.api.getSession({
+  headers: Astro.request.headers,
+})
+
+// If not authenticated, redirect to sign in
+if (!session?.user?.id) {
+  return Astro.redirect('/sign-in')
+}
+
+const userId = session.user.id
+
+// Check if user has access to any organization with an installation
+const organizations = await db
+  .selectFrom('owners')
+  .innerJoin('ownerMemberships', 'ownerMemberships.ownerId', 'owners.id')
+  .select(['owners.id'])
+  .where('owners.installationId', 'is not', null)
+  .where('ownerMemberships.userId', '=', userId)
+  .limit(1)
+  .execute()
+
+if (organizations.length > 0) {
+  // User has access to at least one organization, redirect to /app
+  return Astro.redirect('/app')
+}
+
+// User has no organizations, redirect to GitHub App installation
+const installUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
+return Astro.redirect(installUrl)
+---
+
