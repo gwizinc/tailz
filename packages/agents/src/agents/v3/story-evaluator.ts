@@ -343,7 +343,7 @@ export async function main(
 
   // Get repository outline once for all steps
   const repoOutline = await sandbox.process.executeCommand(
-    'tree -L 3',
+    'tree -L 3 -I "dist|build|.git|.next|*.lock|*.log"',
     `workspace/repo`,
   )
   if (repoOutline.exitCode !== 0) {
