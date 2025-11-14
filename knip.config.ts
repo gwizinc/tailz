@@ -21,6 +21,7 @@ const config: KnipConfig = {
     'apps/web': {
       entry: ['src/pages/**/*.{astro,ts}', 'src/layouts/**/*.astro'],
       ignore: ['**/node_modules/**', '**/.astro/**', '**/dist/**', '**/*.d.ts'],
+      ignoreDependencies: ['@radix-ui/react-label'],
     },
     'apps/trigger': {
       entry: ['trigger.config.ts'],

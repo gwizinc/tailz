@@ -190,13 +190,24 @@ export function StoryLoader({ orgName, repoName, storyId }: StoryLoaderProps) {
   // Keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle if not already prevented and editor might be focused
+      // Handle Cmd/Ctrl+Enter for save
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         // Prevent default to stop TipTap from inserting newline
         e.preventDefault()
         e.stopPropagation()
         if (!isSaving && (isCreateMode || hasChanges)) {
           void handleSave()
+        }
+        return
+      }
+
+      // Handle Escape key to navigate back to repo page if no changes
+      if (e.key === 'Escape') {
+        // Only navigate if there are no changes
+        if (!hasChanges) {
+          e.preventDefault()
+          e.stopPropagation()
+          window.location.href = `/org/${orgName}/repo/${repoName}`
         }
       }
     }
@@ -207,7 +218,7 @@ export function StoryLoader({ orgName, repoName, storyId }: StoryLoaderProps) {
       window.removeEventListener('keydown', handleKeyDown, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSaving, isCreateMode, hasChanges])
+  }, [isSaving, isCreateMode, hasChanges, orgName, repoName])
 
   const handleCancel = () => {
     if (isCreateMode) {
