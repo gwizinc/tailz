@@ -169,7 +169,7 @@ function buildStepPrompt({
     const requirementSection = [
       '# Requirement to Verify',
       '',
-      `**${stepContext.step.outcome}**`,
+      `**${stepContext.step.goal}**`,
       '',
       ...(stepContext.step.assertions.length > 0
         ? [
@@ -208,7 +208,7 @@ async function combineStepResults(args: {
 
     // Use the original outcome from the decomposition step
     const outcome =
-      decompStep.type === 'given' ? decompStep.given : decompStep.outcome
+      decompStep.type === 'given' ? decompStep.given : decompStep.goal
 
     return {
       type: decompStep.type,
@@ -331,6 +331,19 @@ async function agent(args: {
   logger.debug(`🤖 Step ${stepContext.stepIndex + 1} Evaluation Result`, {
     result,
   })
+
+  // Handle case where agent hit max steps without generating output
+  if (!result.output) {
+    const maxStepsUsed = options?.maxSteps ?? agents.evaluation.options.maxSteps
+    logger.warn(
+      `Step ${stepContext.stepIndex + 1} hit max steps (${maxStepsUsed}) without generating output`,
+    )
+    return {
+      conclusion: 'error' as const,
+      outcome: `Evaluation stopped after reaching maximum steps (${maxStepsUsed}). The step may require more investigation or a higher step limit.`,
+      assertions: [],
+    }
+  }
 
   return result.output
 }

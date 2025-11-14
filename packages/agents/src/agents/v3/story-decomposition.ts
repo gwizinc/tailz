@@ -23,10 +23,12 @@ export const decompositionOutputSchema = z.object({
         }),
         z.object({
           type: z.literal('requirement'),
-          outcome: z
+          goal: z
             .string()
             .min(1)
-            .describe('Eg., User can login using their email and password.'),
+            .describe(
+              'Use modal verbs (“can,” “should,” “may,” “must,” “is able to”) or capability verbs (“allows,” “enables,” “supports”) to describe intended behavior, not observed behavior.',
+            ),
           assertions: z.array(
             z
               .string()
