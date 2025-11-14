@@ -362,7 +362,7 @@ export async function main(
     if (step.type === 'given') {
       const stepResult: StepAgentOutput = {
         conclusion: 'pass',
-        outcome: `Given precondition: ${step.given}`,
+        outcome: step.given,
         assertions: [],
       }
       stepResults.push(stepResult)
