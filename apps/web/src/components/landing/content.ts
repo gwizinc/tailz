@@ -106,19 +106,20 @@ export const stories: Story[] = [
 
 export const pricingTiers: PricingTier[] = [
   {
-    name: 'Starter',
+    name: 'Pebble',
     price: '$0',
     description: 'Everything you need to launch automated QA in minutes.',
     cta: 'Create free workspace',
     features: [
       '1 Repository',
-      '20 Stories',
+      '10 Stories',
+      'Unlimited Runs',
       'Unlimited Users',
       'Community Support',
     ],
   },
   {
-    name: 'Team',
+    name: 'Temple',
     price: '$50',
     description: 'Purpose built for fast-growing teams shipping weekly.',
     highlighted: true,
@@ -126,6 +127,7 @@ export const pricingTiers: PricingTier[] = [
     features: [
       'Unlimited Repositories',
       'Unlimited Stories',
+      'Unlimited Runs',
       'Unlimited Users',
       'Priority Support',
       'SLA',
