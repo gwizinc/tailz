@@ -44,6 +44,7 @@
     "@tiptap/markdown": "^3.10.7",
     "@tiptap/react": "^3.10.7",
     "@tiptap/starter-kit": "^3.10.7",
+    "@trigger.dev/react-hooks": "^4.1.0",
     "@trigger.dev/sdk": "^4.0.6",
     "@trpc/client": "11.6.0",
     "@trpc/tanstack-react-query": "11.6.0",

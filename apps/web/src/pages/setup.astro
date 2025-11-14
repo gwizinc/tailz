@@ -6,43 +6,54 @@ import { GITHUB_APP_SLUG } from 'astro:env/client'
 import { db } from '@/server/db'
 
 const setupQuerySchema = z.object({
+  // Provided by GitHub post installation callback
   setup_action: z.enum(['install', 'update']).optional(),
   installation_id: z.coerce.number().optional(),
+  // Provided by ourselves to redirect to the GitHub Installation page
   owner: z.string().optional(),
 })
 
 const queryEntries = Object.fromEntries(Astro.url.searchParams.entries())
 const parsedQuery = setupQuerySchema.safeParse(queryEntries)
 
-// If update action, redirect immediately to /app
-if (parsedQuery.success && parsedQuery.data.setup_action === 'update') {
-  return Astro.redirect('/app', 307)
-}
+// Extract installationId from query params if available
+const installationId = parsedQuery.success
+  ? parsedQuery.data.installation_id
+  : undefined
 
-// If owner is provided, fetch installation and redirect to GitHub settings
-if (parsedQuery.success && parsedQuery.data.owner) {
-  const owner = await db
-    .selectFrom('owners')
-    .select(['login', 'installationId'])
-    .where('login', '=', parsedQuery.data.owner)
-    .where('installationId', 'is not', null)
-    .executeTakeFirst()
+if (parsedQuery.success) {
 
-  if (owner && owner.installationId) {
-    const installationId = Number.parseInt(String(owner.installationId), 10)
-    if (Number.isFinite(installationId)) {
+  const { setup_action, owner } = parsedQuery.data
+
+  // If update action and installation_id is provided, trigger sync task before redirecting
+  if ( setup_action === 'update') {
+    return Astro.redirect('/app', 307)
+  }
+
+  // If owner is provided, fetch installation and redirect to GitHub settings
+  if (owner) {
+    const ownerRecord = await db
+      .selectFrom('owners')
+      .select(['installationId'])
+      .where('login', '=', owner)
+      .where('installationId', 'is not', null)
+      .executeTakeFirst()
+
+    if (owner && ownerRecord?.installationId) {
       return Astro.redirect(
-        `https://github.com/organizations/${owner.login}/settings/installations/${installationId}`,
+        `https://github.com/organizations/${owner}/settings/installations/${ownerRecord.installationId}`,
         307,
       )
     }
+
+    // If owner not found or no installation, redirect to app installation
+    return Astro.redirect(
+      `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`,
+      307,
+    )
   }
 
-  // If owner not found or no installation, redirect to app installation
-  return Astro.redirect(
-    `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`,
-    307,
-  )
+  // Let install events load the page so we can sync the installation data
 }
 ---
 
