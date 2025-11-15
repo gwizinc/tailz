@@ -4,6 +4,15 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { env } from '@/server/env'
 import z from 'zod'
 
+// Supported GitHub webhook event types that have handlers
+const supportedEventTypes = new Set([
+  'push',
+  'pull_request',
+  'installation',
+  'installation_repositories',
+  'installation_targets',
+])
+
 /**
  * Verifies the GitHub webhook signature using HMAC SHA256.
  * GitHub sends the signature in the X-Hub-Signature-256 header.
@@ -73,6 +82,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Get the delivery ID for logging
     const deliveryId = request.headers.get('X-GitHub-Delivery') || 'unknown'
+
+    // Skip triggering task for unsupported event types
+    if (!supportedEventTypes.has(eventType)) {
+      return new Response('Webhook received (event type not handled)', {
+        status: 200,
+      })
+    }
 
     const parsed = z
       .object({

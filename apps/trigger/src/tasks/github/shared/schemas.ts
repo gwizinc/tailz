@@ -121,5 +121,23 @@ export const statusEventSchema = z.object({
   repository: repositorySchema,
 })
 
+export const installationTargetsEventSchema = z.object({
+  action: z.enum(['renamed']),
+  account: accountSchema,
+  changes: z
+    .object({
+      login: z
+        .object({
+          from: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
+  installation: z.object({
+    id: idSchema,
+  }),
+  sender: senderSchema.optional(),
+})
+
 export type AccountPayload = z.infer<typeof accountSchema>
 export type RepositoryPayload = z.infer<typeof repositorySchema>

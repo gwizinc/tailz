@@ -1,9 +1,0 @@
-import { logger } from '@trigger.dev/sdk'
-
-import type { WebhookHandler } from '../types'
-
-export const publicHandler: WebhookHandler = ({ deliveryId }) => {
-  logger.info('Processing public event', { deliveryId })
-  // TODO: Handle repository visibility change to public.
-  return Promise.resolve()
-}

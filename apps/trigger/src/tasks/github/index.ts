@@ -1,1 +1,1 @@
-export { handleGithubWebhookTask } from './task'
+export { handleGithubWebhookTask, supportedEventTypes } from './task'

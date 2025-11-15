@@ -113,12 +113,26 @@ export const pullRequestHandler: WebhookHandler = async ({
       return
     }
 
-    await runCiTask.trigger({
-      orgName: ownerLogin,
-      repoName,
-      branchName,
-      prNumber,
-    })
+    const commitSha = parsed.data.pull_request.head.sha ?? null
+
+    await runCiTask.trigger(
+      {
+        orgName: ownerLogin,
+        repoName,
+        branchName,
+        prNumber,
+        commitSha,
+      },
+      {
+        tags: [
+          `org_${ownerLogin}`,
+          `repo_${repoName}`,
+          `pr_${prNumber}`,
+          `branch_${branchName}`,
+          `commit_${commitSha?.slice(0, 7)}`,
+        ],
+      },
+    )
 
     logger.info('Queued CI run from pull_request event', {
       deliveryId,
