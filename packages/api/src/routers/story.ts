@@ -3,7 +3,7 @@ import { tasks } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import type { Updateable } from 'kysely'
 
-import type { Json, Story } from '@app/db/types'
+import type { Story } from '@app/db/types'
 import {
   findRepoForUser,
   findStoryForUser,
@@ -12,47 +12,6 @@ import {
 import { protectedProcedure, router } from '../trpc'
 
 type StoryTestStatus = 'pass' | 'fail' | 'error' | 'running'
-
-function deriveGroupNamesFromFiles(files: Json | null): string[] {
-  if (!files || !Array.isArray(files)) {
-    return []
-  }
-
-  const groupNames = new Set<string>()
-
-  for (const entry of files) {
-    if (typeof entry !== 'string' || entry.trim().length === 0) {
-      continue
-    }
-
-    const [rawPath] = entry.split('@', 1)
-    if (!rawPath) {
-      continue
-    }
-
-    const sanitizedPath = rawPath.trim().replace(/\\/g, '/')
-    const segments = sanitizedPath.split('/').filter(Boolean)
-    if (segments.length === 0) {
-      continue
-    }
-
-    let group = segments[0]
-    if (
-      (segments[0] === 'apps' ||
-        segments[0] === 'packages' ||
-        segments[0] === 'services') &&
-      segments.length >= 2
-    ) {
-      group = `${segments[0]}/${segments[1]}`
-    } else if (segments[0] === 'src' && segments.length >= 2) {
-      group = `${segments[0]}/${segments[1]}`
-    }
-
-    groupNames.add(group)
-  }
-
-  return Array.from(groupNames)
-}
 
 export const storyRouter = router({
   listByRepo: protectedProcedure
@@ -127,7 +86,7 @@ export const storyRouter = router({
           story: story.story,
           createdAt: story.createdAt?.toISOString() ?? null,
           updatedAt: story.updatedAt?.toISOString() ?? null,
-          groups: deriveGroupNamesFromFiles(story.files as Json),
+          groups: [], // Files column removed - groups no longer derived from files
           latestStatus: latestStatuses.get(story.id)?.status ?? null,
           latestStatusAt:
             latestStatuses.get(story.id)?.createdAt?.toISOString() ?? null,
@@ -186,7 +145,6 @@ export const storyRouter = router({
           .default('')
           .describe('Generated if not provided.'),
         story: z.string().min(1),
-        files: z.array(z.string()).default([]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -209,7 +167,6 @@ export const storyRouter = router({
           repoId: repo.id,
           name: input.name,
           story: input.story,
-          files: input.files as unknown as Json,
         })
         .returningAll()
         .executeTakeFirstOrThrow()

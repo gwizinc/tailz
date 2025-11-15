@@ -368,10 +368,6 @@ export interface Story {
    */
   decomposition: Json | null;
   /**
-   * Array of file references in format ["path@startLine:endLine", ...]
-   */
-  files: Generated<Json>;
-  /**
    * Unique identifier for each story
    */
   id: Generated<string>;

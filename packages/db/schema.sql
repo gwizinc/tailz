@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eBxjEWVlnwsb6hH6qvqfFwSLNb1O45qGgqUqK5Z6piy81cm0gQtq4R4QprRGgG8
+\restrict zXGx4K5IOImFH2rH9ABZdzl6VcXNRs3JYRaraIdoywq0wonOnDmG6Ye8Epx9WYX
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
@@ -892,7 +892,6 @@ CREATE TABLE public.stories (
     repo_id uuid NOT NULL,
     name text NOT NULL,
     story text NOT NULL,
-    files jsonb DEFAULT '[]'::jsonb NOT NULL,
     decomposition jsonb,
     archived boolean DEFAULT false NOT NULL
 );
@@ -938,13 +937,6 @@ COMMENT ON COLUMN public.stories.name IS 'The title/name of the story';
 --
 
 COMMENT ON COLUMN public.stories.story IS 'The Gherkin story text';
-
-
---
--- Name: COLUMN stories.files; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.stories.files IS 'Array of file references in format ["path@startLine:endLine", ...]';
 
 
 --
@@ -1846,5 +1838,5 @@ ALTER TABLE ONLY public.story_test_results
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eBxjEWVlnwsb6hH6qvqfFwSLNb1O45qGgqUqK5Z6piy81cm0gQtq4R4QprRGgG8
+\unrestrict zXGx4K5IOImFH2rH9ABZdzl6VcXNRs3JYRaraIdoywq0wonOnDmG6Ye8Epx9WYX
 

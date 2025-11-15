@@ -130,7 +130,6 @@ export function StoryLoader({ orgName, repoName, storyId }: StoryLoaderProps) {
           repoName,
           name: storyName.trim() || undefined,
           story: storyContent,
-          files: [],
         })
       } else {
         // Build update payload with only changed fields
