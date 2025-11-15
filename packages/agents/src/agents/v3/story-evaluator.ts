@@ -14,7 +14,6 @@ import {
 } from '../../tools/context7-tool'
 import { createLspTool } from '../../tools/lsp-tool'
 import {
-  statusSchema,
   type Status,
   analysisSchema,
   type EvaluationAnalysisResult,
@@ -29,7 +28,7 @@ import { z } from 'zod'
  * Schema for agent output (step evaluation result)
  */
 const stepAgentOutputSchema = z.object({
-  conclusion: statusSchema,
+  conclusion: z.enum(['pass', 'fail']),
   outcome: z.string().min(1),
   assertions: z.array(
     z.object({
@@ -94,12 +93,12 @@ You must discover evidence by gathering, searching, and evaluating source code t
 - When verifying code, read 10-20 lines before and after a match to confirm context if needed.
 - Use \`resolveLibrary\` and \`getLibraryDocs\` only when local patterns are unclear: resolve the Context7 ID, fetch the docs, and apply them to your evaluation.
 - Extract only the **minimum viable snippet** that provides clear evidence, recording precise file paths and line ranges.
-- When status is not "running", you must provide analysis with an ordered evidence list showing exactly which files and line ranges support your conclusion.
 - Stop once you have enough verified evidence to reach a confident conclusion.
 - Explanation should clearly state why the story passes or fails. Use concise language that a human reviewer can follow quickly.
 - Keep it short, factual, and time-ordered.
 - Output summaries in Markdown format, embedded in the JSON object, so they render cleanly for humans.
 - Each response must be a JSON object that matches the required schema. Do not include explanations outside of JSON.
+- Evidence MUST NOT come from test files, e.g., \`src/tests/...\` or \`src/test-utils.ts\`.
 
 # Output Schema
 \`\`\`
@@ -181,20 +180,11 @@ async function combineStepResults(args: {
     }
   })
 
-  // Determine overall status based on step conclusions (priority order)
-  const statusPriority: Status[] = [
-    'error',
-    'running',
-    'skipped',
-    'fail',
-    'pass',
-  ]
-  const status =
-    statusPriority.find((s) =>
-      s === 'pass'
-        ? steps.every((step) => step.conclusion === s)
-        : steps.some((step) => step.conclusion === s),
-    ) ?? 'error'
+  // Determine overall status based on step conclusions
+  // Steps can only have 'pass' or 'fail' conclusions
+  const status: Status = steps.every((step) => step.conclusion === 'pass')
+    ? 'pass'
+    : 'fail'
 
   // Generate concise explanation using OpenAI
   const env = parseEnv()
@@ -203,23 +193,15 @@ async function combineStepResults(args: {
 
   const stepSummary = steps
     .map((step, idx) => {
-      const icon =
-        step.conclusion === 'pass'
-          ? '✅'
-          : step.conclusion === 'fail'
-            ? '❌'
-            : step.conclusion === 'error'
-              ? '⚠️'
-              : step.conclusion === 'running'
-                ? '⏳'
-                : '⏭️'
+      const icon = step.conclusion === 'pass' ? '✅' : '❌'
       return `${icon} Step ${idx + 1} (${step.conclusion}): ${step.outcome}`
     })
     .join('\n')
 
   const { text: explanation } = await generateText({
     model: openAiProvider(effectiveModelId),
-    prompt: `You are summarizing the results of a story evaluation. Provide a very concise (2-3 sentences max) summary of the evaluation state.
+    prompt: dedent`
+      You are summarizing the results of a story evaluation. Provide a very concise (2-3 sentences max) summary of the evaluation state.
 
 Overall Status: ${status}
 
@@ -266,6 +248,7 @@ async function agent(args: {
       getLibraryDocs: createGetLibraryDocsTool(),
       lsp: createLspTool({ sandbox }),
     },
+    toolChoice: 'required',
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'story-step-evaluation-v3',
@@ -291,11 +274,11 @@ async function agent(args: {
 
   const prompt = buildStepPrompt({ stepContext })
 
-  console.log('🌸 Step Prompt', { prompt })
-
   const result = await agent.generate({ prompt })
 
-  logger.debug(`🤖 Step ${stepContext.stepIndex + 1} Evaluation Result`, {
+  logger.log(`🌸 Step ${stepContext.stepIndex + 1} Evaluation Result`, {
+    stepContext,
+    prompt,
     result,
   })
 
@@ -306,7 +289,7 @@ async function agent(args: {
       `Step ${stepContext.stepIndex + 1} hit max steps (${maxStepsUsed}) without generating output`,
     )
     return {
-      conclusion: 'error' as const,
+      conclusion: 'fail' as const,
       outcome: `Evaluation stopped after reaching maximum steps (${maxStepsUsed}). The step may require more investigation or a higher step limit.`,
       assertions: [],
     }
