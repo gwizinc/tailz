@@ -5,7 +5,8 @@ import { agents, generateText } from '@app/agents'
 import { parseEnv } from '@app/config'
 import { createDaytonaSandbox } from '../helpers/daytona'
 import { getTelemetryTracer } from '@/telemetry'
-import type { DecompositionAgentResult } from 'node_modules/@app/agents/src/agents/v3/story-decomposition'
+import type { DecompositionAgentResult } from '@app/agents'
+import { invalidateCacheForStory } from '@app/cache'
 
 interface DecompositionPayload {
   /** A raw user story written in Gherkin or natural language */
@@ -71,13 +72,39 @@ The sentence should be clear, specific, and capture the essence of what the stor
 
       // Save decomposition results to the story record if story.id exists
       if (story.id) {
+        // Get existing decomposition to check if it changed
+        const existingStory = await db
+          .selectFrom('stories')
+          .select('decomposition')
+          .where('id', '=', story.id)
+          .executeTakeFirst()
+
+        const newDecomposition = JSON.stringify(decompositionResult)
+        const decompositionChanged =
+          !existingStory ||
+          existingStory.decomposition === null ||
+          JSON.stringify(existingStory.decomposition) !== newDecomposition
+
         await db
           .updateTable('stories')
           .set({
-            decomposition: JSON.stringify(decompositionResult),
+            decomposition: newDecomposition,
           })
           .where('id', '=', story.id)
           .execute()
+
+        // Invalidate cache if decomposition changed
+        if (decompositionChanged) {
+          // TODO we may not want to delete cache... not sure.
+          await invalidateCacheForStory({
+            db,
+            storyId: story.id,
+          })
+
+          logger.info('Invalidated cache due to decomposition change', {
+            storyId: story.id,
+          })
+        }
       }
 
       // Return the structured output

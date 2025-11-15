@@ -7,6 +7,8 @@ import type { RepoRecord, StoryRow } from './types'
 import { aggregateBatchResults, type AggregatedRunOutcome } from './results'
 import { testStoryTask } from '../test-story'
 import { createDaytonaSandbox } from '../../helpers/daytona'
+import { saveCachedEvidence, buildCacheDataFromEvaluation } from '@app/cache'
+import { logger } from '@trigger.dev/sdk'
 
 interface RunStoriesWithSandboxParams {
   repoRecord: RepoRecord
@@ -15,6 +17,7 @@ interface RunStoriesWithSandboxParams {
     ownerLogin: string
   }
   branchName: string
+  commitSha: string
   stories: StoryRow[]
   initialRunStories: RunStory[]
   runId: string
@@ -25,6 +28,7 @@ export async function runStoriesWithSandbox({
   repoRecord,
   repo,
   branchName,
+  commitSha,
   stories,
   initialRunStories,
   runId,
@@ -72,6 +76,9 @@ export async function runStoriesWithSandbox({
             {
               storyId: story.id,
               daytonaSandboxId: sandbox.id,
+              branchName,
+              commitSha,
+              runId,
             },
             {
               tags: [
@@ -102,6 +109,48 @@ export async function runStoriesWithSandbox({
               }))
               .where('id', '=', resultId)
               .execute()
+
+            // Save cache for successful evaluations
+            if (
+              agents.evaluation.options.cacheOptions?.enabled &&
+              evaluation.status === 'pass'
+            ) {
+              try {
+                const cacheData = await buildCacheDataFromEvaluation({
+                  evaluation,
+                  sandbox,
+                })
+
+                // Only save if we have cache data
+                if (
+                  Object.keys(cacheData.steps).length > 0 &&
+                  commitSha &&
+                  runId
+                ) {
+                  await saveCachedEvidence({
+                    db,
+                    branchName,
+                    storyId: story.id,
+                    commitSha,
+                    cacheData,
+                    runId,
+                  })
+
+                  logger.info('Saved cache for story', {
+                    storyId: story.id,
+                    branchName,
+                    commitSha,
+                    runId,
+                  })
+                }
+              } catch (error) {
+                // Log but don't fail the evaluation if cache save fails
+                logger.warn('Failed to save cache for story', {
+                  storyId: story.id,
+                  error: error instanceof Error ? error.message : String(error),
+                })
+              }
+            }
           } else {
             const failureDescription =
               taskResult.error &&

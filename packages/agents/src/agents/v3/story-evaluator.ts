@@ -19,7 +19,7 @@ import {
   analysisSchema,
   type EvaluationAnalysisResult,
 } from '@app/schemas'
-import type { evaluationAgentOptions } from '../schema'
+import type { evaluationAgentOptions } from '@app/schemas'
 import { logger } from '@trigger.dev/sdk'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { agents } from '../..'
@@ -162,8 +162,9 @@ async function combineStepResults(args: {
   decompositionSteps: DecompositionAgentResult
   analysisStepResults: StepAgentOutput[]
   modelId?: string // TODO implement this later
+  cachedRunIds?: Map<string, string> // Map of "stepIndex:assertionIndex" -> runId
 }): Promise<EvaluationAnalysisResult> {
-  const { decompositionSteps, analysisStepResults } = args
+  const { decompositionSteps, analysisStepResults, cachedRunIds } = args
 
   // Map decomposition steps with their corresponding analysis results
   const steps = decompositionSteps.steps.map((decompStep, index) => {
@@ -173,11 +174,23 @@ async function combineStepResults(args: {
     const outcome =
       decompStep.type === 'given' ? decompStep.given : decompStep.goal
 
+    // Add cachedFromRunId to assertions if they were cached
+    const assertions = analysisResult.assertions.map(
+      (assertion, assertionIndex) => {
+        const cacheKey = `${index}:${assertionIndex}`
+        const cachedRunId = cachedRunIds?.get(cacheKey)
+        return {
+          ...assertion,
+          ...(cachedRunId ? { cachedFromRunId: cachedRunId } : {}),
+        }
+      },
+    )
+
     return {
       type: decompStep.type,
       conclusion: analysisResult.conclusion,
       outcome,
-      assertions: analysisResult.assertions,
+      assertions,
     }
   })
 
@@ -298,6 +311,25 @@ export async function main(
   const { story, options } = payload
   const sandbox = await getDaytonaSandbox(options?.daytonaSandboxId ?? '')
 
+  // Cache entry and validation result are passed from test-story.ts
+  const cacheEntry = options?.cacheEntry ?? null
+  const validationResult = options?.validationResult ?? null
+  const cachedRunIds = new Map<string, string>() // Map of "stepIndex:assertionIndex" -> runId
+
+  if (cacheEntry && validationResult) {
+    if (validationResult.isValid) {
+      logger.info('Cache entry is valid, using cached results', {
+        storyId: story.id,
+      })
+    } else {
+      logger.info('Cache entry is invalid, will re-evaluate', {
+        storyId: story.id,
+        invalidSteps: validationResult.invalidSteps,
+        invalidAssertions: validationResult.invalidAssertions,
+      })
+    }
+  }
+
   // Get repository outline once for all steps
   const repoOutline = await sandbox.process.executeCommand(
     'tree -L 3 -I "dist|build|.git|.next|*.lock|*.log"',
@@ -310,7 +342,7 @@ export async function main(
 
   // Process each step sequentially
   const stepResults: StepAgentOutput[] = []
-  const steps = story.decomposition.steps
+  const steps = (story.decomposition as DecompositionAgentResult).steps
 
   for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
     const step = steps[stepIndex]
@@ -330,6 +362,82 @@ export async function main(
         },
       )
       continue
+    }
+
+    // Check if this step can use cached results
+    if (
+      cacheEntry &&
+      validationResult &&
+      agents.evaluation.options.cacheOptions?.enabled &&
+      options?.branchName &&
+      options?.runId
+    ) {
+      // Check if this step is valid in cache
+      const stepIsValid =
+        validationResult.isValid ||
+        !validationResult.invalidSteps.includes(stepIndex)
+
+      if (stepIsValid && step.type === 'requirement') {
+        // Check if all assertions for this step are cached and valid
+        const stepCacheData = cacheEntry.cacheData.steps[stepIndex.toString()]
+        if (stepCacheData) {
+          let allAssertionsCached = true
+          const cachedAssertions: StepAgentOutput['assertions'] = []
+
+          const stepAssertions = step.assertions || []
+          for (const [
+            assertionIndex,
+            stepAssertion,
+          ] of stepAssertions.entries()) {
+            const assertionCacheData =
+              stepCacheData.assertions[assertionIndex.toString()]
+
+            if (assertionCacheData) {
+              // Reconstruct evidence from cached file paths
+              const evidence: string[] = []
+              for (const filename of Object.keys(assertionCacheData)) {
+                // We don't have line ranges in cache, so we'll use just the filename
+                // This is acceptable since we're using cached results
+                evidence.push(filename)
+              }
+
+              cachedAssertions.push({
+                fact: stepAssertion || '',
+                evidence,
+              })
+
+              // Track which run this came from
+              if (cacheEntry.runId) {
+                cachedRunIds.set(
+                  `${stepIndex}:${assertionIndex}`,
+                  cacheEntry.runId,
+                )
+              }
+            } else {
+              allAssertionsCached = false
+              break
+            }
+          }
+
+          if (allAssertionsCached && cachedAssertions.length > 0) {
+            logger.info(
+              `Using cached results for step ${stepIndex + 1} of ${steps.length}`,
+              {
+                stepIndex,
+                runId: cacheEntry.runId,
+              },
+            )
+
+            const stepResult: StepAgentOutput = {
+              conclusion: 'pass',
+              outcome: step.goal,
+              assertions: cachedAssertions,
+            }
+            stepResults.push(stepResult)
+            continue
+          }
+        }
+      }
     }
 
     const stepContext: StepContext = {
@@ -362,9 +470,10 @@ export async function main(
 
   // Combine all step results into final evaluation
   const finalResult = await combineStepResults({
-    decompositionSteps: story.decomposition,
+    decompositionSteps: story.decomposition as DecompositionAgentResult,
     analysisStepResults: stepResults,
     modelId: options?.modelId,
+    cachedRunIds,
   })
 
   logger.debug('🤖 Evaluation Agent Final Result', {

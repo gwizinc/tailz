@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@app/agents": "workspace:*",
+    "@app/cache": "workspace:*",
     "@app/config": "workspace:*",
     "@app/db": "workspace:*",
     "@app/schemas": "workspace:*",

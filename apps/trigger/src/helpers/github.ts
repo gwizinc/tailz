@@ -88,8 +88,8 @@ export interface GitAuthor {
 }
 
 interface BranchDetails {
-  commitSha: string | null
-  commitMessage: string | null
+  commitSha: string
+  commitMessage: string
   gitAuthor: GitAuthor | null
 }
 

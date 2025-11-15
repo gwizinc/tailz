@@ -9,3 +9,4 @@ export type {
   StoryTestResultPayload,
   JSONValue,
 } from './column-types'
+export type { DB } from './types'

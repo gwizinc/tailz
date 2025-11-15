@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict E1SDW8LcBB0KUZFyogvvmIokCjtyxwjG3UGupctRvrlfGFLat3Wfk9lVcM7Dq7E
+\restrict eBxjEWVlnwsb6hH6qvqfFwSLNb1O45qGgqUqK5Z6piy81cm0gQtq4R4QprRGgG8
 
 -- Dumped from database version 16.10 (Postgres.app)
 -- Dumped by pg_dump version 16.10 (Postgres.app)
@@ -962,6 +962,85 @@ COMMENT ON COLUMN public.stories.archived IS 'Whether the story has been archive
 
 
 --
+-- Name: story_evidence_cache; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.story_evidence_cache (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    branch_name text NOT NULL,
+    story_id uuid NOT NULL,
+    commit_sha text NOT NULL,
+    cache_data jsonb NOT NULL,
+    run_id uuid
+);
+
+
+--
+-- Name: TABLE story_evidence_cache; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.story_evidence_cache IS 'Cache of file hashes for story evaluation evidence to avoid re-running CI when files unchanged';
+
+
+--
+-- Name: COLUMN story_evidence_cache.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.id IS 'Unique identifier for each cache entry';
+
+
+--
+-- Name: COLUMN story_evidence_cache.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.created_at IS 'The time when the cache entry was created';
+
+
+--
+-- Name: COLUMN story_evidence_cache.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.updated_at IS 'The time when the cache entry was last updated';
+
+
+--
+-- Name: COLUMN story_evidence_cache.branch_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.branch_name IS 'The branch name this cache entry is for';
+
+
+--
+-- Name: COLUMN story_evidence_cache.story_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.story_id IS 'FK to stories.id of the story this cache belongs to';
+
+
+--
+-- Name: COLUMN story_evidence_cache.commit_sha; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.commit_sha IS 'The commit SHA this cache entry is for - allows keeping cache from older states';
+
+
+--
+-- Name: COLUMN story_evidence_cache.cache_data; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.cache_data IS 'Nested structure: { steps: { "0": { assertions: { "0": { filename: hash } } } } }';
+
+
+--
+-- Name: COLUMN story_evidence_cache.run_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.story_evidence_cache.run_id IS 'FK to runs.id - metadata about which run produced this cache';
+
+
+--
 -- Name: story_test_results; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1353,6 +1432,14 @@ ALTER TABLE ONLY public.stories
 
 
 --
+-- Name: story_evidence_cache story_evidence_cache_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_evidence_cache
+    ADD CONSTRAINT story_evidence_cache_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: story_test_results story_test_results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1476,6 +1563,41 @@ CREATE INDEX stories_repo_id_idx ON public.stories USING btree (repo_id);
 
 
 --
+-- Name: story_evidence_cache_branch_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_evidence_cache_branch_name_idx ON public.story_evidence_cache USING btree (branch_name);
+
+
+--
+-- Name: story_evidence_cache_commit_sha_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_evidence_cache_commit_sha_idx ON public.story_evidence_cache USING btree (commit_sha);
+
+
+--
+-- Name: story_evidence_cache_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_evidence_cache_run_id_idx ON public.story_evidence_cache USING btree (run_id);
+
+
+--
+-- Name: story_evidence_cache_story_commit_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX story_evidence_cache_story_commit_unique_idx ON public.story_evidence_cache USING btree (story_id, commit_sha);
+
+
+--
+-- Name: story_evidence_cache_story_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX story_evidence_cache_story_id_idx ON public.story_evidence_cache USING btree (story_id);
+
+
+--
 -- Name: story_test_results_run_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1571,6 +1693,13 @@ CREATE TRIGGER set_timestamp_sessions BEFORE UPDATE ON public.sessions FOR EACH 
 --
 
 CREATE TRIGGER set_timestamp_stories BEFORE UPDATE ON public.stories FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
+-- Name: story_evidence_cache set_timestamp_story_evidence_cache; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER set_timestamp_story_evidence_cache BEFORE UPDATE ON public.story_evidence_cache FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
 
 
 --
@@ -1682,6 +1811,22 @@ ALTER TABLE ONLY public.stories
 
 
 --
+-- Name: story_evidence_cache story_evidence_cache_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_evidence_cache
+    ADD CONSTRAINT story_evidence_cache_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs(id) ON DELETE SET NULL;
+
+
+--
+-- Name: story_evidence_cache story_evidence_cache_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.story_evidence_cache
+    ADD CONSTRAINT story_evidence_cache_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
+
+
+--
 -- Name: story_test_results story_test_results_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1701,5 +1846,5 @@ ALTER TABLE ONLY public.story_test_results
 -- PostgreSQL database dump complete
 --
 
-\unrestrict E1SDW8LcBB0KUZFyogvvmIokCjtyxwjG3UGupctRvrlfGFLat3Wfk9lVcM7Dq7E
+\unrestrict eBxjEWVlnwsb6hH6qvqfFwSLNb1O45qGgqUqK5Z6piy81cm0gQtq4R4QprRGgG8
 

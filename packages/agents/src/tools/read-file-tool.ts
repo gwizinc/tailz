@@ -14,6 +14,30 @@ const readFileInputSchema = z.object({
     ),
 })
 
+export async function getFileContentFromSandbox(
+  sandbox: Sandbox,
+  path: string,
+): Promise<string> {
+  const workspacePath = resolveWorkspacePath(path)
+
+  if (!workspacePath) {
+    const message = 'File path must be within the current repository workspace.'
+    console.error(`📄 Failed to resolve file path`, {
+      inputPath: path,
+    })
+    return message
+  }
+
+  try {
+    const downloadedFile = await sandbox.fs.downloadFile(workspacePath)
+    const content = downloadedFile.toString('utf-8')
+    return content
+  } catch (error) {
+    console.error(`📄 Failed to read file`, { error })
+    throw error
+  }
+}
+
 export function createReadFileTool(ctx: { sandbox: Sandbox }) {
   return tool({
     name: 'readFile',
@@ -21,25 +45,7 @@ export function createReadFileTool(ctx: { sandbox: Sandbox }) {
       'Download and return the entire contents of a file from the Daytona sandbox workspace.',
     inputSchema: readFileInputSchema,
     execute: async (input) => {
-      const workspacePath = resolveWorkspacePath(input.path)
-
-      if (!workspacePath) {
-        const message =
-          'File path must be within the current repository workspace.'
-        console.error(`📄 Failed to resolve file path`, {
-          inputPath: input.path,
-        })
-        return message
-      }
-
-      try {
-        const downloadedFile = await ctx.sandbox.fs.downloadFile(workspacePath)
-        const content = downloadedFile.toString('utf-8')
-        return content
-      } catch (error) {
-        console.error(`📄 Failed to read file`, { error })
-        throw error
-      }
+      return await getFileContentFromSandbox(ctx.sandbox, input.path)
     },
   })
 }

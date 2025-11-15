@@ -13,6 +13,13 @@ export const statusSchema = z.enum([
 
 export type Status = z.infer<typeof statusSchema>
 
+// Agent types
+export type {
+  CacheEntry,
+  ValidationResult,
+  evaluationAgentOptions,
+} from './agent-types'
+
 /**
  * Schema for the evaluation agent output
  */
@@ -29,6 +36,7 @@ export const analysisSchema = z.object({
         z.object({
           fact: z.string().min(1),
           evidence: z.array(z.string().min(1)),
+          cachedFromRunId: z.string().optional(),
         }),
       ),
     }),

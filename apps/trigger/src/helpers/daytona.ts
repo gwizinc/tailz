@@ -1,4 +1,5 @@
 import { Daytona } from '@daytonaio/sdk'
+import type { Sandbox } from '@daytonaio/sdk'
 import { parseEnv } from '@app/config'
 import { getOctokitClient } from './github'
 
@@ -59,4 +60,31 @@ export async function createDaytonaSandbox(
   )
 
   return sandbox
+}
+
+/**
+ * Retrieves all commit SHAs from the current branch in the sandbox
+ * @param sandbox - The Daytona sandbox instance
+ * @returns Array of commit SHAs (latest first), or null if git log fails
+ */
+export async function getCommitSHAsFromSandbox(
+  sandbox: Sandbox,
+): Promise<string[] | null> {
+  const gitLogResult = await sandbox.process.executeCommand(
+    'git log --pretty=format:"%H"',
+    'workspace/repo',
+  )
+
+  if (gitLogResult.exitCode !== 0) {
+    return null
+  }
+
+  // Parse commit SHAs from git log output
+  const gitLogOutput = gitLogResult.result ?? ''
+  const commitSHAs = gitLogOutput
+    .split('\n')
+    .map((sha: string) => sha.trim())
+    .filter((sha: string) => sha.length > 0)
+
+  return commitSHAs
 }

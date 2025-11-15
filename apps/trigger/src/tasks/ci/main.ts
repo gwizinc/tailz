@@ -1,7 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { setupDb } from '@app/db'
 import { parseEnv } from '@app/config'
-import { getOctokitClient } from '../../helpers/github'
+import { getGithubBranchDetails, getOctokitClient } from '../../helpers/github'
 import {
   buildCheckRunBase,
   completeCheckRunFailure,
@@ -13,7 +13,6 @@ import {
   buildInitialRunStories,
   buildRunDetailsUrl,
   createRunRecord,
-  fetchBranchDetails,
   getBranchName,
   getInitialRunMeta,
   getRepoRecord,
@@ -43,11 +42,14 @@ export const runCiTask = task({
 
     const { repo, octokit } = await getOctokitClient(repoRecord.repoId)
 
-    const { commitSha, commitMessage, gitAuthor } = await fetchBranchDetails(
-      octokit,
-      repoRecord,
-      branchName,
-    )
+    // commitSha is latest on that branch
+    // TODO we may need to provide as an argument to the task
+    const { commitSha, commitMessage, gitAuthor } =
+      await getGithubBranchDetails(octokit, {
+        owner: repoRecord.ownerLogin,
+        repo: repoRecord.repoName,
+        branch: branchName,
+      })
 
     const runInsert = await createRunRecord({
       db,
@@ -117,6 +119,7 @@ export const runCiTask = task({
         repoRecord,
         repo,
         branchName,
+        commitSha,
         stories,
         initialRunStories,
         runId,

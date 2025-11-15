@@ -1,8 +1,6 @@
-import type { Octokit } from '@octokit/rest'
-import { logger } from '@trigger.dev/sdk'
 import { sql } from '@app/db'
 import type { RunStory } from '@app/db'
-import { getGithubBranchDetails, type GitAuthor } from '../../helpers/github'
+import type { GitAuthor } from '../../helpers/github'
 import type {
   DbClient,
   RepoRecord,
@@ -79,36 +77,6 @@ export function getInitialRunMeta(stories: StoryRow[]): {
   return {
     runStatus: 'running',
     runSummary: null,
-  }
-}
-
-export async function fetchBranchDetails(
-  octokit: Octokit,
-  repoRecord: RepoRecord,
-  branchName: string,
-): Promise<{
-  commitSha: string | null
-  commitMessage: string | null
-  gitAuthor: GitAuthor | null
-}> {
-  try {
-    return await getGithubBranchDetails(octokit, {
-      owner: repoRecord.ownerLogin,
-      repo: repoRecord.repoName,
-      branch: branchName,
-    })
-  } catch (error) {
-    logger.warn('Failed to fetch branch commit details', {
-      repoId: repoRecord.repoId,
-      branchName,
-      error,
-    })
-
-    return {
-      commitSha: null,
-      commitMessage: null,
-      gitAuthor: null,
-    }
   }
 }
 

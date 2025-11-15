@@ -14,6 +14,9 @@
       "path": "./packages/api/tsconfig.json"
     },
     {
+      "path": "./packages/cache/tsconfig.json"
+    },
+    {
       "path": "./packages/config/tsconfig.json"
     },
     {

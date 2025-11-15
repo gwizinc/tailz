@@ -8,5 +8,15 @@
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"],
-  "references": []
+  "references": [
+    {
+      "path": "../agents/tsconfig.json"
+    },
+    {
+      "path": "../db/tsconfig.json"
+    },
+    {
+      "path": "../schemas/tsconfig.json"
+    }
+  ]
 }

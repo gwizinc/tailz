@@ -393,6 +393,41 @@ export interface Story {
   updatedAt: Generated<Timestamp | null>;
 }
 
+export interface StoryEvidenceCache {
+  /**
+   * The branch name this cache entry is for
+   */
+  branchName: string;
+  /**
+   * Nested structure: { steps: { "0": { assertions: { "0": { filename: hash } } } } }
+   */
+  cacheData: Json;
+  /**
+   * The commit SHA this cache entry is for - allows keeping cache from older states
+   */
+  commitSha: string;
+  /**
+   * The time when the cache entry was created
+   */
+  createdAt: Generated<Timestamp | null>;
+  /**
+   * Unique identifier for each cache entry
+   */
+  id: Generated<string>;
+  /**
+   * FK to runs.id - metadata about which run produced this cache
+   */
+  runId: string | null;
+  /**
+   * FK to stories.id of the story this cache belongs to
+   */
+  storyId: string;
+  /**
+   * The time when the cache entry was last updated
+   */
+  updatedAt: Generated<Timestamp | null>;
+}
+
 export interface StoryTestResult {
   /**
    * Versioned story analysis payload containing conclusion, evidence, and explanation.
@@ -520,6 +555,7 @@ export interface DB {
   runs: Run;
   sessions: Session;
   stories: Story;
+  storyEvidenceCache: StoryEvidenceCache;
   storyTestResults: StoryTestResult;
   users: User;
   verifications: Verification;
