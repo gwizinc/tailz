@@ -35,6 +35,7 @@ export async function createDaytonaSandbox(
   const sandbox = await daytona.create({
     ephemeral: true,
     autoArchiveInterval: 1, // 1 minute of no activity will kill the box
+    language: 'typescript',
     labels: {
       'kyoto.repoId': params.repoId,
       'kyoto.slug': slug,
