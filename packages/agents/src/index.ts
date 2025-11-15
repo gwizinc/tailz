@@ -35,7 +35,7 @@ export const agents = {
     run: runDecompositionAgent,
     options: {
       maxSteps: 15, // typically ends in 3-5 steps
-      model: model('openai', 'gpt-5.1-mini'),
+      model: model('openai', 'gpt-5-mini'),
     },
   },
   evaluation: {
@@ -45,7 +45,7 @@ export const agents = {
     run: main,
     options: {
       maxSteps: 50,
-      model: model('openrouter', 'openai/gpt-5.1-mini'),
+      model: model('openrouter', 'openai/gpt-5.1-codex-mini'),
     },
   },
 } as const
