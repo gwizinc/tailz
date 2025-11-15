@@ -14,8 +14,6 @@ import {
   type DecompositionOutput,
 } from '@app/schemas'
 
-// Re-export for backward compatibility
-export { decompositionOutputSchema }
 export type DecompositionAgentResult = DecompositionOutput
 
 type DecompositionAgentOptions = {

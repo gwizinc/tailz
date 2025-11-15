@@ -9,44 +9,50 @@ Raw Story → Decomposition → Test/Evaluation → Cache
 ```
 
 ### 1. Raw Story
+
 **Input**: User-provided story text in Gherkin or natural language
 
 ```typescript
 import { rawStoryInputSchema, type RawStoryInput } from '@app/schemas'
 
 const story: RawStoryInput = {
-  text: "Feature: User Login\n  As a user...",
-  title: "User Login Story",
-  files: ["src/auth/login.ts:1-50"]
+  text: 'Feature: User Login\n  As a user...',
+  title: 'User Login Story',
+  files: ['src/auth/login.ts:1-50'],
 }
 ```
 
 ### 2. Decomposition
+
 **Input**: Raw story text  
 **Output**: Structured steps (given preconditions + requirements with assertions)
 
 ```typescript
-import { decompositionOutputSchema, type DecompositionOutput } from '@app/schemas'
+import {
+  decompositionOutputSchema,
+  type DecompositionOutput,
+} from '@app/schemas'
 
 const decomposition: DecompositionOutput = {
   steps: [
     {
-      type: "given",
-      given: "The user is logged in"
+      type: 'given',
+      given: 'The user is logged in',
     },
     {
-      type: "requirement",
-      goal: "User can create a new team",
+      type: 'requirement',
+      goal: 'User can create a new team',
       assertions: [
-        "The user can create a new team",
-        "The new team appears in the user's team list"
-      ]
-    }
-  ]
+        'The user can create a new team',
+        "The new team appears in the user's team list",
+      ],
+    },
+  ],
 }
 ```
 
 ### 3. Test/Evaluation
+
 **Input**: Raw story + Decomposition  
 **Output**: Evaluation results with evidence for each step
 
@@ -55,25 +61,26 @@ import { evaluationOutputSchema, type EvaluationOutput } from '@app/schemas'
 
 const evaluation: EvaluationOutput = {
   version: 3,
-  status: "pass",
-  explanation: "All steps were successfully verified...",
+  status: 'pass',
+  explanation: 'All steps were successfully verified...',
   steps: [
     {
-      type: "requirement",
-      conclusion: "pass",
-      outcome: "User can create a new team",
+      type: 'requirement',
+      conclusion: 'pass',
+      outcome: 'User can create a new team',
       assertions: [
         {
-          fact: "The user can create a new team",
-          evidence: ["src/teams/create.ts:45-67"]
-        }
-      ]
-    }
-  ]
+          fact: 'The user can create a new team',
+          evidence: ['src/teams/create.ts:45-67'],
+        },
+      ],
+    },
+  ],
 }
 ```
 
 ### 4. Cache
+
 **Input**: Evaluation results (passing assertions only)  
 **Output**: File hashes organized by step and assertion
 
@@ -82,15 +89,15 @@ import { cacheDataSchema, type CacheData } from '@app/schemas'
 
 const cacheData: CacheData = {
   steps: {
-    "0": {
+    '0': {
       assertions: {
-        "0": {
-          "src/auth/session.ts": "sha256:abc123...",
-          "src/auth/middleware.ts": "sha256:def456..."
-        }
-      }
-    }
-  }
+        '0': {
+          'src/auth/session.ts': 'sha256:abc123...',
+          'src/auth/middleware.ts': 'sha256:def456...',
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -160,15 +167,18 @@ function processStory(story: RawStoryInput): DecompositionOutput {
 ## Schema Reference
 
 ### Raw Story Schemas
+
 - `rawStoryInputSchema` - User input validation
 - `rawStorySchema` - Database storage format
 
 ### Decomposition Schemas
+
 - `decompositionStepSchema` - Single step (given or requirement)
 - `decompositionOutputSchema` - Complete decomposition result
 - `decompositionInputSchema` - Input to decomposition agent
 
 ### Evaluation Schemas
+
 - `testStatusSchema` - Test status enum
 - `assertionEvidenceSchema` - Evidence for a single assertion
 - `stepEvaluationSchema` - Evaluation result for a single step
@@ -176,6 +186,7 @@ function processStory(story: RawStoryInput): DecompositionOutput {
 - `evaluationInputSchema` - Input to evaluation agent
 
 ### Cache Schemas
+
 - `cacheDataSchema` - Cache data structure
 - `cacheEntrySchema` - Complete cache entry
 - `cacheValidationResultSchema` - Cache validation result
@@ -201,4 +212,3 @@ All types are exported directly from the main package:
 - `DecompositionOutput` - Decomposition output type
 
 See the main exports in `src/index.ts` for the complete list.
-

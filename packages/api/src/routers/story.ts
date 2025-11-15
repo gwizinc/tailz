@@ -10,7 +10,7 @@ import {
   requireRepoForUser,
 } from '../helpers/memberships'
 import { protectedProcedure, router } from '../trpc'
-import { type TestStatus } from '@app/schemas'
+import type { TestStatus } from '@app/schemas'
 
 export const storyRouter = router({
   listByRepo: protectedProcedure

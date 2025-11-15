@@ -6,6 +6,9 @@
   "references": [
     {
       "path": "../db/tsconfig.json"
+    },
+    {
+      "path": "../schemas/tsconfig.json"
     }
   ]
 }
