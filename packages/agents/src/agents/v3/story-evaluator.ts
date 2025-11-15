@@ -4,11 +4,9 @@ import {
   stepCountIs,
   generateText,
 } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import type { DecompositionAgentResult } from './story-decomposition'
 import dedent from 'dedent'
 
-import { parseEnv } from '@app/config'
 import { getDaytonaSandbox } from '../../helpers/daytona'
 import { createTerminalCommandTool } from '../../tools/terminal-command-tool'
 import { createReadFileTool } from '../../tools/read-file-tool'
@@ -164,9 +162,9 @@ function buildStepPrompt({
 async function combineStepResults(args: {
   decompositionSteps: DecompositionAgentResult
   analysisStepResults: StepAgentOutput[]
-  modelId?: string
+  modelId?: string // TODO implement this later
 }): Promise<EvaluationAnalysisResult> {
-  const { decompositionSteps, analysisStepResults, modelId } = args
+  const { decompositionSteps, analysisStepResults } = args
 
   // Map decomposition steps with their corresponding analysis results
   const steps = decompositionSteps.steps.map((decompStep, index) => {
@@ -190,11 +188,6 @@ async function combineStepResults(args: {
     ? 'pass'
     : 'fail'
 
-  // Generate concise explanation using OpenAI
-  const env = parseEnv()
-  const openAiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY })
-  const effectiveModelId = modelId ?? agents.evaluation.options.model
-
   const stepSummary = steps
     .map((step, idx) => {
       const icon = step.conclusion === 'pass' ? '✅' : '❌'
@@ -202,8 +195,9 @@ async function combineStepResults(args: {
     })
     .join('\n')
 
+  // Generate concise explanation using OpenAI
   const { text: explanation } = await generateText({
-    model: openAiProvider(effectiveModelId),
+    model: agents.evaluation.options.model,
     prompt: dedent`
       You are summarizing the results of a story evaluation. Provide a very concise (2-3 sentences max) summary of the evaluation state.
 
@@ -212,7 +206,8 @@ Overall Status: ${status}
 Step Results:
 ${stepSummary}
 
-Provide a brief, user-friendly explanation of what this evaluation found. Focus on the key outcomes and any issues.`,
+      Provide a brief, user-friendly explanation of what this evaluation found. Focus on the key outcomes and any issues.
+    `,
   })
 
   return analysisSchema.parse({

@@ -319,10 +319,6 @@ importers:
       zod-to-json-schema:
         specifier: ^3.24.6
         version: 3.24.6(zod@3.25.76)
-    devDependencies:
-      tsx:
-        specifier: ^4.19.2
-        version: 4.20.6
 
   packages/api:
     dependencies:
@@ -13299,6 +13295,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.25.12
       '@esbuild/win32-ia32': 0.25.12
       '@esbuild/win32-x64': 0.25.12
+    optional: true
 
   escalade@3.2.0: {}
 
@@ -16336,6 +16333,7 @@ snapshots:
       get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   tsyringe@4.10.0:
     dependencies:
