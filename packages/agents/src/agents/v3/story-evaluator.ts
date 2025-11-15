@@ -233,7 +233,7 @@ async function agent(args: {
 
   const agent = new Agent({
     model: agents.evaluation.options.model,
-    instructions: buildEvaluationInstructions(stepContext.repoOutline),
+    system: buildEvaluationInstructions(stepContext.repoOutline),
     tools: {
       terminalCommand: createTerminalCommandTool({ sandbox }),
       readFile: createReadFileTool({ sandbox }),
@@ -263,7 +263,7 @@ async function agent(args: {
     stopWhen: stepCountIs(
       options?.maxSteps ?? agents.evaluation.options.maxSteps,
     ),
-    output: Output.object({ schema: stepAgentOutputSchema }),
+    experimental_output: Output.object({ schema: stepAgentOutputSchema }),
   })
 
   const prompt = buildStepPrompt({ stepContext })
@@ -277,7 +277,7 @@ async function agent(args: {
   })
 
   // Handle case where agent hit max steps without generating output
-  if (!result.output) {
+  if (!result.experimental_output) {
     const maxStepsUsed = options?.maxSteps ?? agents.evaluation.options.maxSteps
     logger.warn(
       `Step ${stepContext.stepIndex + 1} hit max steps (${maxStepsUsed}) without generating output`,
@@ -289,7 +289,7 @@ async function agent(args: {
     }
   }
 
-  return result.output
+  return result.experimental_output
 }
 
 export async function main(
@@ -355,9 +355,9 @@ export async function main(
 
     // Early exit if a critical step fails
     // TODO: Determine if we should continue or stop on failure
-    if (stepResult.conclusion === 'error') {
-      logger.warn(`Step ${stepIndex + 1} encountered an error, continuing...`)
-    }
+    // if (stepResult.conclusion === 'error') {
+    //   logger.warn(`Step ${stepIndex + 1} encountered an error, continuing...`)
+    // }
   }
 
   // Combine all step results into final evaluation

@@ -136,9 +136,8 @@ export async function runDecompositionAgent({
   const sandbox = await getDaytonaSandbox(options.daytonaSandboxId)
 
   const agent = new Agent({
-    id: 'story-decomposition-v3',
     model: agents.decomposition.options.model,
-    instructions: buildDecompositionInstructions(),
+    system: buildDecompositionInstructions(),
     tools: {
       terminalCommand: createTerminalCommandTool({ sandbox }),
       readFile: createReadFileTool({ sandbox }),
@@ -160,7 +159,7 @@ export async function runDecompositionAgent({
     stopWhen: stepCountIs(
       options.maxSteps ?? agents.decomposition.options.maxSteps,
     ),
-    output: Output.object({ schema: decompositionOutputSchema }),
+    experimental_output: Output.object({ schema: decompositionOutputSchema }),
   })
 
   const prompt = buildDecompositionPrompt(story.text)
@@ -169,5 +168,5 @@ export async function runDecompositionAgent({
 
   logger.debug('🤖 Story Decomposition Agent Result', { result })
 
-  return result.output
+  return result.experimental_output
 }

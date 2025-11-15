@@ -59,6 +59,9 @@
       "outputs": [],
       "dependsOn": ["^build"],
       "cache": true
+    },
+    "clean": {
+      "cache": false
     }
   }
 }
