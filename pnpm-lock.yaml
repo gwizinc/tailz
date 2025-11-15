@@ -77,6 +77,9 @@ importers:
       '@trigger.dev/sdk':
         specifier: 4.1.0
         version: 4.1.0(ai@5.0.93(zod@4.1.12))(bufferutil@4.0.9)(typescript@5.9.3)(zod@4.1.12)
+      import-in-the-middle:
+        specifier: ^2.0.0
+        version: 2.0.0
       p-map:
         specifier: ^7.0.4
         version: 7.0.4
@@ -316,6 +319,10 @@ importers:
       zod-to-json-schema:
         specifier: ^3.24.6
         version: 3.24.6(zod@3.25.76)
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.6
 
   packages/api:
     dependencies:
@@ -13292,7 +13299,6 @@ snapshots:
       '@esbuild/win32-arm64': 0.25.12
       '@esbuild/win32-ia32': 0.25.12
       '@esbuild/win32-x64': 0.25.12
-    optional: true
 
   escalade@3.2.0: {}
 
@@ -13321,7 +13327,7 @@ snapshots:
 
   eslint-import-context@0.1.9(unrs-resolver@1.11.1):
     dependencies:
-      get-tsconfig: 4.12.0
+      get-tsconfig: 4.13.0
       stable-hash-x: 0.2.0
     optionalDependencies:
       unrs-resolver: 1.11.1
@@ -13762,7 +13768,6 @@ snapshots:
   get-tsconfig@4.13.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
-    optional: true
 
   git-diff@2.0.6:
     dependencies:
@@ -16331,7 +16336,6 @@ snapshots:
       get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
-    optional: true
 
   tsyringe@4.10.0:
     dependencies:
