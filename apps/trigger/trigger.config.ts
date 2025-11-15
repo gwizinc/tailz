@@ -1,4 +1,4 @@
-import { defineConfig } from '@trigger.dev/sdk'
+import { defineConfig, tasks } from '@trigger.dev/sdk'
 import {
   esbuildPlugin,
   type BuildExtension,
@@ -16,8 +16,8 @@ export default defineConfig({
     extensions: [
       esbuildPlugin(
         sentryEsbuildPlugin({
-          org: '<your-sentry-org>',
-          project: '<your-sentry-project>',
+          org: 'kyoto',
+          project: 'trigger',
           // Find this auth token in settings -> developer settings -> auth tokens
           authToken: process.env.SENTRY_AUTH_TOKEN,
         }),
@@ -51,4 +51,11 @@ export default defineConfig({
   },
   // Max duration for all tasks (in seconds)
   maxDuration: 60 * 15, // 15 minute
+})
+
+tasks.onStart(({ ctx }) => {
+  const sha = ctx.deployment?.git?.commitSha
+  if (sha) {
+    Sentry.setTag('release', sha)
+  }
 })
